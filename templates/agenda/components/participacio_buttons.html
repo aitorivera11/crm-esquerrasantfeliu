@@ -1,0 +1,38 @@
+<div class="grid">
+    <div class="actions">
+        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
+            {% csrf_token %}
+            <input type="hidden" name="intencio" value="HI_ANIRE">
+            <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
+            <button class="btn btn-success" type="submit">✅ Hi aniré</button>
+        </form>
+        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
+            {% csrf_token %}
+            <input type="hidden" name="intencio" value="POTSER">
+            <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
+            <button class="btn btn-warning" type="submit">🤔 Potser</button>
+        </form>
+        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
+            {% csrf_token %}
+            <input type="hidden" name="intencio" value="NO_HI_ANIRE">
+            <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
+            <button class="btn btn-danger" type="submit">❌ No hi aniré</button>
+        </form>
+    </div>
+    {% if participacio %}
+        <p>
+            Estat actual:
+            {% if participacio.intencio == 'HI_ANIRE' %}<span class="badge badge-success">{{ participacio.get_intencio_display }}</span>
+            {% elif participacio.intencio == 'POTSER' %}<span class="badge badge-warning">{{ participacio.get_intencio_display }}</span>
+            {% else %}<span class="badge badge-danger">{{ participacio.get_intencio_display }}</span>{% endif %}
+        </p>
+        <p>Assistència real: {{ participacio.get_assistencia_real_display }}</p>
+        <p>Observacions: {{ participacio.observacions|default:'Sense observacions' }}</p>
+    {% else %}
+        <p>Encara no has indicat si vindràs.</p>
+    {% endif %}
+    <details>
+        <summary>Afegir o editar observacions</summary>
+        {% include 'agenda/components/participacio_form.html' with form=participacio_form|default_if_none:'' acte=acte %}
+    </details>
+</div>

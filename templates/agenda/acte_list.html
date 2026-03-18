@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Agenda{% endblock %}
+{% block content %}
+<section>
+    <h1>Agenda de campanya</h1>
+    <p>Llistat ràpid d'actes municipals amb estat de participació visible d'un cop d'ull.</p>
+    <div class="grid grid-2">
+        {% for acte in actes %}
+            {% include 'agenda/components/acte_card.html' %}
+        {% empty %}
+            <div class="card"><p>No hi ha actes creats encara.</p></div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
