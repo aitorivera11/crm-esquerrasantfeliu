@@ -1,19 +1,19 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "config/wsgi.py",
-      "use": "@vercel/python"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput",
+  "functions": {
+    "wsgi.py": {
+      "excludeFiles": "{staticfiles/**,.git/**,__pycache__/**}"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "source": "/static/(.*)",
+      "destination": "/static/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "config/wsgi.py"
+      "source": "/(.*)",
+      "destination": "/wsgi.py"
     }
   ],
   "env": {
