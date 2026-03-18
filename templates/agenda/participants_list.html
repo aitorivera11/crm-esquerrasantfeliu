@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <h1>Participants · {{ acte.titol }}</h1>
+    <p>Diferència clara entre intenció prèvia i assistència real.</p>
+</div>
+{% for participant in acte.participants.all %}
+<div class="card">
+    <strong>{{ participant.usuari.nom_complet|default:participant.usuari.username }}</strong>
+    <p>Intenció: {{ participant.get_intencio_display }}</p>
+    <p>Assistència real: {{ participant.get_assistencia_real_display }}</p>
+    <p>Observacions: {{ participant.observacions|default:'—' }}</p>
+    {% if perms.agenda.can_mark_attendance %}
+    <form method="post" action="{% url 'agenda:marcar_assistencia' acte.pk participant.pk %}" class="actions">
+        {% csrf_token %}
+        <button class="btn btn-success" name="assistencia_real" value="ASSISTEIX">Ha vingut</button>
+        <button class="btn btn-danger" name="assistencia_real" value="NO_ASSISTEIX">No ha vingut</button>
+        <button class="btn btn-muted" name="assistencia_real" value="PENDENT">Pendent</button>
+    </form>
+    {% endif %}
+</div>
+{% empty %}
+<div class="card"><p>Encara no hi ha participants registrats.</p></div>
+{% endfor %}
+{% endblock %}
