@@ -1,24 +1,30 @@
 {% extends 'base.html' %}
 {% block title %}{{ acte.titol }}{% endblock %}
+{% block page_title %}Detall de l'acte{% endblock %}
 {% block content %}
-<article class="card">
-    <div class="actions" style="justify-content:space-between;align-items:start;">
-        <div>
-            <h1>{{ acte.titol }}</h1>
-            <p><strong>Quan:</strong> {{ acte.inici|date:'d/m/Y H:i' }}</p>
-            <p><strong>On:</strong> {{ acte.ubicacio }}</p>
-            <p>{{ acte.descripcio|linebreaks }}</p>
-        </div>
-        <div class="actions">
-            {% if perms.agenda.change_acte %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar acte</a>{% endif %}
-            {% if perms.agenda.can_view_participants %}<a class="btn btn-muted" href="{% url 'agenda:participants_list' acte.pk %}">Veure participants</a>{% endif %}
-        </div>
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <article class="card card-panel h-100">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                <div>
+                    <p class="eyebrow">Acte de campanya</p>
+                    <h2 class="h3 mb-2">{{ acte.titol }}</h2>
+                    <div class="text-muted">{{ acte.inici|date:'d/m/Y H:i' }} · {{ acte.ubicacio }}</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if perms.agenda.change_acte %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar acte</a>{% endif %}
+                    {% if perms.agenda.can_view_participants %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
+                </div>
+            </div>
+            <div class="text-muted">{{ acte.descripcio|linebreaks }}</div>
+        </article>
     </div>
-</article>
-<section class="card">
-    <h2>La meva participació</h2>
-    <div id="participacio-area">
-        {% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}
+    <div class="col-12 col-xl-4">
+        <section class="card card-panel h-100">
+            <h3 class="h5">La meva participació</h3>
+            <p class="text-muted">Indica la teva disponibilitat i deixa observacions si cal.</p>
+            <div id="participacio-area">{% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}</div>
+        </section>
     </div>
-</section>
+</div>
 {% endblock %}

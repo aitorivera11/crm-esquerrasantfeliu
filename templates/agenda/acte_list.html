@@ -1,15 +1,21 @@
 {% extends 'base.html' %}
 {% block title %}Agenda{% endblock %}
+{% block page_title %}Agenda{% endblock %}
 {% block content %}
-<section>
-    <h1>Agenda de campanya</h1>
-    <p>Llistat ràpid d'actes municipals amb estat de participació visible d'un cop d'ull.</p>
-    <div class="grid grid-2">
-        {% for acte in actes %}
-            {% include 'agenda/components/acte_card.html' %}
-        {% empty %}
-            <div class="card"><p>No hi ha actes creats encara.</p></div>
-        {% endfor %}
+<section class="card card-panel mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h2 class="h4 mb-1">Agenda de campanya</h2>
+            <p class="text-muted mb-0">Consulta els actes previstos i l'estat general de participació.</p>
+        </div>
+        {% if perms.agenda.add_acte %}<a class="btn btn-primary" href="{% url 'agenda:acte_create' %}">Nou acte</a>{% endif %}
     </div>
+</section>
+<section class="row g-4">
+    {% for acte in actes %}
+        <div class="col-12 col-md-6 col-xxl-4">{% include 'agenda/components/acte_card.html' %}</div>
+    {% empty %}
+        <div class="col-12">{% include 'components/empty_state.html' with icon='📅' title='No hi ha actes creats' message='Quan comencis a planificar actes municipals apareixeran aquí.' action_url='/agenda/nou/' action_label='Crear acte' %}</div>
+    {% endfor %}
 </section>
 {% endblock %}

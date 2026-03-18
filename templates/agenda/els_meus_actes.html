@@ -1,16 +1,23 @@
 {% extends 'base.html' %}
+{% block title %}Els meus actes{% endblock %}
+{% block page_title %}Els meus actes{% endblock %}
 {% block content %}
-<div class="card">
-    <h1>Els meus actes</h1>
-    <p>Seguiment ràpid dels actes on t'has posicionat.</p>
-</div>
+<section class="card card-panel mb-4">
+    <h2 class="h4 mb-1">Seguiment personal</h2>
+    <p class="text-muted mb-0">Consulta els actes on ja has indicat disponibilitat.</p>
+</section>
+<div class="row g-4">
 {% for participacio in participacions %}
-<div class="card">
-    <a href="{% url 'agenda:acte_detail' participacio.acte.pk %}"><strong>{{ participacio.acte.titol }}</strong></a>
-    <p>{{ participacio.acte.inici|date:'d/m/Y H:i' }} · {{ participacio.acte.ubicacio }}</p>
-    <p>Intenció: {{ participacio.get_intencio_display }} · Assistència real: {{ participacio.get_assistencia_real_display }}</p>
-</div>
+    <div class="col-12 col-lg-6">
+        <article class="card card-panel h-100">
+            <a class="text-decoration-none" href="{% url 'agenda:acte_detail' participacio.acte.pk %}"><strong>{{ participacio.acte.titol }}</strong></a>
+            <p class="text-muted mb-2">{{ participacio.acte.inici|date:'d/m/Y H:i' }} · {{ participacio.acte.ubicacio }}</p>
+            <div><strong>Intenció:</strong> {{ participacio.get_intencio_display }}</div>
+            <div><strong>Assistència real:</strong> {{ participacio.get_assistencia_real_display }}</div>
+        </article>
+    </div>
 {% empty %}
-<div class="card"><p>Encara no t'has apuntat a cap acte.</p></div>
+    <div class="col-12">{% include 'components/empty_state.html' with icon='🗓️' title='Encara no t’has apuntat a cap acte' message='Quan responguis a un acte el veuràs resumit aquí.' action_url='/agenda/' action_label='Veure agenda' %}</div>
 {% endfor %}
+</div>
 {% endblock %}

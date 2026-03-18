@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Usuari{% endblock %}
+{% block page_title %}{% if object %}Editar usuari{% else %}Nou usuari{% endif %}{% endblock %}
+{% block content %}
+<section class="card card-panel form-narrow">
+    <div class="mb-3">
+        <h2 class="h4 mb-1">{% if object %}Editar usuari{% else %}Crear usuari{% endif %}</h2>
+        <p class="text-muted mb-0">Gestiona dades bàsiques, rol i estat d'accés.</p>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        {% include 'components/form_fields.html' with form=form %}
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-primary">Desar</button>
+            <a href="{% url 'usuaris:admin_usuari_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

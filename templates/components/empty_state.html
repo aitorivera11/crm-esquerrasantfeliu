@@ -1,0 +1,6 @@
+<div class="empty-state card card-panel text-center p-5">
+    <div class="empty-state-icon mb-3">{{ icon|default:'•' }}</div>
+    <h3 class="h5">{{ title }}</h3>
+    <p class="text-muted mb-3">{{ message }}</p>
+    {% if action_url and action_label %}<a href="{{ action_url }}" class="btn btn-primary">{{ action_label }}</a>{% endif %}
+</div>

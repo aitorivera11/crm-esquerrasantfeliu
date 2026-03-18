@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Accés denegat{% endblock %}
+{% block page_title %}Accés denegat{% endblock %}
+{% block content %}
+<section class="card card-panel p-5 text-center">
+    <p class="eyebrow">Permisos insuficients</p>
+    <h2>No tens accés a aquesta pàgina.</h2>
+    <p class="text-muted">Si creus que és un error, contacta amb una persona administradora de la campanya.</p>
+    <div class="d-flex gap-2 justify-content-center">
+        <a href="{% url 'core:home' %}" class="btn btn-primary">Tornar al dashboard</a>
+        <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">Veure el meu perfil</a>
+    </div>
+</section>
+{% endblock %}

@@ -1,38 +1,35 @@
-<div class="grid">
-    <div class="actions">
+<div class="d-grid gap-3">
+    <div class="d-flex flex-wrap gap-2">
         <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="HI_ANIRE">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
-            <button class="btn btn-success" type="submit">✅ Hi aniré</button>
+            <button class="btn btn-success" type="submit">Hi aniré</button>
         </form>
         <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="POTSER">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
-            <button class="btn btn-warning" type="submit">🤔 Potser</button>
+            <button class="btn btn-warning" type="submit">Potser</button>
         </form>
         <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="NO_HI_ANIRE">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
-            <button class="btn btn-danger" type="submit">❌ No hi aniré</button>
+            <button class="btn btn-danger" type="submit">No hi aniré</button>
         </form>
     </div>
     {% if participacio %}
-        <p>
-            Estat actual:
-            {% if participacio.intencio == 'HI_ANIRE' %}<span class="badge badge-success">{{ participacio.get_intencio_display }}</span>
-            {% elif participacio.intencio == 'POTSER' %}<span class="badge badge-warning">{{ participacio.get_intencio_display }}</span>
-            {% else %}<span class="badge badge-danger">{{ participacio.get_intencio_display }}</span>{% endif %}
-        </p>
-        <p>Assistència real: {{ participacio.get_assistencia_real_display }}</p>
-        <p>Observacions: {{ participacio.observacions|default:'Sense observacions' }}</p>
+        <div class="small text-muted">
+            <div><strong>Intenció actual:</strong> {{ participacio.get_intencio_display }}</div>
+            <div><strong>Assistència real:</strong> {{ participacio.get_assistencia_real_display }}</div>
+            <div><strong>Observacions:</strong> {{ participacio.observacions|default:'Sense observacions' }}</div>
+        </div>
     {% else %}
-        <p>Encara no has indicat si vindràs.</p>
+        <p class="mb-0 text-muted">Encara no has indicat si vindràs.</p>
     {% endif %}
     <details>
-        <summary>Afegir o editar observacions</summary>
-        {% include 'agenda/components/participacio_form.html' with form=participacio_form|default_if_none:'' acte=acte %}
+        <summary class="text-primary">Afegir o editar observacions</summary>
+        <div class="mt-3">{% include 'agenda/components/participacio_form.html' with form=participacio_form|default_if_none:'' acte=acte %}</div>
     </details>
 </div>

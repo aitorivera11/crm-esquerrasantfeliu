@@ -1,13 +1,15 @@
 from datetime import timedelta
 
 from django import forms
+
+from usuaris.forms import StyledFormMixin
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .models import Acte, ParticipacioActe
 
 
-class ActeForm(forms.ModelForm):
+class ActeForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Acte
         fields = ['titol', 'descripcio', 'inici', 'ubicacio', 'estat']
@@ -23,7 +25,7 @@ class ActeForm(forms.ModelForm):
         return inici
 
 
-class ParticipacioForm(forms.ModelForm):
+class ParticipacioForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = ParticipacioActe
         fields = ['intencio', 'observacions']
