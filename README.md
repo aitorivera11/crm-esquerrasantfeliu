@@ -36,8 +36,19 @@ python manage.py runserver
 - El runtime de Vercel entra per `wsgi.py`, que reexporta l'app Django de `config/wsgi.py`.
 - `vercel.json` fa servir `buildCommand` per executar `python manage.py makemigrations`, `python manage.py migrate` i `python manage.py collectstatic --noinput` a cada deploy.
 - `settings.py` llegeix `DATABASE_URL` via `dj-database-url`.
+- El `buildCommand` de `vercel.json` executa `python manage.py migrate --noinput` i després `collectstatic`, així que les migracions s'apliquen directament sobre Neon a cada deploy.
 - Els estàtics es serveixen amb WhiteNoise.
 - Compatible amb PostgreSQL de Neon.
+
+
+## Migracions a Vercel amb Neon
+
+1. Defineix `DATABASE_URL` a Vercel amb la cadena de connexió de Neon.
+2. Cada desplegament executa `./build.sh`.
+3. Aquest script corre `python manage.py migrate --noinput` contra la base de dades remota i després `python manage.py collectstatic --noinput`.
+4. Si hi ha una migració nova pendent, queda aplicada durant el build abans que el deploy entri en producció.
+
+Això evita haver d'entrar manualment a un contenidor: el mateix deploy de Vercel actualitza l'esquema de Neon.
 
 ## Rols i permisos recomanats
 
