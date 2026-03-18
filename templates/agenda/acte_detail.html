@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{{ acte.titol }}{% endblock %}
+{% block content %}
+<article class="card">
+    <div class="actions" style="justify-content:space-between;align-items:start;">
+        <div>
+            <h1>{{ acte.titol }}</h1>
+            <p><strong>Quan:</strong> {{ acte.inici|date:'d/m/Y H:i' }}</p>
+            <p><strong>On:</strong> {{ acte.ubicacio }}</p>
+            <p>{{ acte.descripcio|linebreaks }}</p>
+        </div>
+        <div class="actions">
+            {% if perms.agenda.change_acte %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar acte</a>{% endif %}
+            {% if perms.agenda.can_view_participants %}<a class="btn btn-muted" href="{% url 'agenda:participants_list' acte.pk %}">Veure participants</a>{% endif %}
+        </div>
+    </div>
+</article>
+<section class="card">
+    <h2>La meva participació</h2>
+    <div id="participacio-area">
+        {% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}
+    </div>
+</section>
+{% endblock %}

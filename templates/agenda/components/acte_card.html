@@ -1,0 +1,13 @@
+<div class="card">
+    <div class="actions" style="justify-content:space-between;align-items:start;">
+        <div>
+            <h2><a href="{% url 'agenda:acte_detail' acte.pk %}">{{ acte.titol }}</a></h2>
+            <p>{{ acte.inici|date:'d/m/Y H:i' }} · {{ acte.ubicacio }}</p>
+            <p>{{ acte.descripcio|truncatechars:120 }}</p>
+        </div>
+        {% if acte.estat == 'PUBLICAT' %}<span class="badge badge-success">Publicat</span>{% else %}<span class="badge badge-warning">Esborrany</span>{% endif %}
+    </div>
+    <div>
+        <strong>{{ acte.participants.count }}</strong> participants registrats
+    </div>
+</div>

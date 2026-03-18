@@ -1,0 +1,13 @@
+<form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML" class="grid">
+    {% csrf_token %}
+    <label for="id_intencio">Intenció</label>
+    <select name="intencio" id="id_intencio">
+        <option value="HI_ANIRE" {% if form.instance.intencio == "HI_ANIRE" %}selected{% endif %}>Hi aniré</option>
+        <option value="POTSER" {% if form.instance.intencio == "POTSER" %}selected{% endif %}>Potser</option>
+        <option value="NO_HI_ANIRE" {% if form.instance.intencio == "NO_HI_ANIRE" %}selected{% endif %}>No hi aniré</option>
+    </select>
+    <label for="id_observacions">Observacions</label>
+    <textarea name="observacions" id="id_observacions" rows="3">{% if form.instance.observacions %}{{ form.instance.observacions }}{% endif %}</textarea>
+    {% if form.errors %}<div class="badge badge-danger">{{ form.errors }}</div>{% endif %}
+    <button class="btn btn-primary" type="submit">Desar participació</button>
+</form>
