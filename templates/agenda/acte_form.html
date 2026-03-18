@@ -1,11 +1,16 @@
 {% extends 'base.html' %}
+{% block title %}Acte{% endblock %}
+{% block page_title %}{% if object %}Editar acte{% else %}Nou acte{% endif %}{% endblock %}
 {% block content %}
-<div class="card">
-    <h1>{% if object %}Editar acte{% else %}Nou acte{% endif %}</h1>
+<section class="card card-panel form-narrow">
+    <h2 class="h4 mb-3">{% if object %}Editar acte{% else %}Crear acte{% endif %}</h2>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn btn-primary" type="submit">Desar</button>
+        {% include 'components/form_fields.html' with form=form %}
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-primary" type="submit">Desar</button>
+            <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
     </form>
-</div>
+</section>
 {% endblock %}

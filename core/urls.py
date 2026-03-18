@@ -1,6 +1,8 @@
 from django.urls import path
-from django.views.generic import RedirectView
+
+from .views import AccessDeniedView, DashboardView
 
 urlpatterns = [
-    path('', RedirectView.as_view(pattern_name='agenda:acte_list', permanent=False), name='home'),
+    path('', DashboardView.as_view(), name='home'),
+    path('acces-denegat/', AccessDeniedView.as_view(), name='access_denied'),
 ]

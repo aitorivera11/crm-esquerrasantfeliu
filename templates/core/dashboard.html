@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard de campanya{% endblock %}
+{% block content %}
+<section class="hero-panel mb-4">
+    <div>
+        <p class="eyebrow">Vista general</p>
+        <h2>Una portada útil per coordinar la campanya municipal.</h2>
+        <p class="text-muted mb-0">Consulta l'activitat clau, accedeix ràpidament als mòduls principals i mantén el ritme operatiu de l'equip.</p>
+    </div>
+</section>
+
+<section class="stats-grid mb-4">
+    <article class="stat-card"><span class="stat-label">Total d'actes</span><strong>{{ total_actes }}</strong><small>{{ actes_publicats }} publicats</small></article>
+    <article class="stat-card"><span class="stat-label">Actes propers</span><strong>{{ propers_actes|length }}</strong><small>Pròximes cites planificades</small></article>
+    <article class="stat-card"><span class="stat-label">Persones registrades</span><strong>{{ total_persones }}</strong><small>Base social i contactes</small></article>
+    <article class="stat-card"><span class="stat-label">Usuaris actius</span><strong>{{ usuaris_actius }}</strong><small>Comptes habilitats</small></article>
+</section>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <section class="card card-panel h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                    <h3 class="h5 mb-1">Propers actes</h3>
+                    <p class="text-muted mb-0">Seguiment ràpid de l'agenda immediata.</p>
+                </div>
+                <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-primary">Veure agenda</a>
+            </div>
+            {% if propers_actes %}
+                <div class="list-group list-group-flush">
+                    {% for acte in propers_actes %}
+                        <a href="{% url 'agenda:acte_detail' acte.pk %}" class="list-group-item list-group-item-action px-0 py-3 border-bottom">
+                            <div class="d-flex justify-content-between gap-3 flex-wrap">
+                                <div>
+                                    <strong>{{ acte.titol }}</strong>
+                                    <div class="text-muted small">{{ acte.ubicacio }}</div>
+                                </div>
+                                <div class="text-md-end">
+                                    <div>{{ acte.inici|date:'d/m/Y' }}</div>
+                                    <div class="text-muted small">{{ acte.inici|date:'H:i' }}</div>
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Comença afegint el primer acte de campanya per activar l’agenda.' action_url='/agenda/nou/' action_label='Crear acte' %}
+            {% endif %}
+        </section>
+    </div>
+    <div class="col-12 col-xl-4">
+        <section class="card card-panel h-100">
+            <h3 class="h5 mb-3">Accions ràpides</h3>
+            <div class="d-grid gap-2 quick-actions">
+                {% if perms.agenda.add_acte %}<a href="{% url 'agenda:acte_create' %}" class="btn btn-primary">Crear nou acte</a>{% endif %}
+                <a href="{% url 'persones:persona_create' %}" class="btn btn-outline-primary">Afegir persona</a>
+                <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">Editar el meu perfil</a>
+                {% if request.user.rol == 'ADMINISTRADOR' %}
+                <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-outline-dark">Crear usuari</a>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

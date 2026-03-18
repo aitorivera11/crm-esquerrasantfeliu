@@ -1,25 +1,40 @@
 {% extends 'base.html' %}
+{% block title %}Participants{% endblock %}
+{% block page_title %}Participants{% endblock %}
 {% block content %}
-<div class="card">
-    <h1>Participants · {{ acte.titol }}</h1>
-    <p>Diferència clara entre intenció prèvia i assistència real.</p>
-</div>
-{% for participant in acte.participants.all %}
-<div class="card">
-    <strong>{{ participant.usuari.nom_complet|default:participant.usuari.username }}</strong>
-    <p>Intenció: {{ participant.get_intencio_display }}</p>
-    <p>Assistència real: {{ participant.get_assistencia_real_display }}</p>
-    <p>Observacions: {{ participant.observacions|default:'—' }}</p>
-    {% if perms.agenda.can_mark_attendance %}
-    <form method="post" action="{% url 'agenda:marcar_assistencia' acte.pk participant.pk %}" class="actions">
-        {% csrf_token %}
-        <button class="btn btn-success" name="assistencia_real" value="ASSISTEIX">Ha vingut</button>
-        <button class="btn btn-danger" name="assistencia_real" value="NO_ASSISTEIX">No ha vingut</button>
-        <button class="btn btn-muted" name="assistencia_real" value="PENDENT">Pendent</button>
-    </form>
-    {% endif %}
-</div>
-{% empty %}
-<div class="card"><p>Encara no hi ha participants registrats.</p></div>
-{% endfor %}
+<section class="card card-panel mb-4">
+    <h2 class="h4 mb-1">{{ acte.titol }}</h2>
+    <p class="text-muted mb-0">Diferencia clarament entre intenció prèvia i assistència real.</p>
+</section>
+<section class="card card-panel">
+{% if acte.participants.all %}
+    <div class="table-responsive">
+        <table class="table align-middle app-table">
+            <thead><tr><th>Persona</th><th>Intenció</th><th>Assistència real</th><th>Observacions</th><th class="text-end">Accions</th></tr></thead>
+            <tbody>
+            {% for participant in acte.participants.all %}
+                <tr>
+                    <td><strong>{{ participant.usuari.nom_complet|default:participant.usuari.username }}</strong></td>
+                    <td>{{ participant.get_intencio_display }}</td>
+                    <td>{{ participant.get_assistencia_real_display }}</td>
+                    <td>{{ participant.observacions|default:'—' }}</td>
+                    <td class="text-end">
+                        {% if perms.agenda.can_mark_attendance %}
+                        <form method="post" action="{% url 'agenda:marcar_assistencia' acte.pk participant.pk %}" class="d-inline-flex gap-1 flex-wrap">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-outline-success" name="assistencia_real" value="ASSISTEIX">Ha vingut</button>
+                            <button class="btn btn-sm btn-outline-danger" name="assistencia_real" value="NO_ASSISTEIX">No ha vingut</button>
+                            <button class="btn btn-sm btn-outline-secondary" name="assistencia_real" value="PENDENT">Pendent</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    {% include 'components/empty_state.html' with icon='🙋' title='Encara no hi ha participants' message='Quan la gent respongui a aquest acte apareixerà en aquest llistat.' %}
+{% endif %}
+</section>
 {% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Eliminar usuari{% endblock %}
+{% block page_title %}Eliminar usuari{% endblock %}
+{% block content %}
+<section class="card card-panel form-narrow">
+    <p class="eyebrow text-danger">Acció destructiva</p>
+    <h2 class="h4">Segur que vols eliminar {{ object.nom_complet }}?</h2>
+    <p class="text-muted">Aquesta acció no es pot desfer. Si prefereixes conservar l'historial, desactiva l'usuari en lloc d'eliminar-lo.</p>
+    <form method="post" class="d-flex gap-2 flex-wrap">
+        {% csrf_token %}
+        <button class="btn btn-danger">Sí, eliminar usuari</button>
+        <a href="{% url 'usuaris:admin_usuari_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+    </form>
+</section>
+{% endblock %}
