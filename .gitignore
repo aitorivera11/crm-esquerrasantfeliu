@@ -4,3 +4,5 @@ __pycache__/
 .env
 .venv/
 staticfiles/
+
+staticfiles_build/
