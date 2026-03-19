@@ -1,10 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "./build.sh",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/wsgi.py"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/wsgi.py"
     }
   ],
   "env": {
