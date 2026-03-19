@@ -1,1 +1,3 @@
-from config.wsgi import app
+from config.wsgi import application
+
+app = application
