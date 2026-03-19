@@ -34,10 +34,10 @@ python manage.py runserver
 ## Desplegament a Vercel
 
 - El runtime de Vercel entra per `wsgi.py`, que reexporta l'app Django de `config/wsgi.py`.
-- `vercel.json` fa servir `buildCommand` per executar `python manage.py migrate --noinput` a cada deploy, i les `routes` amb `handle: filesystem` deixen que Vercel serveixi primer els fitxers reals (com `/static/...`) abans de reenviar la resta a Django.
+- `vercel.json` segueix l'esquema de `version: 2` amb dos builds: `@vercel/python` per a `wsgi.py` i `@vercel/static-build` per a `build.sh`, que publica els estàtics generats dins `staticfiles_build/`.
 - `settings.py` llegeix `DATABASE_URL` via `dj-database-url`.
-- El `buildCommand` de `vercel.json` executa `python manage.py migrate --noinput`; després `build.sh` també corre `collectstatic`, així que les migracions s'apliquen directament sobre Neon abans de servir el deploy.
-- Els estàtics es serveixen amb WhiteNoise i `CompressedStaticFilesStorage`, també a Vercel; `collectstatic` els deixa a `staticfiles/` i `WHITENOISE_USE_FINDERS` permet servir `static/` com a fallback si el directori empaquetat no existeix encara, evitant dependència de noms hashats antics en canvis de deploy o caché.
+- `build.sh` executa `python manage.py migrate --noinput` i després `python manage.py collectstatic --noinput --clear`, de manera que les migracions i la recopilació d'estàtics passen durant el build.
+- Els estàtics es publiquen a `staticfiles_build/static/` i Vercel els resol amb la ruta `/static/(.*)`; Django també manté WhiteNoise amb `CompressedManifestStaticFilesStorage` per servir-los correctament si la petició entra per l'app Python.
 - Compatible amb PostgreSQL de Neon.
 
 
@@ -45,7 +45,7 @@ python manage.py runserver
 
 1. Defineix `DATABASE_URL` a Vercel amb la cadena de connexió de Neon.
 2. Cada desplegament executa `./build.sh`.
-3. Aquest script corre `python manage.py migrate --noinput` contra la base de dades remota i després `python manage.py collectstatic --noinput`.
+3. Aquest script corre `python manage.py migrate --noinput` contra la base de dades remota i després `python manage.py collectstatic --noinput --clear`.
 4. Si hi ha una migració nova pendent, queda aplicada durant el build abans que el deploy entri en producció.
 
 Això evita haver d'entrar manualment a un contenidor: el mateix deploy de Vercel actualitza l'esquema de Neon.
