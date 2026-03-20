@@ -1,35 +1,44 @@
-<div class="d-grid gap-3">
+<div class="d-grid gap-3 {% if compact %}participacio-compact{% endif %}">
     <div class="d-flex flex-wrap gap-2">
-        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
+        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="{{ target_id|default:'#participacio-area' }}" hx-swap="innerHTML">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="HI_ANIRE">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
-            <button class="btn btn-success" type="submit">Hi aniré</button>
+            <input type="hidden" name="render_mode" value="{{ render_mode|default:'detail' }}">
+            <button class="btn {% if participacio and participacio.intencio == 'HI_ANIRE' %}btn-success{% else %}btn-outline-success{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">Voy</button>
         </form>
-        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
+        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="{{ target_id|default:'#participacio-area' }}" hx-swap="innerHTML">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="POTSER">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
-            <button class="btn btn-warning" type="submit">Potser</button>
+            <input type="hidden" name="render_mode" value="{{ render_mode|default:'detail' }}">
+            <button class="btn {% if participacio and participacio.intencio == 'POTSER' %}btn-warning{% else %}btn-outline-warning{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">Potser</button>
         </form>
-        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="#participacio-area" hx-swap="innerHTML">
+        <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="{{ target_id|default:'#participacio-area' }}" hx-swap="innerHTML">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="NO_HI_ANIRE">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
-            <button class="btn btn-danger" type="submit">No hi aniré</button>
+            <input type="hidden" name="render_mode" value="{{ render_mode|default:'detail' }}">
+            <button class="btn {% if participacio and participacio.intencio == 'NO_HI_ANIRE' %}btn-danger{% else %}btn-outline-danger{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">No voy</button>
         </form>
     </div>
-    {% if participacio %}
-        <div class="small text-muted">
-            <div><strong>Intenció actual:</strong> {{ participacio.get_intencio_display }}</div>
-            <div><strong>Assistència real:</strong> {{ participacio.get_assistencia_real_display }}</div>
-            <div><strong>Observacions:</strong> {{ participacio.observacions|default:'Sense observacions' }}</div>
-        </div>
+    {% if not compact %}
+        {% if participacio %}
+            <div class="small text-muted">
+                <div><strong>Resposta:</strong> {{ participacio.get_intencio_display }}</div>
+                <div><strong>Assistència:</strong> {{ participacio.get_assistencia_real_display }}</div>
+                <div><strong>Observacions:</strong> {{ participacio.observacions|default:'Sense observacions' }}</div>
+            </div>
+        {% else %}
+            <p class="mb-0 text-muted">Encara no has indicat si vindràs.</p>
+        {% endif %}
+        <details>
+            <summary class="text-primary">Afegir o editar observacions</summary>
+            <div class="mt-3">{% include 'agenda/components/participacio_form.html' with form=participacio_form|default_if_none:'' acte=acte %}</div>
+        </details>
     {% else %}
-        <p class="mb-0 text-muted">Encara no has indicat si vindràs.</p>
+        <div class="small text-muted mb-0">
+            {% if participacio %}La teva resposta: <strong>{{ participacio.get_intencio_display }}</strong>.{% else %}Encara sense resposta.{% endif %}
+        </div>
     {% endif %}
-    <details>
-        <summary class="text-primary">Afegir o editar observacions</summary>
-        <div class="mt-3">{% include 'agenda/components/participacio_form.html' with form=participacio_form|default_if_none:'' acte=acte %}</div>
-    </details>
 </div>

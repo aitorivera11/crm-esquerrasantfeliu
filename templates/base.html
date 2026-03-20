@@ -18,12 +18,14 @@
     <aside class="app-sidebar" :class="menuOpen ? 'is-open' : ''">
         <div class="sidebar-brand">
             <div class="brand-block">
-                <div>
-                    <p class="eyebrow mb-1">Campanya municipal</p>
-                    <a href="{% url 'core:home' %}" class="brand-link">Sant Feliu 2026<span>CRM de proximitat</span></a>
-                </div>
+                <a href="{% url 'core:home' %}" class="brand-hero-link">
+                    <img class="brand-logo brand-logo-lg" src="https://www.esquerra.cat/wp-content/uploads/erc-logo.png" alt="Logo Esquerra Republicana">
+                    <div>
+                        <p class="eyebrow mb-1">Campanya municipal</p>
+                        <span class="brand-link">Sant Feliu 2026<span>CRM de proximitat</span></span>
+                    </div>
+                </a>
                 <div class="brand-logo-wrap">
-                    <img class="brand-logo" src="https://www.esquerra.cat/wp-content/uploads/erc-logo.png" alt="Logo Esquerra Republicana">
                     <div class="brand-copy">
                         <strong>Esquerra Sant Feliu</strong>
                         <small>Agenda, equip i territori connectats</small>
@@ -42,7 +44,7 @@
                 <div>
                     <p class="eyebrow mb-1">CRM de campanya</p>
                     <h1 class="page-title mb-2">{% block page_title %}Panell de control{% endblock %}</h1>
-                    {% block page_intro %}<p class="page-subtitle mb-0">Una vista clara, ràpida i moderna per coordinar accions, persones i agenda municipal.</p>{% endblock %}
+                    {% block page_intro %}<p class="page-subtitle mb-0">Coordinació clara i ràpida.</p>{% endblock %}
                 </div>
             </div>
             <div class="header-user card-shadow-sm">

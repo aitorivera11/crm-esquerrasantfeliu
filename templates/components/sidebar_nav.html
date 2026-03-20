@@ -1,5 +1,5 @@
 <nav class="sidebar-nav">
-    <a href="{% url 'core:home' %}" class="nav-link-side {% if request.resolver_match.namespace == 'core' %}active{% endif %}">Inici / Dashboard</a>
+    <a href="{% url 'core:home' %}" class="nav-link-side {% if request.resolver_match.namespace == 'core' %}active{% endif %}">Dashboard</a>
     <a href="{% url 'agenda:acte_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'agenda' %}active{% endif %}">Agenda</a>
     <a href="{% url 'persones:persona_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'persones' %}active{% endif %}">Persones</a>
     <a href="{% url 'agenda:els_meus_actes' %}" class="nav-link-side {% if request.resolver_match.url_name == 'els_meus_actes' %}active{% endif %}">Els meus actes</a>
