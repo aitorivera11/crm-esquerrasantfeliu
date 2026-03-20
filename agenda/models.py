@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 
 from core.models import TimeStampedModel
@@ -89,7 +90,11 @@ class Acte(TimeStampedModel):
     class Meta:
         ordering = ['inici']
         constraints = [
-            models.UniqueConstraint(fields=['external_source', 'external_id'], name='agenda_unique_external_source_id'),
+            models.UniqueConstraint(
+                fields=['external_source', 'external_id'],
+                condition=Q(external_source__gt='') & Q(external_id__gt=''),
+                name='agenda_unique_external_source_id',
+            ),
         ]
         permissions = [
             ('can_view_participants', 'Pot veure participants'),
