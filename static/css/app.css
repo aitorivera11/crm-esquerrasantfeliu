@@ -534,3 +534,34 @@ textarea.form-control { min-height: 120px; }
     .form-section-grid { grid-template-columns: 1fr; }
     .segment-checklist { grid-template-columns: 1fr; }
 }
+
+
+.login-actions { display: grid; gap: .75rem; }
+.registration-notice { border-radius: 1rem; }
+.nav-link-side-split { justify-content: space-between; }
+.sidebar-badge {
+    display: inline-flex;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 .45rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: white;
+    font-size: .82rem;
+    font-weight: 800;
+}
+.pending-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(255, 217, 120, .22), rgba(255,255,255,.95));
+    border: 1px solid rgba(216, 144, 0, .22);
+}
+.table-warning-subtle {
+    --bs-table-bg: rgba(255, 217, 120, .12);
+}

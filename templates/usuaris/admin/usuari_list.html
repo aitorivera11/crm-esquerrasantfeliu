@@ -10,26 +10,43 @@
         </div>
         <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-primary">Nou usuari</a>
     </div>
+    {% if pending_count %}
+        <div class="pending-banner mb-4">
+            <div>
+                <strong>{{ pending_count }} registre{{ pending_count|pluralize }} pendent{{ pending_count|pluralize }}</strong>
+                <div class="text-muted small">Hi ha noves altes esperant revisió i activació.</div>
+            </div>
+            <a href="{% url 'usuaris:admin_usuari_list' %}?estat=pendents" class="btn btn-outline-primary">Veure pendents</a>
+        </div>
+    {% endif %}
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-lg-5">
+        <div class="col-lg-4">
             <label class="form-label">Cercar</label>
             <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Nom, usuari, correu electrònic o telèfon">
         </div>
-        <div class="col-lg-3">
+        <div class="col-lg-2">
             <label class="form-label">Rol</label>
             <select name="rol" class="form-select">
                 <option value="">Tots els rols</option>
                 {% for value,label in rols %}<option value="{{ value }}" {% if rol == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-lg-2">
             <label class="form-label">Tipus</label>
             <select name="tipus" class="form-select">
                 <option value="">Tots els tipus</option>
                 {% for value,label in tipus_options %}<option value="{{ value }}" {% if tipus == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
         </div>
-        <div class="col-md-2 d-flex gap-2">
+        <div class="col-lg-2">
+            <label class="form-label">Estat</label>
+            <select name="estat" class="form-select">
+                <option value="">Tots</option>
+                <option value="pendents" {% if estat == 'pendents' %}selected{% endif %}>Pendents</option>
+                <option value="actius" {% if estat == 'actius' %}selected{% endif %}>Actius</option>
+            </select>
+        </div>
+        <div class="col-lg-2 d-flex gap-2">
             <button class="btn btn-outline-primary w-100">Filtrar</button>
             <a href="{% url 'usuaris:admin_usuari_list' %}" class="btn btn-outline-secondary">Netejar</a>
         </div>
@@ -45,8 +62,11 @@
             </thead>
             <tbody>
             {% for usuari in usuaris %}
-                <tr>
-                    <td><strong>{{ usuari.nom_complet }}</strong><div class="text-muted small">@{{ usuari.username }}</div></td>
+                <tr class="{% if not usuari.is_active %}table-warning-subtle{% endif %}">
+                    <td>
+                        <strong>{{ usuari.nom_complet }}</strong>
+                        <div class="text-muted small">@{{ usuari.username }}</div>
+                    </td>
                     <td>{{ usuari.email|default:'—' }}<div class="text-muted small">{{ usuari.telefon|default:'Sense telèfon' }}</div></td>
                     <td><span class="badge text-bg-light">{{ usuari.get_rol_display }}</span></td>
                     <td>
@@ -56,12 +76,18 @@
                             <span class="text-muted small">Sense definir</span>
                         {% endif %}
                     </td>
-                    <td>{% if usuari.is_active %}<span class="badge text-bg-success">Actiu</span>{% else %}<span class="badge text-bg-secondary">Inactiu</span>{% endif %}</td>
+                    <td>
+                        {% if usuari.is_active %}
+                            <span class="badge text-bg-success">Actiu</span>
+                        {% else %}
+                            <span class="badge text-bg-warning">Pendent d'activar</span>
+                        {% endif %}
+                    </td>
                     <td>
                         <div class="d-flex justify-content-end gap-2 flex-wrap">
                             <a href="{% url 'usuaris:admin_usuari_update' usuari.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
                             <a href="{% url 'usuaris:admin_usuari_password' usuari.pk %}" class="btn btn-sm btn-outline-secondary">Contrasenya</a>
-                            <form method="post" action="{% url 'usuaris:admin_usuari_toggle_active' usuari.pk %}" data-confirm="Segur que vols canviar l'estat d'aquest usuari?">{% csrf_token %}<button class="btn btn-sm btn-outline-dark">{% if usuari.is_active %}Desactivar{% else %}Activar{% endif %}</button></form>
+                            <form method="post" action="{% url 'usuaris:admin_usuari_toggle_active' usuari.pk %}" data-confirm="Segur que vols canviar l'estat d'aquest usuari?">{% csrf_token %}<button class="btn btn-sm {% if usuari.is_active %}btn-outline-dark{% else %}btn-success{% endif %}">{% if usuari.is_active %}Desactivar{% else %}Activar{% endif %}</button></form>
                             {% if usuari != request.user %}
                             <a href="{% url 'usuaris:admin_usuari_delete' usuari.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
                             {% endif %}

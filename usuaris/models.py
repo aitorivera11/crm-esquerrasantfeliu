@@ -4,9 +4,10 @@ from django.db import models
 
 class Usuari(AbstractUser):
     class Rol(models.TextChoices):
-        ADMINISTRACIO = 'ADMINISTRACIO', 'Administració'
-        COORDINACIO = 'COORDINACIO', 'Coordinadocio'
-        PARTICIPANT = 'PARTICIPANT', 'Bàsic'
+        ADMINISTRADOR = 'ADMINISTRADOR', 'Administrador'
+        COORDINADOR = 'COORDINADOR', 'Coordinador'
+        VOLUNTARI = 'VOLUNTARI', 'Bàsic'
+        CONSULTA = 'CONSULTA', 'Consulta'
 
     class Tipus(models.TextChoices):
         MILITANT = 'MILITANT', 'Militant'
@@ -27,6 +28,10 @@ class Usuari(AbstractUser):
     class Meta:
         verbose_name = 'usuari'
         verbose_name_plural = 'usuaris'
+
+    @property
+    def esta_pendent_activacio(self):
+        return not self.is_active
 
     def __str__(self):
         return self.nom_complet or self.username

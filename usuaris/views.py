@@ -11,6 +11,7 @@ from core.mixins import AdminRequiredMixin
 from .forms import (
     CampanyaPasswordChangeForm,
     PerfilForm,
+    RegistreUsuariForm,
     UsuariAdminCreateForm,
     UsuariAdminPasswordForm,
     UsuariAdminUpdateForm,
@@ -48,6 +49,25 @@ class CanviPasswordView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
+class RegistreUsuariView(CreateView):
+    form_class = RegistreUsuariForm
+    template_name = 'registration/register.html'
+    success_url = reverse_lazy('login')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('core:home')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        self.object = form.save()
+        messages.success(
+            self.request,
+            "Registre enviat correctament. El teu compte queda pendent de validació per part d'administració abans de poder accedir.",
+        )
+        return redirect(self.get_success_url())
+
+
 class UsuariListView(AdminRequiredMixin, ListView):
     model = Usuari
     template_name = 'usuaris/admin/usuari_list.html'
@@ -55,10 +75,11 @@ class UsuariListView(AdminRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Usuari.objects.order_by('nom_complet', 'username')
+        queryset = Usuari.objects.order_by('is_active', 'nom_complet', 'username')
         q = self.request.GET.get('q', '').strip()
         rol = self.request.GET.get('rol', '').strip()
         tipus = self.request.GET.get('tipus', '').strip()
+        estat = self.request.GET.get('estat', '').strip()
         if q:
             queryset = queryset.filter(
                 Q(nom_complet__icontains=q)
@@ -70,6 +91,10 @@ class UsuariListView(AdminRequiredMixin, ListView):
             queryset = queryset.filter(rol=rol)
         if tipus:
             queryset = queryset.filter(tipus=tipus)
+        if estat == 'pendents':
+            queryset = queryset.filter(is_active=False)
+        elif estat == 'actius':
+            queryset = queryset.filter(is_active=True)
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -77,8 +102,10 @@ class UsuariListView(AdminRequiredMixin, ListView):
         context['q'] = self.request.GET.get('q', '').strip()
         context['rol'] = self.request.GET.get('rol', '').strip()
         context['tipus'] = self.request.GET.get('tipus', '').strip()
+        context['estat'] = self.request.GET.get('estat', '').strip()
         context['rols'] = Usuari.Rol.choices
         context['tipus_options'] = Usuari.Tipus.choices
+        context['pending_count'] = Usuari.objects.filter(is_active=False).count()
         return context
 
 

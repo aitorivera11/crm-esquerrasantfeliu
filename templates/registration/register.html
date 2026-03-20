@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Registre{% endblock %}
+{% block content %}
+<section class="login-shell">
+    <div class="login-card card card-panel">
+        <div class="mb-4">
+            <p class="eyebrow mb-2">Alta de persones usuàries</p>
+            <h1 class="h2 mb-2">Demana accés al CRM</h1>
+            <p class="text-muted mb-0">Omple les dades i indica el teu tipus d'implicació. El compte quedarà pendent de revisió abans d'activar-se.</p>
+        </div>
+        <div class="alert alert-warning registration-notice" role="alert">
+            Quan completis el registre, un administrador haurà d'acceptar la teva alta abans que puguis entrar.
+        </div>
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            {% include 'components/form_fields.html' with form=form %}
+            <button type="submit" class="btn btn-primary w-100">Enviar registre</button>
+        </form>
+        <div class="login-actions mt-4 pt-3 border-top">
+            <p class="text-muted mb-2">Ja tens compte?</p>
+            <a href="{% url 'login' %}" class="btn btn-outline-secondary w-100">Tornar a l'accés</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

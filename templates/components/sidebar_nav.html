@@ -11,6 +11,11 @@
     <a href="{% url 'usuaris:canvi_password' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'canvi_password' %}active{% endif %}">Contrasenya</a>
     {% if request.user.rol == 'ADMINISTRADOR' %}
         <div class="sidebar-section">Administració</div>
-        <a href="{% url 'usuaris:admin_usuari_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and 'admin_usuari' in request.resolver_match.url_name %}active{% endif %}">Usuaris</a>
+        <a href="{% url 'usuaris:admin_usuari_list' %}" class="nav-link-side nav-link-side-split {% if request.resolver_match.namespace == 'usuaris' and 'admin_usuari' in request.resolver_match.url_name %}active{% endif %}">
+            <span>Usuaris</span>
+            {% if pending_user_registrations %}
+                <span class="sidebar-badge">{{ pending_user_registrations }}</span>
+            {% endif %}
+        </a>
     {% endif %}
 </nav>
