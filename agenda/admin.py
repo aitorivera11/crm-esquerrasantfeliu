@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Acte, ParticipacioActe
+from .models import Acte, ActeTipus, ParticipacioActe, SegmentVisibilitat
 
 
 class ParticipacioInline(admin.TabularInline):
@@ -8,11 +8,26 @@ class ParticipacioInline(admin.TabularInline):
     extra = 0
 
 
+@admin.register(ActeTipus)
+class ActeTipusAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'ordre', 'actiu')
+    list_filter = ('actiu',)
+    search_fields = ('nom', 'descripcio')
+
+
+@admin.register(SegmentVisibilitat)
+class SegmentVisibilitatAdmin(admin.ModelAdmin):
+    list_display = ('etiqueta', 'ambit', 'codi', 'ordre', 'actiu')
+    list_filter = ('ambit', 'actiu')
+    search_fields = ('etiqueta', 'codi')
+
+
 @admin.register(Acte)
 class ActeAdmin(admin.ModelAdmin):
-    list_display = ('titol', 'inici', 'ubicacio', 'estat', 'creador')
-    list_filter = ('estat',)
-    search_fields = ('titol', 'ubicacio')
+    list_display = ('titol', 'tipus', 'inici', 'fi', 'ubicacio', 'estat', 'creador')
+    list_filter = ('estat', 'tipus')
+    search_fields = ('titol', 'ubicacio', 'punt_trobada')
+    filter_horizontal = ('visible_per', 'assistencia_permesa_per')
     inlines = [ParticipacioInline]
 
 

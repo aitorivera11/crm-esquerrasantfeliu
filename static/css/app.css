@@ -136,6 +136,26 @@ a:hover { color: var(--accent); }
 .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: .74rem; color: var(--muted); font-weight: 800; }
 .app-sidebar .eyebrow { color: rgba(255,255,255,.68); }
 .sidebar-nav { display:grid; gap:.45rem; }
+.nav-group { display:grid; gap:.35rem; }
+.nav-submenu {
+    display:grid;
+    gap:.2rem;
+    margin:-.1rem 0 .2rem 1rem;
+    padding-left:.8rem;
+    border-left:1px solid rgba(255,255,255,.14);
+}
+.nav-link-sub {
+    color: rgba(255,255,255,.72);
+    text-decoration:none;
+    padding:.65rem .85rem;
+    border-radius:.85rem;
+    font-weight:600;
+    font-size:.95rem;
+}
+.nav-link-sub:hover, .nav-link-sub.active {
+    color:white;
+    background: rgba(255,255,255,.07);
+}
 .nav-link-side {
     color: rgba(255,255,255,.8); text-decoration:none; padding:.9rem 1rem; border-radius:1rem; font-weight:700;
     display:flex; align-items:center; gap:.7rem; transition: all .18s ease;
@@ -231,6 +251,35 @@ textarea.form-control { min-height: 120px; }
     box-shadow: 0 0 0 .25rem rgba(249, 88, 56, .12);
 }
 .agenda-toolbar h2 { margin-bottom: .25rem; }
+.filters-panel[open] .filters-summary { margin-bottom: 0; }
+.filters-summary {
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:1rem;
+    cursor:pointer;
+}
+.filters-summary::-webkit-details-marker { display:none; }
+.agenda-switch {
+    display:flex;
+    align-items:center;
+    gap:.75rem;
+    padding:.85rem 1rem;
+    border-radius:1rem;
+    background:#fffaf7;
+    border:1px solid rgba(226,191,161,.7);
+}
+.meta-grid-compact { grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); margin-top: 0; }
+.audience-stack {
+    display:grid;
+    gap:.45rem;
+    padding:.9rem 1rem;
+    border-radius:1rem;
+    background: rgba(0,13,35,.03);
+    border:1px solid rgba(0,13,35,.08);
+    font-size:.92rem;
+}
 .acte-card { display:flex; flex-direction:column; gap:.25rem; }
 .acte-card-copy { min-height: 3rem; margin-bottom: 0; }
 .acte-card-stats { display:flex; gap:.55rem; flex-wrap:wrap; }

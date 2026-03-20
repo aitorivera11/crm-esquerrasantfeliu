@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ acte.titol }}{% endblock %}
 {% block page_title %}Detall de l'acte{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Tot el que necessites per coordinar l'acte.</p>{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Tot el que necessites per coordinar l'acte, incloent visibilitat, assistència i logística bàsica.</p>{% endblock %}
 {% block content %}
 <div class="row g-4">
     <div class="col-12 col-xl-8">
@@ -10,10 +10,15 @@
                 <div>
                     <div class="d-flex gap-2 flex-wrap align-items-center mb-2">
                         <p class="eyebrow mb-0">{% if acte.external_source %}Acte importat{% else %}Acte de campanya{% endif %}</p>
+                        {% if acte.tipus %}<span class="badge badge-soft">{{ acte.tipus.nom }}</span>{% endif %}
                         {% if acte.external_source %}<span class="badge badge-soft">Agenda de ciutat</span>{% endif %}
                     </div>
                     <h2 class="h3 mb-2">{{ acte.titol }}</h2>
-                    <div class="text-muted">{{ acte.inici|date:'d/m/Y H:i' }} · {{ acte.ubicacio }}</div>
+                    <div class="text-muted">
+                        {{ acte.inici|date:'d/m/Y H:i' }}
+                        {% if acte.fi %} · fins a les {{ acte.fi|date:'H:i' }}{% endif %}
+                        · {{ acte.ubicacio }}
+                    </div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     {% if acte.source_url %}<a class="btn btn-outline-primary" href="{{ acte.source_url }}" target="_blank" rel="noopener">Veure la font</a>{% endif %}
@@ -26,7 +31,21 @@
                 <div class="meta-card"><span>Hi van</span><strong>{{ acte.total_confirmats }}</strong></div>
                 <div class="meta-card"><span>Potser</span><strong>{{ acte.total_potser }}</strong></div>
                 <div class="meta-card"><span>No hi van</span><strong>{{ acte.total_no }}</strong></div>
+                <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels %}Segmentada{% else %}General{% endif %}</strong></div>
+                <div class="meta-card"><span>Assistència</span><strong>{% if acte.assistencia_segments_labels %}Restringida{% else %}Oberta{% endif %}</strong></div>
+                {% if acte.aforament %}<div class="meta-card"><span>Aforament</span><strong>{{ acte.aforament }}</strong></div>{% endif %}
+                {% if acte.punt_trobada %}<div class="meta-card"><span>Punt de trobada</span><strong>{{ acte.punt_trobada }}</strong></div>{% endif %}
             </div>
+            {% if acte.visible_segments_labels or acte.assistencia_segments_labels %}
+                <div class="audience-stack mt-4">
+                    {% if acte.visible_segments_labels %}
+                        <div><strong>Qui el pot veure:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
+                    {% endif %}
+                    {% if acte.assistencia_segments_labels %}
+                        <div><strong>Qui hi pot assistir:</strong> {{ acte.assistencia_segments_labels|join:', ' }}</div>
+                    {% endif %}
+                </div>
+            {% endif %}
             <div class="attendees-strip attendees-strip-detail mt-4">
                 <div class="small fw-semibold">Confirmacions</div>
                 {% if acte.confirmats_preview %}
@@ -46,8 +65,12 @@
     <div class="col-12 col-xl-4">
         <section class="card card-panel h-100 p-4">
             <h3 class="h5">La meva resposta</h3>
-            <p class="text-muted">Confirma ara mateix si hi assistiràs.</p>
-            <div id="participacio-area">{% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}</div>
+            {% if acte.user_can_attend %}
+                <p class="text-muted">Confirma ara mateix si hi assistiràs.</p>
+                <div id="participacio-area">{% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}</div>
+            {% else %}
+                <p class="text-muted mb-0">Pots consultar el detall, però aquest acte no admet confirmació per al teu perfil.</p>
+            {% endif %}
         </section>
     </div>
 </div>

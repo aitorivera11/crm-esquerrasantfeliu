@@ -4,8 +4,9 @@ import os
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.management import call_command
 from django.db.models import Count, Prefetch, Q
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -14,10 +15,30 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from core.models import Auditoria
 
 from .forms import ActeForm, ParticipacioForm
-from .models import Acte, ParticipacioActe
+from .models import Acte, ActeTipus, ParticipacioActe, SegmentVisibilitat
 
 
 class AgendaContextMixin:
+    def _user_segments_filter(self):
+        user = self.request.user
+        filters = Q(ambit=SegmentVisibilitat.Ambit.ROL, codi=user.rol)
+        if user.tipus:
+            filters |= Q(ambit=SegmentVisibilitat.Ambit.TIPUS, codi=user.tipus)
+        return filters
+
+    def _visibility_filter(self):
+        return Q(visible_per__isnull=True) | Q(visible_per__in=SegmentVisibilitat.objects.filter(self._user_segments_filter()))
+
+    def _allowed_attendance(self, acte):
+        attendance_segments = list(acte.assistencia_permesa_per.all())
+        if not attendance_segments:
+            return True
+        return any(
+            (segment.ambit == SegmentVisibilitat.Ambit.ROL and segment.codi == self.request.user.rol)
+            or (segment.ambit == SegmentVisibilitat.Ambit.TIPUS and segment.codi == self.request.user.tipus)
+            for segment in attendance_segments
+        )
+
     def _base_queryset(self):
         current_user_participation = Prefetch(
             'participants',
@@ -25,15 +46,30 @@ class AgendaContextMixin:
             to_attr='participant_for_request_user',
         )
         return (
-            Acte.objects.select_related('creador')
-            .prefetch_related('participants__usuari', current_user_participation)
+            Acte.objects.select_related('creador', 'tipus')
+            .prefetch_related(
+                'participants__usuari',
+                'visible_per',
+                'assistencia_permesa_per',
+                current_user_participation,
+            )
             .annotate(
                 total_participants=Count('participants', distinct=True),
                 total_confirmats=Count('participants', filter=Q(participants__intencio=ParticipacioActe.Intencio.HI_ANIRE), distinct=True),
                 total_potser=Count('participants', filter=Q(participants__intencio=ParticipacioActe.Intencio.POTSER), distinct=True),
                 total_no=Count('participants', filter=Q(participants__intencio=ParticipacioActe.Intencio.NO_HI_ANIRE), distinct=True),
             )
+            .distinct()
         )
+
+    def _visible_queryset(self, include_drafts=False):
+        queryset = self._base_queryset()
+        if self.request.user.has_perm('agenda.change_acte'):
+            if not include_drafts:
+                queryset = queryset.filter(estat=Acte.Estat.PUBLICAT)
+            return queryset.distinct()
+        queryset = queryset.filter(estat=Acte.Estat.PUBLICAT)
+        return queryset.filter(self._visibility_filter()).distinct()
 
     def _enrich_acte(self, acte):
         participants = list(acte.participants.all())
@@ -41,6 +77,9 @@ class AgendaContextMixin:
         acte.confirmats_preview = confirmats[:4]
         acte.confirmats_extra = max(len(confirmats) - len(acte.confirmats_preview), 0)
         acte.request_user_participacio = next(iter(getattr(acte, 'participant_for_request_user', [])), None)
+        acte.visible_segments_labels = [segment.etiqueta for segment in acte.visible_per.all()]
+        acte.assistencia_segments_labels = [segment.etiqueta for segment in acte.assistencia_permesa_per.all()]
+        acte.user_can_attend = self._allowed_attendance(acte)
         return acte
 
 
@@ -49,17 +88,62 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
     template_name = 'agenda/acte_list.html'
     context_object_name = 'actes'
 
+    def _is_true(self, value):
+        return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
+
     def get_queryset(self):
-        queryset = self._base_queryset()
-        if self.request.user.has_perm('agenda.change_acte'):
-            return queryset
-        return queryset.filter(estat=Acte.Estat.PUBLICAT)
+        user_can_edit = self.request.user.has_perm('agenda.change_acte')
+        queryset = self._visible_queryset(include_drafts=user_can_edit)
+        now = timezone.now()
+
+        if not self._is_true(self.request.GET.get('show_past')):
+            queryset = queryset.filter(inici__gte=now)
+
+        day = self.request.GET.get('day')
+        if day:
+            queryset = queryset.filter(inici__date=day)
+
+        estat = self.request.GET.get('estat')
+        if estat in Acte.Estat.values:
+            queryset = queryset.filter(estat=estat)
+
+        tipus = self.request.GET.get('tipus')
+        if tipus:
+            queryset = queryset.filter(tipus_id=tipus)
+
+        visibility = self.request.GET.get('visibility')
+        if visibility == 'restricted':
+            queryset = queryset.filter(visible_per__isnull=False)
+        elif visibility == 'open':
+            queryset = queryset.filter(visible_per__isnull=True)
+
+        my_status = self.request.GET.get('my_status')
+        if my_status == 'confirmed':
+            queryset = queryset.filter(participants__usuari=self.request.user, participants__intencio=ParticipacioActe.Intencio.HI_ANIRE)
+        elif my_status == 'pending':
+            queryset = queryset.exclude(participants__usuari=self.request.user)
+        elif my_status in ParticipacioActe.Intencio.values:
+            queryset = queryset.filter(participants__usuari=self.request.user, participants__intencio=my_status)
+
+        return queryset.order_by('inici').distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['actes'] = [self._enrich_acte(acte) for acte in context['actes']]
-        context['imported_count'] = Acte.objects.filter(external_source='AGENDA_CIUTAT', estat=Acte.Estat.PUBLICAT).count()
-        context['upcoming_count'] = Acte.objects.filter(estat=Acte.Estat.PUBLICAT).count()
+        actes = [self._enrich_acte(acte) for acte in context['actes']]
+        now = timezone.now()
+        visible_base = self._visible_queryset(include_drafts=self.request.user.has_perm('agenda.change_acte'))
+        context.update(
+            {
+                'actes': actes,
+                'imported_count': visible_base.filter(external_source='AGENDA_CIUTAT', estat=Acte.Estat.PUBLICAT).count(),
+                'upcoming_count': visible_base.filter(inici__gte=now, estat=Acte.Estat.PUBLICAT).count(),
+                'past_count': visible_base.filter(inici__lt=now).count(),
+                'draft_count': visible_base.filter(estat=Acte.Estat.ESBORRANY).count(),
+                'tipus_options': ActeTipus.objects.filter(actiu=True),
+                'current_filters': self.request.GET,
+                'filters_open': self.request.GET and any(value for key, value in self.request.GET.items() if key != 'filters_open'),
+            }
+        )
         return context
 
 
@@ -69,10 +153,14 @@ class ActeDetailView(AgendaContextMixin, LoginRequiredMixin, DetailView):
     context_object_name = 'acte'
 
     def get_queryset(self):
-        queryset = self._base_queryset()
-        if self.request.user.has_perm('agenda.change_acte'):
-            return queryset
-        return queryset.filter(estat=Acte.Estat.PUBLICAT)
+        queryset = self._visible_queryset(include_drafts=self.request.user.has_perm('agenda.change_acte'))
+        return queryset
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if obj.estat != Acte.Estat.PUBLICAT and not self.request.user.has_perm('agenda.change_acte'):
+            raise Http404
+        return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -124,7 +212,11 @@ class ParticiparActeView(AgendaContextMixin, LoginRequiredMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        acte = get_object_or_404(Acte, pk=pk)
+        acte = get_object_or_404(self._visible_queryset(include_drafts=request.user.has_perm('agenda.change_acte')), pk=pk)
+        acte = self._enrich_acte(acte)
+        if not acte.user_can_attend:
+            return HttpResponseForbidden("No tens permís per confirmar assistència en aquest acte.")
+
         participacio = ParticipacioActe.objects.filter(acte=acte, usuari=request.user).first()
         form = ParticipacioForm(request.POST, instance=participacio, usuari=request.user, acte=acte)
         if form.is_valid():
@@ -159,11 +251,14 @@ class ParticiparActeView(AgendaContextMixin, LoginRequiredMixin, View):
         return HttpResponseForbidden('Participació no vàlida.')
 
 
-class ParticipantsListView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+class ParticipantsListView(AgendaContextMixin, LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Acte
     template_name = 'agenda/participants_list.html'
     context_object_name = 'acte'
     permission_required = 'agenda.can_view_participants'
+
+    def get_queryset(self):
+        return self._base_queryset()
 
 
 class ElsMeusActesView(LoginRequiredMixin, ListView):
@@ -172,7 +267,11 @@ class ElsMeusActesView(LoginRequiredMixin, ListView):
     context_object_name = 'participacions'
 
     def get_queryset(self):
-        return ParticipacioActe.objects.filter(usuari=self.request.user).select_related('acte')
+        return (
+            ParticipacioActe.objects.filter(usuari=self.request.user)
+            .select_related('acte', 'acte__tipus')
+            .order_by('-acte__inici')
+        )
 
 
 class MarcarAssistenciaView(LoginRequiredMixin, PermissionRequiredMixin, View):

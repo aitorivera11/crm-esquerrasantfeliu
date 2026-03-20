@@ -1,10 +1,10 @@
 from datetime import timedelta
 
 from django import forms
-
-from usuaris.forms import StyledFormMixin
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+
+from usuaris.forms import StyledFormMixin
 
 from .models import Acte, ParticipacioActe
 
@@ -12,17 +12,48 @@ from .models import Acte, ParticipacioActe
 class ActeForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Acte
-        fields = ['titol', 'descripcio', 'inici', 'ubicacio', 'estat']
+        fields = [
+            'titol',
+            'tipus',
+            'descripcio',
+            'inici',
+            'fi',
+            'ubicacio',
+            'punt_trobada',
+            'aforament',
+            'visible_per',
+            'assistencia_permesa_per',
+            'estat',
+        ]
         widgets = {
             'inici': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'fi': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'descripcio': forms.Textarea(attrs={'rows': 4}),
+            'visible_per': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 6}),
+            'assistencia_permesa_per': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 6}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tipus'].queryset = self.fields['tipus'].queryset.filter(actiu=True)
+        self.fields['visible_per'].queryset = self.fields['visible_per'].queryset.filter(actiu=True)
+        self.fields['assistencia_permesa_per'].queryset = self.fields['assistencia_permesa_per'].queryset.filter(actiu=True)
+        self.fields['visible_per'].help_text = 'Deixa-ho buit perquè l’acte sigui visible per a tothom amb accés a l’agenda.'
+        self.fields['assistencia_permesa_per'].help_text = 'Deixa-ho buit perquè qualsevol usuari que el vegi pugui confirmar assistència.'
 
     def clean_inici(self):
         inici = self.cleaned_data['inici']
         if inici < timezone.now() - timedelta(days=365):
-            raise ValidationError('La data de l\'acte és massa antiga per a una agenda activa.')
+            raise ValidationError("La data de l'acte és massa antiga per a una agenda activa.")
         return inici
+
+    def clean(self):
+        cleaned_data = super().clean()
+        inici = cleaned_data.get('inici')
+        fi = cleaned_data.get('fi')
+        if inici and fi and fi <= inici:
+            self.add_error('fi', "La data/hora de final ha de ser posterior a l'inici.")
+        return cleaned_data
 
 
 class ParticipacioForm(StyledFormMixin, forms.ModelForm):
