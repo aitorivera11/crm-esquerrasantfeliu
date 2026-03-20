@@ -50,6 +50,15 @@ python manage.py runserver
 
 Això evita haver d'entrar manualment a un contenidor: el mateix deploy de Vercel actualitza l'esquema de Neon.
 
+
+## Importació automàtica d'actes de ciutat
+
+- El comandament `python manage.py import_city_events --cleanup` importa cada nit els actes confirmats de l'API pública de Sant Feliu i els desa a la taula `agenda_acte`.
+- Els actes importats queden marcats amb `external_source='AGENDA_CIUTAT'`, es publiquen automàticament i mantenen el payload original a `source_payload` per a futurs camps o integracions.
+- Vercel executa un cron a les `02:00` (UTC) contra `/agenda/cron/import-city-events/`.
+- Protegeix aquest endpoint amb `CRON_SECRET` i, si vols controlar el propietari dels actes creats, defineix `CITY_EVENTS_IMPORT_USER_ID`.
+- Per provar-ho localment: `DB_SSL_REQUIRE=False python manage.py import_city_events --cleanup`.
+
 ## Rols i permisos recomanats
 
 - **Administrador**: tots els permisos del sistema.
