@@ -7,6 +7,6 @@ from .models import Usuari
 @admin.register(Usuari)
 class UsuariAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Campanya', {'fields': ('nom_complet', 'telefon', 'rol')}),
+        ('Campanya', {'fields': ('nom_complet', 'telefon', 'rol', 'tipus')}),
     )
-    list_display = ('username', 'nom_complet', 'email', 'rol', 'is_staff')
+    list_display = ('username', 'nom_complet', 'email', 'rol', 'tipus', 'is_staff')

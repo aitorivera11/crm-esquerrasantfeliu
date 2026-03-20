@@ -9,9 +9,21 @@ class Usuari(AbstractUser):
         VOLUNTARI = 'VOLUNTARI', 'Voluntari / militant'
         CONSULTA = 'CONSULTA', 'Consulta'
 
+    class Tipus(models.TextChoices):
+        MILITANT = 'MILITANT', 'Militant'
+        VOLUNTARI = 'VOLUNTARI', 'Voluntari'
+        AMIC = 'AMIC', 'Amic'
+
     nom_complet = models.CharField(max_length=255)
     telefon = models.CharField(max_length=20, blank=True)
     rol = models.CharField(max_length=20, choices=Rol.choices, default=Rol.VOLUNTARI)
+    tipus = models.CharField(
+        max_length=20,
+        choices=Tipus.choices,
+        blank=True,
+        default='',
+        help_text='Classificació interna per distingir militants, voluntaris i amics.',
+    )
 
     class Meta:
         verbose_name = 'usuari'

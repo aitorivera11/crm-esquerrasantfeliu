@@ -10,7 +10,12 @@
                     <h2 class="h4 mb-1">Dades personals</h2>
                     <p class="text-muted mb-0">Actualitza la informació bàsica del teu compte.</p>
                 </div>
-                <span class="badge text-bg-light">{{ request.user.get_rol_display }}</span>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge text-bg-light">{{ request.user.get_rol_display }}</span>
+                    {% if request.user.tipus %}
+                        <span class="badge text-bg-info-subtle">{{ request.user.get_tipus_display }}</span>
+                    {% endif %}
+                </div>
             </div>
             <form method="post">
                 {% csrf_token %}

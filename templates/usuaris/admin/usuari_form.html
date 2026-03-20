@@ -5,7 +5,7 @@
 <section class="card card-panel form-narrow">
     <div class="mb-3">
         <h2 class="h4 mb-1">{% if object %}Editar usuari{% else %}Crear usuari{% endif %}</h2>
-        <p class="text-muted mb-0">Gestiona dades bàsiques, rol i estat d'accés.</p>
+        <p class="text-muted mb-0">Gestiona dades bàsiques, rol, tipus intern i estat d'accés.</p>
     </div>
     <form method="post">
         {% csrf_token %}

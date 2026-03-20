@@ -66,6 +66,8 @@ Això evita haver d'entrar manualment a un contenidor: el mateix deploy de Verce
 - **Voluntari / militant**: veure agenda publicada i indicar participació.
 - **Consulta**: lectura de l'agenda publicada.
 
+A més del rol, cada usuari pot tenir un **tipus intern** (`Militant`, `Voluntari` o `Amic`) per segmentar la base de participants sense canviar permisos.
+
 Implementació suggerida amb `Django Groups` i permisos de model:
 
 - Crear actes: `agenda.add_acte`
