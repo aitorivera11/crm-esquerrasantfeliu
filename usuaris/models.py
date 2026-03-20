@@ -15,7 +15,7 @@ class Usuari(AbstractUser):
 
     nom_complet = models.CharField(max_length=255)
     telefon = models.CharField(max_length=20, blank=True)
-    rol = models.CharField(max_length=20, choices=Rol.choices, default=Rol.VOLUNTARI)
+    rol = models.CharField(max_length=20, choices=Rol.choices, default=Rol.PARTICIPANT)
     tipus = models.CharField(
         max_length=20,
         choices=Tipus.choices,
