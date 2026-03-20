@@ -23,6 +23,20 @@ class CampanyaPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
     pass
 
 
+class RegistreUsuariForm(StyledFormMixin, UserCreationForm):
+    class Meta:
+        model = Usuari
+        fields = ['nom_complet', 'username', 'email', 'telefon', 'tipus']
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.rol = Usuari.Rol.VOLUNTARI
+        user.is_active = False
+        if commit:
+            user.save()
+        return user
+
+
 class UsuariAdminCreateForm(StyledFormMixin, UserCreationForm):
     class Meta:
         model = Usuari

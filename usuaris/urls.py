@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     CanviPasswordView,
     PerfilView,
+    RegistreUsuariView,
     UsuariCreateView,
     UsuariDeleteView,
     UsuariListView,
@@ -12,6 +13,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path('registre/', RegistreUsuariView.as_view(), name='registre'),
     path('perfil/', PerfilView.as_view(), name='perfil'),
     path('perfil/contrasenya/', CanviPasswordView.as_view(), name='canvi_password'),
     path('admin/usuaris/', UsuariListView.as_view(), name='admin_usuari_list'),
