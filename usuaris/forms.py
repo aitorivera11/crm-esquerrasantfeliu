@@ -26,13 +26,13 @@ class CampanyaPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
 class UsuariAdminCreateForm(StyledFormMixin, UserCreationForm):
     class Meta:
         model = Usuari
-        fields = ['nom_complet', 'username', 'email', 'telefon', 'rol', 'is_active']
+        fields = ['nom_complet', 'username', 'email', 'telefon', 'rol', 'tipus', 'is_active']
 
 
 class UsuariAdminUpdateForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Usuari
-        fields = ['nom_complet', 'username', 'email', 'telefon', 'rol', 'is_active']
+        fields = ['nom_complet', 'username', 'email', 'telefon', 'rol', 'tipus', 'is_active']
 
 
 class UsuariAdminPasswordForm(StyledFormMixin, AdminPasswordChangeForm):
