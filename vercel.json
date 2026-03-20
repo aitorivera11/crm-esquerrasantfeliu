@@ -2,11 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "buildCommand": "bash build.sh",
+  "framework": null,
   "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/staticfiles_build/static/$1"
-    },
     {
       "src": "/(.*)",
       "dest": "/wsgi.py"
