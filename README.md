@@ -61,10 +61,9 @@ Això evita haver d'entrar manualment a un contenidor: el mateix deploy de Verce
 
 ## Rols i permisos recomanats
 
-- **Administrador**: tots els permisos del sistema.
-- **Coordinador**: crear/editar actes, veure participants, marcar assistència real.
-- **Voluntari / militant**: veure agenda publicada i indicar participació.
-- **Consulta**: lectura de l'agenda publicada.
+- **Administració**: tots els permisos del sistema i gestió completa d’usuaris.
+- **Coordinació**: crear/editar actes, veure participants i marcar assistència real.
+- **Participant**: veure l’agenda publicada i indicar participació.
 
 A més del rol, cada usuari pot tenir un **tipus intern** (`Militant`, `Voluntari` o `Amic`) per segmentar la base de participants sense canviar permisos.
 
@@ -77,7 +76,7 @@ Implementació suggerida amb `Django Groups` i permisos de model:
 
 ## Flux d'usuari MVP
 
-1. Una persona coordinadora crea l'acte des de `/agenda/nou/`.
+1. Una persona de coordinació crea l'acte des de `/agenda/nou/`.
 2. L'equip consulta la llista a `/agenda/`.
 3. Cada usuari entra al detall i fa clic a `Hi aniré`, `Potser` o `No hi aniré`.
 4. Coordinació revisa `/agenda/<id>/participants/`.

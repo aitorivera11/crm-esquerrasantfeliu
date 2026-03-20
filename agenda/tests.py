@@ -99,13 +99,13 @@ class AgendaPermissionsAndFiltersTests(TestCase):
             username='coord',
             password='test-pass-123',
             nom_complet='Coord',
-            rol=User.Rol.COORDINADOR,
+            rol=User.Rol.COORDINACIO,
         )
         self.vol = User.objects.create_user(
             username='basic',
             password='test-pass-123',
             nom_complet='Basic',
-            rol=User.Rol.VOLUNTARI,
+            rol=User.Rol.PARTICIPANT,
             tipus=User.Tipus.MILITANT,
         )
         self.view_perm = Permission.objects.get(codename='can_view_participants')
@@ -114,8 +114,8 @@ class AgendaPermissionsAndFiltersTests(TestCase):
 
         self.segment_rol, _ = SegmentVisibilitat.objects.get_or_create(
             ambit=SegmentVisibilitat.Ambit.ROL,
-            codi=User.Rol.COORDINADOR,
-            defaults={'etiqueta': 'Rol - Coordinador'},
+            codi=User.Rol.COORDINACIO,
+            defaults={'etiqueta': 'Rol - Coordinació'},
         )
         self.segment_tipus, _ = SegmentVisibilitat.objects.get_or_create(
             ambit=SegmentVisibilitat.Ambit.TIPUS,

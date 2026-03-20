@@ -74,7 +74,7 @@
                 {% if perms.agenda.add_acte %}<a href="{% url 'agenda:acte_create' %}" class="btn btn-primary">Nou acte</a>{% endif %}
                 <a href="{% url 'persones:persona_create' %}" class="btn btn-outline-primary">Afegir persona</a>
                 <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">El meu perfil</a>
-                {% if request.user.rol == 'ADMINISTRADOR' %}
+                {% if request.user.rol == 'ADMINISTRACIO' %}
                 <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-outline-dark">Nou usuari</a>
                 {% endif %}
             </div>
