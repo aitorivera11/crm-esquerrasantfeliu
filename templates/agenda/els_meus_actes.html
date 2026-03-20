@@ -1,19 +1,30 @@
 {% extends 'base.html' %}
 {% block title %}Els meus actes{% endblock %}
 {% block page_title %}Els meus actes{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">El teu resum personal queda ara penjat dins d’Agenda per no dispersar la navegació.</p>{% endblock %}
 {% block content %}
-<section class="card card-panel mb-4">
+<section class="card card-panel mb-4 p-4">
     <h2 class="h4 mb-1">Seguiment personal</h2>
-    <p class="text-muted mb-0">Consulta els actes on ja has indicat disponibilitat.</p>
+    <p class="text-muted mb-0">Consulta les teves respostes, diferencia millor els actes passats i revisa ràpidament el tipus de convocatòria.</p>
 </section>
 <div class="row g-4">
 {% for participacio in participacions %}
     <div class="col-12 col-lg-6">
-        <article class="card card-panel h-100">
-            <a class="text-decoration-none" href="{% url 'agenda:acte_detail' participacio.acte.pk %}"><strong>{{ participacio.acte.titol }}</strong></a>
-            <p class="text-muted mb-2">{{ participacio.acte.inici|date:'d/m/Y H:i' }} · {{ participacio.acte.ubicacio }}</p>
-            <div><strong>Intenció:</strong> {{ participacio.get_intencio_display }}</div>
-            <div><strong>Assistència real:</strong> {{ participacio.get_assistencia_real_display }}</div>
+        <article class="card card-panel h-100 p-4">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <a class="text-decoration-none" href="{% url 'agenda:acte_detail' participacio.acte.pk %}"><strong>{{ participacio.acte.titol }}</strong></a>
+                {% if participacio.acte.tipus %}<span class="badge badge-soft">{{ participacio.acte.tipus.nom }}</span>{% endif %}
+            </div>
+            <p class="text-muted mb-3">
+                {{ participacio.acte.inici|date:'d/m/Y H:i' }}
+                {% if participacio.acte.fi %} → {{ participacio.acte.fi|date:'H:i' }}{% endif %}
+                · {{ participacio.acte.ubicacio }}
+            </p>
+            <div class="participation-summary">
+                <div><strong>Intenció:</strong> {{ participacio.get_intencio_display }}</div>
+                <div><strong>Assistència real:</strong> {{ participacio.get_assistencia_real_display }}</div>
+                {% if participacio.observacions %}<div><strong>Comentari:</strong> {{ participacio.observacions }}</div>{% endif %}
+            </div>
         </article>
     </div>
 {% empty %}

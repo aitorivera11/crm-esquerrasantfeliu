@@ -5,6 +5,45 @@ from django.urls import reverse
 from core.models import TimeStampedModel
 
 
+class ActeTipus(TimeStampedModel):
+    nom = models.CharField(max_length=100, unique=True)
+    descripcio = models.TextField(blank=True)
+    color = models.CharField(max_length=7, blank=True, help_text='Color HEX opcional per destacar el tipus.')
+    ordre = models.PositiveIntegerField(default=0)
+    actiu = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['ordre', 'nom']
+        verbose_name = "tipus d'acte"
+        verbose_name_plural = "tipus d'actes"
+
+    def __str__(self):
+        return self.nom
+
+
+class SegmentVisibilitat(TimeStampedModel):
+    class Ambit(models.TextChoices):
+        ROL = 'ROL', 'Rol'
+        TIPUS = 'TIPUS', "Tipus d'usuari"
+
+    ambit = models.CharField(max_length=10, choices=Ambit.choices)
+    codi = models.CharField(max_length=50)
+    etiqueta = models.CharField(max_length=100)
+    ordre = models.PositiveIntegerField(default=0)
+    actiu = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['ambit', 'ordre', 'etiqueta']
+        constraints = [
+            models.UniqueConstraint(fields=['ambit', 'codi'], name='agenda_unique_segment_scope_code'),
+        ]
+        verbose_name = 'segment de visibilitat'
+        verbose_name_plural = 'segments de visibilitat'
+
+    def __str__(self):
+        return f'{self.get_ambit_display()} · {self.etiqueta}'
+
+
 class Acte(TimeStampedModel):
     class Estat(models.TextChoices):
         ESBORRANY = 'ESBORRANY', 'Esborrany'
@@ -12,13 +51,33 @@ class Acte(TimeStampedModel):
 
     titol = models.CharField(max_length=255)
     descripcio = models.TextField(blank=True)
+    tipus = models.ForeignKey(
+        ActeTipus,
+        on_delete=models.SET_NULL,
+        related_name='actes',
+        null=True,
+        blank=True,
+    )
     inici = models.DateTimeField()
+    fi = models.DateTimeField(null=True, blank=True)
     ubicacio = models.CharField(max_length=255)
+    aforament = models.PositiveIntegerField(null=True, blank=True)
+    punt_trobada = models.CharField(max_length=255, blank=True)
     estat = models.CharField(max_length=20, choices=Estat.choices, default=Estat.ESBORRANY)
     creador = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name='actes_creats',
+    )
+    visible_per = models.ManyToManyField(
+        SegmentVisibilitat,
+        blank=True,
+        related_name='actes_visibles',
+    )
+    assistencia_permesa_per = models.ManyToManyField(
+        SegmentVisibilitat,
+        blank=True,
+        related_name='actes_assistencia',
     )
 
     external_source = models.CharField(max_length=50, blank=True)

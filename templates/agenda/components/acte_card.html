@@ -3,14 +3,36 @@
         <div>
             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                 <h3 class="h5 mb-0"><a class="text-decoration-none" href="{% url 'agenda:acte_detail' acte.pk %}">{{ acte.titol }}</a></h3>
+                {% if acte.tipus %}<span class="badge badge-soft">{{ acte.tipus.nom }}</span>{% endif %}
                 {% if acte.external_source %}<span class="badge badge-soft">Ciutat</span>{% endif %}
             </div>
-            <div class="text-muted small">{{ acte.inici|date:'d/m/Y H:i' }} · {{ acte.ubicacio }}</div>
+            <div class="text-muted small">
+                {{ acte.inici|date:'d/m/Y H:i' }}
+                {% if acte.fi %} → {{ acte.fi|date:'H:i' }}{% endif %}
+                · {{ acte.ubicacio }}
+            </div>
         </div>
         {% if acte.estat == 'PUBLICAT' %}<span class="badge badge-deep">Publicat</span>{% else %}<span class="badge badge-soft">Esborrany</span>{% endif %}
     </div>
 
-    <p class="text-muted acte-card-copy">{{ acte.descripcio|default:'Sense descripció addicional.'|truncatechars:120 }}</p>
+    <div class="meta-grid meta-grid-compact mb-3">
+        <div class="meta-card"><span>Assistència</span><strong>{% if acte.user_can_attend %}Pots confirmar{% else %}Només lectura{% endif %}</strong></div>
+        <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels %}Restringida{% else %}Tothom{% endif %}</strong></div>
+        {% if acte.aforament %}<div class="meta-card"><span>Aforament</span><strong>{{ acte.aforament }}</strong></div>{% endif %}
+    </div>
+
+    <p class="text-muted acte-card-copy">{{ acte.descripcio|default:'Sense descripció addicional.'|truncatechars:140 }}</p>
+
+    {% if acte.visible_segments_labels or acte.assistencia_segments_labels %}
+        <div class="audience-stack mb-3">
+            {% if acte.visible_segments_labels %}
+                <div class="small"><strong>Qui el pot veure:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
+            {% endif %}
+            {% if acte.assistencia_segments_labels %}
+                <div class="small"><strong>Qui hi pot assistir:</strong> {{ acte.assistencia_segments_labels|join:', ' }}</div>
+            {% endif %}
+        </div>
+    {% endif %}
 
     <div class="acte-card-stats mb-3">
         <span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> hi van</span>
@@ -34,7 +56,11 @@
 
     <div class="card-inline-actions mt-auto">
         <div class="cta-group">
-            {% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=acte.request_user_participacio target_id='closest article' render_mode='card' compact=True %}
+            {% if acte.user_can_attend %}
+                {% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=acte.request_user_participacio target_id='closest article' render_mode='card' compact=True %}
+            {% else %}
+                <span class="mini-stat">No pots confirmar assistència</span>
+            {% endif %}
         </div>
         <a href="{% url 'agenda:acte_detail' acte.pk %}" class="btn btn-sm btn-outline-primary">Detall</a>
     </div>
