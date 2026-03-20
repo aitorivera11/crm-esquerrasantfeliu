@@ -21,8 +21,17 @@ class Acte(TimeStampedModel):
         related_name='actes_creats',
     )
 
+    external_source = models.CharField(max_length=50, blank=True)
+    external_id = models.CharField(max_length=255, blank=True)
+    source_url = models.URLField(blank=True)
+    source_checksum = models.CharField(max_length=64, blank=True)
+    source_payload = models.JSONField(default=dict, blank=True)
+
     class Meta:
         ordering = ['inici']
+        constraints = [
+            models.UniqueConstraint(fields=['external_source', 'external_id'], name='agenda_unique_external_source_id'),
+        ]
         permissions = [
             ('can_view_participants', 'Pot veure participants'),
             ('can_mark_attendance', 'Pot marcar assistència real'),

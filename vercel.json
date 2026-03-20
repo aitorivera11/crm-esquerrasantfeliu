@@ -11,5 +11,11 @@
   ],
   "env": {
     "DJANGO_SETTINGS_MODULE": "config.settings"
-  }
+  },
+  "crons": [
+    {
+      "path": "/agenda/cron/import-city-events/",
+      "schedule": "0 2 * * *"
+    }
+  ]
 }

@@ -3,27 +3,42 @@
 {% block page_title %}Dashboard de campanya{% endblock %}
 {% block content %}
 <section class="hero-panel mb-4">
-    <div>
-        <p class="eyebrow">Vista general</p>
-        <h2>Una portada útil per coordinar la campanya municipal.</h2>
-        <p class="text-muted mb-0">Consulta l'activitat clau, accedeix ràpidament als mòduls principals i mantén el ritme operatiu de l'equip.</p>
+    <div class="hero-grid">
+        <div>
+            <span class="hero-badge">● Operativa central</span>
+            <p class="eyebrow mb-2">Vista general</p>
+            <h2>Una portada més neta per impulsar la campanya municipal.</h2>
+            <p class="text-muted mb-0">Ara tens una interfície més clara, amb millor ritme visual, accions ràpides ben alineades i una base preparada per barrejar actes propis amb agenda de ciutat.</p>
+        </div>
+        <aside class="hero-side">
+            <div>
+                <p class="eyebrow mb-2">Agenda viva</p>
+                <div class="metric">{{ propers_actes|length }}</div>
+                <p>Actes immediats visibles des del dashboard per prioritzar moviment, assistència i seguiment.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="info-chip">Sant Feliu</span>
+                <span class="info-chip">Esquerra</span>
+                <span class="info-chip">Equip coordinat</span>
+            </div>
+        </aside>
     </div>
 </section>
 
 <section class="stats-grid mb-4">
-    <article class="stat-card"><span class="stat-label">Total d'actes</span><strong>{{ total_actes }}</strong><small>{{ actes_publicats }} publicats</small></article>
-    <article class="stat-card"><span class="stat-label">Actes propers</span><strong>{{ propers_actes|length }}</strong><small>Pròximes cites planificades</small></article>
-    <article class="stat-card"><span class="stat-label">Persones registrades</span><strong>{{ total_persones }}</strong><small>Base social i contactes</small></article>
-    <article class="stat-card"><span class="stat-label">Usuaris actius</span><strong>{{ usuaris_actius }}</strong><small>Comptes habilitats</small></article>
+    <article class="stat-card"><span class="stat-label">Total d'actes</span><strong>{{ total_actes }}</strong><small>{{ actes_publicats }} publicats</small><span class="stat-trend">Agenda pròpia + ciutat</span></article>
+    <article class="stat-card"><span class="stat-label">Actes propers</span><strong>{{ propers_actes|length }}</strong><small>Pròximes cites planificades</small><span class="stat-trend">Seguiment immediat</span></article>
+    <article class="stat-card"><span class="stat-label">Persones registrades</span><strong>{{ total_persones }}</strong><small>Base social i contactes</small><span class="stat-trend">Creixement de xarxa</span></article>
+    <article class="stat-card"><span class="stat-label">Usuaris actius</span><strong>{{ usuaris_actius }}</strong><small>Comptes habilitats</small><span class="stat-trend">Coordinació interna</span></article>
 </section>
 
 <div class="row g-4">
     <div class="col-12 col-xl-8">
-        <section class="card card-panel h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <section class="card card-panel h-100 p-4">
+            <div class="section-heading">
                 <div>
-                    <h3 class="h5 mb-1">Propers actes</h3>
-                    <p class="text-muted mb-0">Seguiment ràpid de l'agenda immediata.</p>
+                    <h3 class="h4 mb-1">Propers actes</h3>
+                    <p class="text-muted mb-0">Seguiment ràpid de l'agenda immediata, amb millor lectura temporal i espacial.</p>
                 </div>
                 <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-primary">Veure agenda</a>
             </div>
@@ -31,9 +46,12 @@
                 <div class="list-group list-group-flush">
                     {% for acte in propers_actes %}
                         <a href="{% url 'agenda:acte_detail' acte.pk %}" class="list-group-item list-group-item-action px-0 py-3 border-bottom">
-                            <div class="d-flex justify-content-between gap-3 flex-wrap">
+                            <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start">
                                 <div>
-                                    <strong>{{ acte.titol }}</strong>
+                                    <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+                                        <strong>{{ acte.titol }}</strong>
+                                        {% if acte.external_source %}<span class="badge badge-soft">Agenda de ciutat</span>{% endif %}
+                                    </div>
                                     <div class="text-muted small">{{ acte.ubicacio }}</div>
                                 </div>
                                 <div class="text-md-end">
@@ -50,8 +68,8 @@
         </section>
     </div>
     <div class="col-12 col-xl-4">
-        <section class="card card-panel h-100">
-            <h3 class="h5 mb-3">Accions ràpides</h3>
+        <section class="card card-panel h-100 p-4">
+            <h3 class="h4 mb-3">Accions ràpides</h3>
             <div class="d-grid gap-2 quick-actions">
                 {% if perms.agenda.add_acte %}<a href="{% url 'agenda:acte_create' %}" class="btn btn-primary">Crear nou acte</a>{% endif %}
                 <a href="{% url 'persones:persona_create' %}" class="btn btn-outline-primary">Afegir persona</a>

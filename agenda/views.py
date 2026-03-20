@@ -1,7 +1,14 @@
+import io
+import os
+
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.http import HttpResponseForbidden
+from django.core.management import call_command
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.generic import CreateView, DetailView, ListView, UpdateView, View
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from core.models import Auditoria
 
@@ -19,6 +26,11 @@ class ActeListView(LoginRequiredMixin, ListView):
         if self.request.user.has_perm('agenda.change_acte'):
             return queryset
         return queryset.filter(estat=Acte.Estat.PUBLICAT)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['imported_count'] = Acte.objects.filter(external_source='AGENDA_CIUTAT', estat=Acte.Estat.PUBLICAT).count()
+        return context
 
 
 class ActeDetailView(LoginRequiredMixin, DetailView):
@@ -134,7 +146,7 @@ class MarcarAssistenciaView(LoginRequiredMixin, PermissionRequiredMixin, View):
         participacio = get_object_or_404(ParticipacioActe, pk=participant_pk, acte=acte)
         estat = request.POST.get('assistencia_real')
         if estat not in ParticipacioActe.AssistenciaReal.values:
-            return HttpResponseForbidden('Estat d\'assistència no vàlid.')
+            return HttpResponseForbidden("Estat d'assistència no vàlid.")
         participacio.assistencia_real = estat
         participacio.save(update_fields=['assistencia_real', 'actualitzat_el'])
         Auditoria.objects.create(
@@ -145,3 +157,18 @@ class MarcarAssistenciaView(LoginRequiredMixin, PermissionRequiredMixin, View):
             dades={'assistencia_real': estat, 'acte_id': acte.pk},
         )
         return redirect('agenda:participants_list', pk=pk)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ImportCityEventsCronView(View):
+    http_method_names = ['get']
+
+    def get(self, request):
+        secret = os.getenv('CRON_SECRET', '')
+        provided = request.headers.get('Authorization', '').removeprefix('Bearer ').strip() or request.GET.get('key', '')
+        if secret and provided != secret:
+            return JsonResponse({'ok': False, 'error': 'Unauthorized'}, status=401)
+
+        output = io.StringIO()
+        call_command('import_city_events', '--cleanup', stdout=output)
+        return JsonResponse({'ok': True, 'details': output.getvalue().strip()})
