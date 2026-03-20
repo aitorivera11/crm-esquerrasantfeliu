@@ -2,8 +2,8 @@
 {% block title %}Persones{% endblock %}
 {% block page_title %}Persones{% endblock %}
 {% block content %}
-<section class="card card-panel mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+<section class="card card-panel panel-section mb-4">
+    <div class="section-heading align-items-start">
         <div>
             <h2 class="h4 mb-1">Base de persones</h2>
             <p class="text-muted mb-0">Gestiona contactes i observacions de la campanya.</p>
@@ -11,20 +11,20 @@
         <a href="{% url 'persones:persona_create' %}" class="btn btn-primary">Nova persona</a>
     </div>
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-md-9">
+        <div class="col-lg-8">
             <label class="form-label">Cercar</label>
-            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nom, email o telèfon">
+            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nom, correu electrònic o telèfon">
         </div>
-        <div class="col-md-3 d-flex gap-2">
+        <div class="col-lg-4 d-flex gap-2">
             <button class="btn btn-outline-primary w-100">Cercar</button>
             <a href="{% url 'persones:persona_list' %}" class="btn btn-outline-secondary">Netejar</a>
         </div>
     </form>
 </section>
-<section class="card card-panel">
+<section class="card card-panel panel-section">
     {% if persones %}
     <div class="table-responsive">
-        <table class="table align-middle app-table">
+        <table class="table align-middle app-table app-table-spacious">
             <thead><tr><th>Nom</th><th>Contacte</th><th>Notes</th><th class="text-end">Accions</th></tr></thead>
             <tbody>
             {% for persona in persones %}
