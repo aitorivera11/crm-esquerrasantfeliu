@@ -4,15 +4,14 @@ from django.db import models
 
 class Usuari(AbstractUser):
     class Rol(models.TextChoices):
-        ADMINISTRADOR = 'ADMINISTRADOR', 'Administrador'
-        COORDINADOR = 'COORDINADOR', 'Coordinador'
-        VOLUNTARI = 'VOLUNTARI', 'Voluntari / militant'
-        CONSULTA = 'CONSULTA', 'Consulta'
+        ADMINISTRACIO = 'ADMINISTRACIO', 'Administració'
+        COORDINACIO = 'COORDINACIO', 'Coordinadocio'
+        PARTICIPANT = 'PARTICIPANT', 'Bàsic'
 
     class Tipus(models.TextChoices):
         MILITANT = 'MILITANT', 'Militant'
-        VOLUNTARI = 'VOLUNTARI', 'Voluntari'
-        AMIC = 'AMIC', 'Amic'
+        VOLUNTARI = 'VOLUNTARI', 'Voluntari/a'
+        AMIC = 'AMIC', 'Amic o amiga'
 
     nom_complet = models.CharField(max_length=255)
     telefon = models.CharField(max_length=20, blank=True)
