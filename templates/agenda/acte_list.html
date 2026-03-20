@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
 {% block title %}Agenda{% endblock %}
 {% block page_title %}Agenda{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Llista unificada d'actes de campanya i agenda de ciutat importada automàticament cada nit.</p>{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Actes, disponibilitat i assistència en una sola vista.</p>{% endblock %}
 {% block content %}
-<section class="card card-panel mb-4 p-4">
+<section class="card card-panel agenda-toolbar mb-4 p-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-            <h2 class="h4 mb-1">Agenda de campanya</h2>
-            <p class="text-muted mb-0">Consulta els actes previstos, els imports públics de ciutat i l'estat general de participació.</p>
+            <h2 class="h4 mb-1">Agenda viva</h2>
+            <p class="text-muted mb-0">Confirma des d'aquí i revisa ràpidament qui ve.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap align-items-center">
-            {% if imported_count %}<span class="info-chip">{{ imported_count }} actes des de ciutat</span>{% endif %}
+            <span class="info-chip">{{ upcoming_count }} actes publicats</span>
+            {% if imported_count %}<span class="info-chip">{{ imported_count }} de ciutat</span>{% endif %}
             {% if perms.agenda.add_acte %}<a class="btn btn-primary" href="{% url 'agenda:acte_create' %}">Nou acte</a>{% endif %}
         </div>
     </div>

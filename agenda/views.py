@@ -3,10 +3,11 @@ import os
 
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.management import call_command
+from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views import View
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
@@ -16,37 +17,67 @@ from .forms import ActeForm, ParticipacioForm
 from .models import Acte, ParticipacioActe
 
 
-class ActeListView(LoginRequiredMixin, ListView):
+class AgendaContextMixin:
+    def _base_queryset(self):
+        current_user_participation = Prefetch(
+            'participants',
+            queryset=ParticipacioActe.objects.filter(usuari=self.request.user).select_related('usuari'),
+            to_attr='participant_for_request_user',
+        )
+        return (
+            Acte.objects.select_related('creador')
+            .prefetch_related('participants__usuari', current_user_participation)
+            .annotate(
+                total_participants=Count('participants', distinct=True),
+                total_confirmats=Count('participants', filter=Q(participants__intencio=ParticipacioActe.Intencio.HI_ANIRE), distinct=True),
+                total_potser=Count('participants', filter=Q(participants__intencio=ParticipacioActe.Intencio.POTSER), distinct=True),
+                total_no=Count('participants', filter=Q(participants__intencio=ParticipacioActe.Intencio.NO_HI_ANIRE), distinct=True),
+            )
+        )
+
+    def _enrich_acte(self, acte):
+        participants = list(acte.participants.all())
+        confirmats = [p for p in participants if p.intencio == ParticipacioActe.Intencio.HI_ANIRE]
+        acte.confirmats_preview = confirmats[:4]
+        acte.confirmats_extra = max(len(confirmats) - len(acte.confirmats_preview), 0)
+        acte.request_user_participacio = next(iter(getattr(acte, 'participant_for_request_user', [])), None)
+        return acte
+
+
+class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
     model = Acte
     template_name = 'agenda/acte_list.html'
     context_object_name = 'actes'
 
     def get_queryset(self):
-        queryset = Acte.objects.select_related('creador').prefetch_related('participants__usuari')
+        queryset = self._base_queryset()
         if self.request.user.has_perm('agenda.change_acte'):
             return queryset
         return queryset.filter(estat=Acte.Estat.PUBLICAT)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['actes'] = [self._enrich_acte(acte) for acte in context['actes']]
         context['imported_count'] = Acte.objects.filter(external_source='AGENDA_CIUTAT', estat=Acte.Estat.PUBLICAT).count()
+        context['upcoming_count'] = Acte.objects.filter(estat=Acte.Estat.PUBLICAT).count()
         return context
 
 
-class ActeDetailView(LoginRequiredMixin, DetailView):
+class ActeDetailView(AgendaContextMixin, LoginRequiredMixin, DetailView):
     model = Acte
     template_name = 'agenda/acte_detail.html'
     context_object_name = 'acte'
 
     def get_queryset(self):
-        queryset = Acte.objects.select_related('creador').prefetch_related('participants__usuari')
+        queryset = self._base_queryset()
         if self.request.user.has_perm('agenda.change_acte'):
             return queryset
         return queryset.filter(estat=Acte.Estat.PUBLICAT)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        participacio = ParticipacioActe.objects.filter(acte=self.object, usuari=self.request.user).first()
+        self.object = self._enrich_acte(self.object)
+        participacio = self.object.request_user_participacio
         context['participacio'] = participacio
         context['participacio_form'] = ParticipacioForm(instance=participacio, usuari=self.request.user, acte=self.object)
         return context
@@ -89,7 +120,7 @@ class ActeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         return response
 
 
-class ParticiparActeView(LoginRequiredMixin, View):
+class ParticiparActeView(AgendaContextMixin, LoginRequiredMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
@@ -112,9 +143,16 @@ class ParticiparActeView(LoginRequiredMixin, View):
                     'assistencia_real': participacio.assistencia_real,
                 },
             )
-            template = 'agenda/components/participacio_buttons.html'
-            context = {'acte': acte, 'participacio': participacio, 'participacio_form': ParticipacioForm(instance=participacio, usuari=request.user, acte=acte)}
-            return render(request, template, context)
+            acte = self._enrich_acte(self._base_queryset().get(pk=acte.pk))
+            render_mode = request.POST.get('render_mode', 'detail')
+            context = {
+                'acte': acte,
+                'participacio': participacio,
+                'participacio_form': ParticipacioForm(instance=participacio, usuari=request.user, acte=acte),
+            }
+            if render_mode == 'card':
+                return render(request, 'agenda/components/acte_card.html', context)
+            return render(request, 'agenda/components/participacio_buttons.html', context)
 
         if request.headers.get('HX-Request'):
             return render(request, 'agenda/components/participacio_form.html', {'form': form, 'acte': acte}, status=400)

@@ -1,35 +1,35 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
-{% block page_title %}Dashboard de campanya{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Visió ràpida de l'activitat i els següents passos.</p>{% endblock %}
 {% block content %}
-<section class="hero-panel mb-4">
+<section class="hero-panel hero-panel-compact mb-4">
     <div class="hero-grid">
         <div>
-            <span class="hero-badge">● Operativa central</span>
-            <p class="eyebrow mb-2">Vista general</p>
-            <h2>Una portada més neta per impulsar la campanya municipal.</h2>
-            <p class="text-muted mb-0">Ara tens una interfície més clara, amb millor ritme visual, accions ràpides ben alineades i una base preparada per barrejar actes propis amb agenda de ciutat.</p>
+            <span class="hero-badge">● Operativa</span>
+            <h2>Tot a punt per moure campanya.</h2>
+            <p class="text-muted mb-0">Menys soroll, més acció.</p>
         </div>
         <aside class="hero-side">
             <div>
-                <p class="eyebrow mb-2">Agenda viva</p>
+                <p class="eyebrow mb-2">Pròxims actes</p>
                 <div class="metric">{{ propers_actes|length }}</div>
-                <p>Actes immediats visibles des del dashboard per prioritzar moviment, assistència i seguiment.</p>
+                <p>Seguiment immediat.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <span class="info-chip">Sant Feliu</span>
-                <span class="info-chip">Esquerra</span>
-                <span class="info-chip">Equip coordinat</span>
+                <span class="info-chip">Agenda</span>
+                <span class="info-chip">Equip</span>
+                <span class="info-chip">Territori</span>
             </div>
         </aside>
     </div>
 </section>
 
 <section class="stats-grid mb-4">
-    <article class="stat-card"><span class="stat-label">Total d'actes</span><strong>{{ total_actes }}</strong><small>{{ actes_publicats }} publicats</small><span class="stat-trend">Agenda pròpia + ciutat</span></article>
-    <article class="stat-card"><span class="stat-label">Actes propers</span><strong>{{ propers_actes|length }}</strong><small>Pròximes cites planificades</small><span class="stat-trend">Seguiment immediat</span></article>
-    <article class="stat-card"><span class="stat-label">Persones registrades</span><strong>{{ total_persones }}</strong><small>Base social i contactes</small><span class="stat-trend">Creixement de xarxa</span></article>
-    <article class="stat-card"><span class="stat-label">Usuaris actius</span><strong>{{ usuaris_actius }}</strong><small>Comptes habilitats</small><span class="stat-trend">Coordinació interna</span></article>
+    <article class="stat-card"><span class="stat-label">Actes</span><strong>{{ total_actes }}</strong><small>{{ actes_publicats }} publicats</small></article>
+    <article class="stat-card"><span class="stat-label">Propers</span><strong>{{ propers_actes|length }}</strong><small>Seguiment ràpid</small></article>
+    <article class="stat-card"><span class="stat-label">Persones</span><strong>{{ total_persones }}</strong><small>Base social</small></article>
+    <article class="stat-card"><span class="stat-label">Usuaris</span><strong>{{ usuaris_actius }}</strong><small>Comptes actius</small></article>
 </section>
 
 <div class="row g-4">
@@ -38,9 +38,9 @@
             <div class="section-heading">
                 <div>
                     <h3 class="h4 mb-1">Propers actes</h3>
-                    <p class="text-muted mb-0">Seguiment ràpid de l'agenda immediata, amb millor lectura temporal i espacial.</p>
+                    <p class="text-muted mb-0">El que ve ara.</p>
                 </div>
-                <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-primary">Veure agenda</a>
+                <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-primary">Obrir agenda</a>
             </div>
             {% if propers_actes %}
                 <div class="list-group list-group-flush">
@@ -50,7 +50,7 @@
                                 <div>
                                     <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
                                         <strong>{{ acte.titol }}</strong>
-                                        {% if acte.external_source %}<span class="badge badge-soft">Agenda de ciutat</span>{% endif %}
+                                        {% if acte.external_source %}<span class="badge badge-soft">Ciutat</span>{% endif %}
                                     </div>
                                     <div class="text-muted small">{{ acte.ubicacio }}</div>
                                 </div>
@@ -63,19 +63,19 @@
                     {% endfor %}
                 </div>
             {% else %}
-                {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Comença afegint el primer acte de campanya per activar l’agenda.' action_url='/agenda/nou/' action_label='Crear acte' %}
+                {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Crea el primer acte per activar l’agenda.' action_url='/agenda/nou/' action_label='Crear acte' %}
             {% endif %}
         </section>
     </div>
     <div class="col-12 col-xl-4">
         <section class="card card-panel h-100 p-4">
-            <h3 class="h4 mb-3">Accions ràpides</h3>
+            <h3 class="h4 mb-3">Accions</h3>
             <div class="d-grid gap-2 quick-actions">
-                {% if perms.agenda.add_acte %}<a href="{% url 'agenda:acte_create' %}" class="btn btn-primary">Crear nou acte</a>{% endif %}
+                {% if perms.agenda.add_acte %}<a href="{% url 'agenda:acte_create' %}" class="btn btn-primary">Nou acte</a>{% endif %}
                 <a href="{% url 'persones:persona_create' %}" class="btn btn-outline-primary">Afegir persona</a>
-                <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">Editar el meu perfil</a>
+                <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">El meu perfil</a>
                 {% if request.user.rol == 'ADMINISTRADOR' %}
-                <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-outline-dark">Crear usuari</a>
+                <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-outline-dark">Nou usuari</a>
                 {% endif %}
             </div>
         </section>
