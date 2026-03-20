@@ -27,7 +27,7 @@ class PerfilView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def form_valid(self, form):
-        messages.success(self.request, 'Les dades del teu perfil s\'han actualitzat correctament.')
+        messages.success(self.request, "Les dades del teu perfil s'han actualitzat correctament.")
         return super().form_valid(form)
 
 
@@ -44,7 +44,7 @@ class CanviPasswordView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         user = form.save()
         update_session_auth_hash(self.request, user)
-        messages.success(self.request, 'La contrasenya s\'ha canviat correctament.')
+        messages.success(self.request, "La contrasenya s'ha canviat correctament.")
         return super().form_valid(form)
 
 
@@ -58,6 +58,7 @@ class UsuariListView(AdminRequiredMixin, ListView):
         queryset = Usuari.objects.order_by('nom_complet', 'username')
         q = self.request.GET.get('q', '').strip()
         rol = self.request.GET.get('rol', '').strip()
+        tipus = self.request.GET.get('tipus', '').strip()
         if q:
             queryset = queryset.filter(
                 Q(nom_complet__icontains=q)
@@ -67,13 +68,17 @@ class UsuariListView(AdminRequiredMixin, ListView):
             )
         if rol:
             queryset = queryset.filter(rol=rol)
+        if tipus:
+            queryset = queryset.filter(tipus=tipus)
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['q'] = self.request.GET.get('q', '').strip()
         context['rol'] = self.request.GET.get('rol', '').strip()
+        context['tipus'] = self.request.GET.get('tipus', '').strip()
         context['rols'] = Usuari.Rol.choices
+        context['tipus_options'] = Usuari.Tipus.choices
         return context
 
 
