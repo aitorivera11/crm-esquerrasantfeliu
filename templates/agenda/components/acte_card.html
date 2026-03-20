@@ -17,13 +17,13 @@
 
     <div class="meta-grid meta-grid-compact mb-3">
         <div class="meta-card"><span>Assistència</span><strong>{% if acte.user_can_attend %}Pots confirmar{% else %}Només lectura{% endif %}</strong></div>
-        <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels %}Restringida{% else %}Tothom{% endif %}</strong></div>
+        <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels and acte.user_can_view_admin_details %}Restringida{% else %}Acte visible per a tu{% endif %}</strong></div>
         {% if acte.aforament %}<div class="meta-card"><span>Aforament</span><strong>{{ acte.aforament }}</strong></div>{% endif %}
     </div>
 
     <p class="text-muted acte-card-copy">{{ acte.descripcio|default:'Sense descripció addicional.'|truncatechars:140 }}</p>
 
-    {% if acte.visible_segments_labels or acte.assistencia_segments_labels %}
+    {% if acte.user_can_view_admin_details and acte.visible_segments_labels or acte.user_can_view_admin_details and acte.assistencia_segments_labels %}
         <div class="audience-stack mb-3">
             {% if acte.visible_segments_labels %}
                 <div class="small"><strong>Qui el pot veure:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
@@ -34,25 +34,27 @@
         </div>
     {% endif %}
 
-    <div class="acte-card-stats mb-3">
-        <span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> hi van</span>
-        <span class="mini-stat"><strong>{{ acte.total_potser }}</strong> potser</span>
-        <span class="mini-stat"><strong>{{ acte.total_no }}</strong> no hi van</span>
-    </div>
+    {% if acte.user_can_view_admin_details %}
+        <div class="acte-card-stats mb-3">
+            <span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> hi van</span>
+            <span class="mini-stat"><strong>{{ acte.total_potser }}</strong> potser</span>
+            <span class="mini-stat"><strong>{{ acte.total_no }}</strong> no hi van</span>
+        </div>
 
-    <div class="attendees-strip mb-3">
-        <div class="small fw-semibold">Qui hi va</div>
-        {% if acte.confirmats_preview %}
-            <div class="attendees-list">
-                {% for participant in acte.confirmats_preview %}
-                    <span class="attendee-pill">{{ participant.usuari.nom_complet|default:participant.usuari.username }}</span>
-                {% endfor %}
-                {% if acte.confirmats_extra %}<span class="attendee-pill attendee-pill-more">+{{ acte.confirmats_extra }}</span>{% endif %}
-            </div>
-        {% else %}
-            <p class="text-muted small mb-0">Encara no hi ha confirmacions.</p>
-        {% endif %}
-    </div>
+        <div class="attendees-strip mb-3">
+            <div class="small fw-semibold">Qui hi va</div>
+            {% if acte.confirmats_preview %}
+                <div class="attendees-list">
+                    {% for participant in acte.confirmats_preview %}
+                        <span class="attendee-pill">{{ participant.usuari.nom_complet|default:participant.usuari.username }}</span>
+                    {% endfor %}
+                    {% if acte.confirmats_extra %}<span class="attendee-pill attendee-pill-more">+{{ acte.confirmats_extra }}</span>{% endif %}
+                </div>
+            {% else %}
+                <p class="text-muted small mb-0">Encara no hi ha confirmacions.</p>
+            {% endif %}
+        </div>
+    {% endif %}
 
     <div class="card-inline-actions mt-auto">
         <div class="cta-group">

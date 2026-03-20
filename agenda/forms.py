@@ -3,13 +3,21 @@ from datetime import timedelta
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.utils.formats import localize_input
 
 from usuaris.forms import StyledFormMixin
 
-from .models import Acte, ParticipacioActe
+from .models import Acte, ParticipacioActe, SegmentVisibilitat
 
 
 class ActeForm(StyledFormMixin, forms.ModelForm):
+    datetime_input_formats = [
+        '%Y-%m-%dT%H:%M',
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%d/%m/%Y %H:%M',
+    ]
+
     class Meta:
         model = Acte
         fields = [
@@ -26,20 +34,31 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
             'estat',
         ]
         widgets = {
-            'inici': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-            'fi': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-            'descripcio': forms.Textarea(attrs={'rows': 4}),
-            'visible_per': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 6}),
-            'assistencia_permesa_per': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 6}),
+            'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
+            'fi': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
+            'descripcio': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Context, objectiu, material necessari…'}),
+            'visible_per': forms.CheckboxSelectMultiple(),
+            'assistencia_permesa_per': forms.CheckboxSelectMultiple(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['tipus'].queryset = self.fields['tipus'].queryset.filter(actiu=True)
-        self.fields['visible_per'].queryset = self.fields['visible_per'].queryset.filter(actiu=True)
-        self.fields['assistencia_permesa_per'].queryset = self.fields['assistencia_permesa_per'].queryset.filter(actiu=True)
+        segment_queryset = SegmentVisibilitat.objects.filter(actiu=True).order_by('ambit', 'ordre', 'etiqueta')
+        self.fields['visible_per'].queryset = segment_queryset
+        self.fields['assistencia_permesa_per'].queryset = segment_queryset
         self.fields['visible_per'].help_text = 'Deixa-ho buit perquè l’acte sigui visible per a tothom amb accés a l’agenda.'
         self.fields['assistencia_permesa_per'].help_text = 'Deixa-ho buit perquè qualsevol usuari que el vegi pugui confirmar assistència.'
+        self.fields['visible_per'].label = 'Visible per'
+        self.fields['assistencia_permesa_per'].label = 'Assistència permesa per'
+        self.fields['inici'].input_formats = self.datetime_input_formats
+        self.fields['fi'].input_formats = self.datetime_input_formats
+
+        for field_name in ('inici', 'fi'):
+            field = self.fields[field_name]
+            value = self.initial.get(field_name)
+            if value:
+                field.initial = localize_input(value, field.widget.format or '%Y-%m-%dT%H:%M')
 
     def clean_inici(self):
         inici = self.cleaned_data['inici']

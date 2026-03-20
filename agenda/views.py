@@ -29,6 +29,12 @@ class AgendaContextMixin:
     def _visibility_filter(self):
         return Q(visible_per__isnull=True) | Q(visible_per__in=SegmentVisibilitat.objects.filter(self._user_segments_filter()))
 
+    def _user_can_manage_actes(self):
+        return self.request.user.has_perm('agenda.change_acte')
+
+    def _user_can_view_admin_details(self):
+        return self.request.user.has_perm('agenda.can_view_participants')
+
     def _allowed_attendance(self, acte):
         attendance_segments = list(acte.assistencia_permesa_per.all())
         if not attendance_segments:
@@ -64,7 +70,7 @@ class AgendaContextMixin:
 
     def _visible_queryset(self, include_drafts=False):
         queryset = self._base_queryset()
-        if self.request.user.has_perm('agenda.change_acte'):
+        if self._user_can_manage_actes():
             if not include_drafts:
                 queryset = queryset.filter(estat=Acte.Estat.PUBLICAT)
             return queryset.distinct()
@@ -80,6 +86,8 @@ class AgendaContextMixin:
         acte.visible_segments_labels = [segment.etiqueta for segment in acte.visible_per.all()]
         acte.assistencia_segments_labels = [segment.etiqueta for segment in acte.assistencia_permesa_per.all()]
         acte.user_can_attend = self._allowed_attendance(acte)
+        acte.user_can_manage = self._user_can_manage_actes()
+        acte.user_can_view_admin_details = self._user_can_view_admin_details()
         return acte
 
 
@@ -92,14 +100,15 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
         return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
 
     def get_queryset(self):
-        user_can_edit = self.request.user.has_perm('agenda.change_acte')
+        user_can_edit = self._user_can_manage_actes()
         queryset = self._visible_queryset(include_drafts=user_can_edit)
         now = timezone.now()
-
-        if not self._is_true(self.request.GET.get('show_past')):
-            queryset = queryset.filter(inici__gte=now)
+        show_past = self._is_true(self.request.GET.get('show_past'))
 
         day = self.request.GET.get('day')
+        if not show_past and not day:
+            queryset = queryset.filter(inici__gte=now)
+
         if day:
             queryset = queryset.filter(inici__date=day)
 
@@ -131,7 +140,15 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         actes = [self._enrich_acte(acte) for acte in context['actes']]
         now = timezone.now()
-        visible_base = self._visible_queryset(include_drafts=self.request.user.has_perm('agenda.change_acte'))
+        visible_base = self._visible_queryset(include_drafts=self._user_can_manage_actes())
+        current_filters = {
+            'day': self.request.GET.get('day', ''),
+            'my_status': self.request.GET.get('my_status', ''),
+            'tipus': self.request.GET.get('tipus', ''),
+            'estat': self.request.GET.get('estat', ''),
+            'visibility': self.request.GET.get('visibility', ''),
+            'show_past': self._is_true(self.request.GET.get('show_past')),
+        }
         context.update(
             {
                 'actes': actes,
@@ -140,8 +157,10 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
                 'past_count': visible_base.filter(inici__lt=now).count(),
                 'draft_count': visible_base.filter(estat=Acte.Estat.ESBORRANY).count(),
                 'tipus_options': ActeTipus.objects.filter(actiu=True),
-                'current_filters': self.request.GET,
-                'filters_open': self.request.GET and any(value for key, value in self.request.GET.items() if key != 'filters_open'),
+                'current_filters': current_filters,
+                'filters_open': any(current_filters.values()),
+                'can_manage_actes': self._user_can_manage_actes(),
+                'can_view_admin_details': self._user_can_view_admin_details(),
             }
         )
         return context
@@ -153,12 +172,12 @@ class ActeDetailView(AgendaContextMixin, LoginRequiredMixin, DetailView):
     context_object_name = 'acte'
 
     def get_queryset(self):
-        queryset = self._visible_queryset(include_drafts=self.request.user.has_perm('agenda.change_acte'))
+        queryset = self._visible_queryset(include_drafts=self._user_can_manage_actes())
         return queryset
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        if obj.estat != Acte.Estat.PUBLICAT and not self.request.user.has_perm('agenda.change_acte'):
+        if obj.estat != Acte.Estat.PUBLICAT and not self._user_can_manage_actes():
             raise Http404
         return obj
 
@@ -168,6 +187,8 @@ class ActeDetailView(AgendaContextMixin, LoginRequiredMixin, DetailView):
         participacio = self.object.request_user_participacio
         context['participacio'] = participacio
         context['participacio_form'] = ParticipacioForm(instance=participacio, usuari=self.request.user, acte=self.object)
+        context['can_manage_actes'] = self._user_can_manage_actes()
+        context['can_view_admin_details'] = self._user_can_view_admin_details()
         return context
 
 
@@ -212,7 +233,7 @@ class ParticiparActeView(AgendaContextMixin, LoginRequiredMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        acte = get_object_or_404(self._visible_queryset(include_drafts=request.user.has_perm('agenda.change_acte')), pk=pk)
+        acte = get_object_or_404(self._visible_queryset(include_drafts=self._user_can_manage_actes()), pk=pk)
         acte = self._enrich_acte(acte)
         if not acte.user_can_attend:
             return HttpResponseForbidden("No tens permís per confirmar assistència en aquest acte.")

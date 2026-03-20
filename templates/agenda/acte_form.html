@@ -1,13 +1,60 @@
 {% extends 'base.html' %}
 {% block title %}Acte{% endblock %}
 {% block page_title %}{% if object %}Editar acte{% else %}Nou acte{% endif %}{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">{% if object %}Actualitza la logística i la configuració de visibilitat sense perdre el context de l'acte.{% else %}Crea un acte clar, ordenat i fàcil de gestionar per a coordinació i equip.{% endif %}</p>{% endblock %}
 {% block content %}
-<section class="card card-panel form-narrow">
-    <h2 class="h4 mb-3">{% if object %}Editar acte{% else %}Crear acte{% endif %}</h2>
-    <form method="post">
+<section class="card card-panel acte-form-panel">
+    <div class="section-heading mb-4">
+        <div>
+            <h2 class="h4 mb-1">{% if object %}Editar acte{% else %}Crear acte{% endif %}</h2>
+            <p class="text-muted mb-0">Els camps de configuració s’han reorganitzat perquè la lectura sigui molt més clara.</p>
+        </div>
+    </div>
+    <form method="post" class="acte-form-layout">
         {% csrf_token %}
-        {% include 'components/form_fields.html' with form=form %}
-        <div class="d-flex gap-2 flex-wrap">
+        {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+
+        <div class="form-section-grid">
+            <section class="form-section-card">
+                <div class="form-section-card__header">
+                    <h3>Dades principals</h3>
+                    <p>Títol, tipus i informació general de l’acte.</p>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.titol %}</div>
+                    <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.tipus %}</div>
+                    <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.estat %}</div>
+                    <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.descripcio %}</div>
+                </div>
+            </section>
+
+            <section class="form-section-card">
+                <div class="form-section-card__header">
+                    <h3>Data i logística</h3>
+                    <p>Les dates es mantenen visibles en edició i el format queda unificat.</p>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.inici %}</div>
+                    <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.fi %}</div>
+                    <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.ubicacio %}</div>
+                    <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.punt_trobada %}</div>
+                    <div class="col-12 col-lg-4">{% include 'agenda/components/acte_form_field.html' with field=form.aforament %}</div>
+                </div>
+            </section>
+        </div>
+
+        <section class="form-section-card mt-4">
+            <div class="form-section-card__header">
+                <h3>Visibilitat i assistència</h3>
+                <p>Els ManyToMany passen a targetes amb selecció clara per rols i tipus d’usuari.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-12 col-xl-6">{% include 'agenda/components/acte_segment_field.html' with field=form.visible_per empty_message='Si no selecciones res, qualsevol usuari amb accés a Agenda el podrà veure.' %}</div>
+                <div class="col-12 col-xl-6">{% include 'agenda/components/acte_segment_field.html' with field=form.assistencia_permesa_per empty_message='Si no selecciones res, qualsevol persona que el vegi podrà confirmar assistència.' %}</div>
+            </div>
+        </section>
+
+        <div class="d-flex gap-2 flex-wrap mt-4">
             <button class="btn btn-primary" type="submit">Desar</button>
             <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
         </div>

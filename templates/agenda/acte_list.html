@@ -7,14 +7,14 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
             <h2 class="h4 mb-1">Agenda viva</h2>
-            <p class="text-muted mb-0">Filtra, recupera actes passats i controla ràpidament qui pot veure o assistir a cada convocatòria.</p>
+            <p class="text-muted mb-0">Filtra, recupera actes passats i controla ràpidament la resposta de l’equip.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap align-items-center">
             <span class="info-chip">{{ upcoming_count }} propers</span>
             {% if past_count %}<span class="info-chip">{{ past_count }} passats</span>{% endif %}
-            {% if draft_count %}<span class="info-chip">{{ draft_count }} esborranys</span>{% endif %}
+            {% if draft_count and can_manage_actes %}<span class="info-chip">{{ draft_count }} esborranys</span>{% endif %}
             {% if imported_count %}<span class="info-chip">{{ imported_count }} de ciutat</span>{% endif %}
-            {% if perms.agenda.add_acte %}<a class="btn btn-primary" href="{% url 'agenda:acte_create' %}">Nou acte</a>{% endif %}
+            {% if can_manage_actes %}<a class="btn btn-primary" href="{% url 'agenda:acte_create' %}">Nou acte</a>{% endif %}
         </div>
     </div>
 </section>
@@ -53,27 +53,33 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-12 col-md-6 col-xl-2">
-                    <label class="form-label" for="filter-estat">Estat</label>
-                    <select id="filter-estat" name="estat" class="form-select">
-                        <option value="">Tots</option>
-                        <option value="PUBLICAT" {% if current_filters.estat == 'PUBLICAT' %}selected{% endif %}>Publicat</option>
-                        <option value="ESBORRANY" {% if current_filters.estat == 'ESBORRANY' %}selected{% endif %}>Esborrany</option>
-                    </select>
-                </div>
-                <div class="col-12 col-md-6 col-xl-2">
-                    <label class="form-label" for="filter-visibility">Visibilitat</label>
-                    <select id="filter-visibility" name="visibility" class="form-select">
-                        <option value="">Totes</option>
-                        <option value="open" {% if current_filters.visibility == 'open' %}selected{% endif %}>Oberts</option>
-                        <option value="restricted" {% if current_filters.visibility == 'restricted' %}selected{% endif %}>Restringits</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <div class="form-check form-switch agenda-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="show-past" name="show_past" value="1" {% if current_filters.show_past %}checked{% endif %}>
-                        <label class="form-check-label" for="show-past">Mostrar també actes passats</label>
+                {% if can_manage_actes %}
+                    <div class="col-12 col-md-6 col-xl-2">
+                        <label class="form-label" for="filter-estat">Estat</label>
+                        <select id="filter-estat" name="estat" class="form-select">
+                            <option value="">Tots</option>
+                            <option value="PUBLICAT" {% if current_filters.estat == 'PUBLICAT' %}selected{% endif %}>Publicat</option>
+                            <option value="ESBORRANY" {% if current_filters.estat == 'ESBORRANY' %}selected{% endif %}>Esborrany</option>
+                        </select>
                     </div>
+                    <div class="col-12 col-md-6 col-xl-2">
+                        <label class="form-label" for="filter-visibility">Visibilitat</label>
+                        <select id="filter-visibility" name="visibility" class="form-select">
+                            <option value="">Totes</option>
+                            <option value="open" {% if current_filters.visibility == 'open' %}selected{% endif %}>Oberts</option>
+                            <option value="restricted" {% if current_filters.visibility == 'restricted' %}selected{% endif %}>Restringits</option>
+                        </select>
+                    </div>
+                {% endif %}
+                <div class="col-12">
+                    <label class="agenda-toggle" for="show-past">
+                        <input type="checkbox" id="show-past" name="show_past" value="1" {% if current_filters.show_past %}checked{% endif %}>
+                        <span class="agenda-toggle__control" aria-hidden="true"></span>
+                        <span class="agenda-toggle__content">
+                            <strong>Mostrar també actes passats</strong>
+                            <small>Activa-ho si vols recuperar actes anteriors o filtrar un dia que ja ha passat.</small>
+                        </span>
+                    </label>
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap mt-4">

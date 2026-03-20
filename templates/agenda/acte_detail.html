@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ acte.titol }}{% endblock %}
 {% block page_title %}Detall de l'acte{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Tot el que necessites per coordinar l'acte, incloent visibilitat, assistència i logística bàsica.</p>{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Consulta la informació útil de l’acte i, si tens permisos, la configuració interna i el seguiment d’assistència.</p>{% endblock %}
 {% block content %}
 <div class="row g-4">
     <div class="col-12 col-xl-8">
@@ -17,26 +17,32 @@
                     <div class="text-muted">
                         {{ acte.inici|date:'d/m/Y H:i' }}
                         {% if acte.fi %} · fins a les {{ acte.fi|date:'H:i' }}{% endif %}
-                        · {{ acte.ubicacio }}
+                        {% if acte.ubicacio %} · {{ acte.ubicacio }}{% endif %}
                     </div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     {% if acte.source_url %}<a class="btn btn-outline-primary" href="{{ acte.source_url }}" target="_blank" rel="noopener">Veure la font</a>{% endif %}
-                    {% if perms.agenda.change_acte and not acte.external_source %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar</a>{% endif %}
-                    {% if perms.agenda.can_view_participants %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
+                    {% if can_manage_actes and not acte.external_source %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar</a>{% endif %}
+                    {% if can_view_admin_details %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
                 </div>
             </div>
             <div class="meta-grid">
-                <div class="meta-card"><span>Estat</span><strong>{{ acte.get_estat_display }}</strong></div>
-                <div class="meta-card"><span>Hi van</span><strong>{{ acte.total_confirmats }}</strong></div>
-                <div class="meta-card"><span>Potser</span><strong>{{ acte.total_potser }}</strong></div>
-                <div class="meta-card"><span>No hi van</span><strong>{{ acte.total_no }}</strong></div>
-                <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels %}Segmentada{% else %}General{% endif %}</strong></div>
-                <div class="meta-card"><span>Assistència</span><strong>{% if acte.assistencia_segments_labels %}Restringida{% else %}Oberta{% endif %}</strong></div>
-                {% if acte.aforament %}<div class="meta-card"><span>Aforament</span><strong>{{ acte.aforament }}</strong></div>{% endif %}
+                <div class="meta-card"><span>Dia i hora</span><strong>{{ acte.inici|date:'d/m/Y H:i' }}</strong></div>
+                {% if acte.fi %}<div class="meta-card"><span>Finalització</span><strong>{{ acte.fi|date:'d/m/Y H:i' }}</strong></div>{% endif %}
+                {% if acte.ubicacio %}<div class="meta-card"><span>Lloc</span><strong>{{ acte.ubicacio }}</strong></div>{% endif %}
                 {% if acte.punt_trobada %}<div class="meta-card"><span>Punt de trobada</span><strong>{{ acte.punt_trobada }}</strong></div>{% endif %}
+                {% if acte.aforament %}<div class="meta-card"><span>Aforament</span><strong>{{ acte.aforament }}</strong></div>{% endif %}
+                {% if acte.tipus %}<div class="meta-card"><span>Tipus</span><strong>{{ acte.tipus.nom }}</strong></div>{% endif %}
+                {% if can_view_admin_details %}
+                    <div class="meta-card"><span>Estat</span><strong>{{ acte.get_estat_display }}</strong></div>
+                    <div class="meta-card"><span>Hi van</span><strong>{{ acte.total_confirmats }}</strong></div>
+                    <div class="meta-card"><span>Potser</span><strong>{{ acte.total_potser }}</strong></div>
+                    <div class="meta-card"><span>No hi van</span><strong>{{ acte.total_no }}</strong></div>
+                    <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels %}Segmentada{% else %}General{% endif %}</strong></div>
+                    <div class="meta-card"><span>Assistència</span><strong>{% if acte.assistencia_segments_labels %}Restringida{% else %}Oberta{% endif %}</strong></div>
+                {% endif %}
             </div>
-            {% if acte.visible_segments_labels or acte.assistencia_segments_labels %}
+            {% if can_view_admin_details and acte.visible_segments_labels or can_view_admin_details and acte.assistencia_segments_labels %}
                 <div class="audience-stack mt-4">
                     {% if acte.visible_segments_labels %}
                         <div><strong>Qui el pot veure:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
@@ -46,19 +52,21 @@
                     {% endif %}
                 </div>
             {% endif %}
-            <div class="attendees-strip attendees-strip-detail mt-4">
-                <div class="small fw-semibold">Confirmacions</div>
-                {% if acte.confirmats_preview %}
-                    <div class="attendees-list">
-                        {% for participant in acte.confirmats_preview %}
-                            <span class="attendee-pill">{{ participant.usuari.nom_complet|default:participant.usuari.username }}</span>
-                        {% endfor %}
-                        {% if acte.confirmats_extra %}<span class="attendee-pill attendee-pill-more">+{{ acte.confirmats_extra }}</span>{% endif %}
-                    </div>
-                {% else %}
-                    <p class="text-muted small mb-0">Encara no hi ha confirmacions.</p>
-                {% endif %}
-            </div>
+            {% if can_view_admin_details %}
+                <div class="attendees-strip attendees-strip-detail mt-4">
+                    <div class="small fw-semibold">Confirmacions</div>
+                    {% if acte.confirmats_preview %}
+                        <div class="attendees-list">
+                            {% for participant in acte.confirmats_preview %}
+                                <span class="attendee-pill">{{ participant.usuari.nom_complet|default:participant.usuari.username }}</span>
+                            {% endfor %}
+                            {% if acte.confirmats_extra %}<span class="attendee-pill attendee-pill-more">+{{ acte.confirmats_extra }}</span>{% endif %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted small mb-0">Encara no hi ha confirmacions.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
             <div class="text-muted mt-4">{{ acte.descripcio|linebreaks }}</div>
         </article>
     </div>
