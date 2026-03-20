@@ -9,7 +9,7 @@
     <a href="{% url 'persones:persona_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'persones' %}active{% endif %}">Persones</a>
     <a href="{% url 'usuaris:perfil' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'perfil' %}active{% endif %}">El meu perfil</a>
     <a href="{% url 'usuaris:canvi_password' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'canvi_password' %}active{% endif %}">Contrasenya</a>
-    {% if request.user.rol == 'ADMINISTRADOR' %}
+    {% if request.user.rol == 'ADMINISTRACIO' %}
         <div class="sidebar-section">Administració</div>
         <a href="{% url 'usuaris:admin_usuari_list' %}" class="nav-link-side nav-link-side-split {% if request.resolver_match.namespace == 'usuaris' and 'admin_usuari' in request.resolver_match.url_name %}active{% endif %}">
             <span>Usuaris</span>

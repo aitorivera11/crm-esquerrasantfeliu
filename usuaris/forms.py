@@ -30,7 +30,7 @@ class RegistreUsuariForm(StyledFormMixin, UserCreationForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.rol = Usuari.Rol.VOLUNTARI
+        user.rol = Usuari.Rol.PARTICIPANT
         user.is_active = False
         if commit:
             user.save()
