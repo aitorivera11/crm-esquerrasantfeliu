@@ -19,4 +19,4 @@ class RoleRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 
 class AdminRequiredMixin(RoleRequiredMixin):
-    allowed_roles = (Usuari.Rol.ADMINISTRADOR,)
+    allowed_roles = (Usuari.Rol.ADMINISTRACIO,)
