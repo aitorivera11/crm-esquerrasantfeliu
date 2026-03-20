@@ -2,10 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "buildCommand": "bash build.sh",
+  "outputDirectory": "staticfiles_build",
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/staticfiles_build/static/$1"
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
