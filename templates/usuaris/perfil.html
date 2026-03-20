@@ -4,7 +4,7 @@
 {% block content %}
 <div class="row g-4">
     <div class="col-12 col-lg-8">
-        <section class="card card-panel">
+        <section class="card card-panel panel-section">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                 <div>
                     <h2 class="h4 mb-1">Dades personals</h2>
@@ -15,15 +15,15 @@
             <form method="post">
                 {% csrf_token %}
                 {% include 'components/form_fields.html' with form=form %}
-                <button class="btn btn-primary" type="submit">Guardar canvis</button>
+                <button class="btn btn-primary" type="submit">Desar canvis</button>
             </form>
         </section>
     </div>
     <div class="col-12 col-lg-4">
-        <section class="card card-panel h-100">
+        <section class="card card-panel panel-section h-100 panel-section-compact">
             <h2 class="h5">Seguretat del compte</h2>
-            <p class="text-muted">Mantén el compte protegit amb una contrasenya actualitzada.</p>
-            <a class="btn btn-outline-primary" href="{% url 'usuaris:canvi_password' %}">Canviar contrasenya</a>
+            <p class="text-muted">Mantingues el compte protegit amb una contrasenya actualitzada.</p>
+            <a class="btn btn-outline-primary" href="{% url 'usuaris:canvi_password' %}">Canviar la contrasenya</a>
         </section>
     </div>
 </div>

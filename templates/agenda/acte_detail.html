@@ -16,19 +16,19 @@
                     <div class="text-muted">{{ acte.inici|date:'d/m/Y H:i' }} · {{ acte.ubicacio }}</div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    {% if acte.source_url %}<a class="btn btn-outline-primary" href="{{ acte.source_url }}" target="_blank" rel="noopener">Veure font</a>{% endif %}
+                    {% if acte.source_url %}<a class="btn btn-outline-primary" href="{{ acte.source_url }}" target="_blank" rel="noopener">Veure la font</a>{% endif %}
                     {% if perms.agenda.change_acte and not acte.external_source %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar</a>{% endif %}
                     {% if perms.agenda.can_view_participants %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
                 </div>
             </div>
             <div class="meta-grid">
                 <div class="meta-card"><span>Estat</span><strong>{{ acte.get_estat_display }}</strong></div>
-                <div class="meta-card"><span>Van</span><strong>{{ acte.total_confirmats }}</strong></div>
+                <div class="meta-card"><span>Hi van</span><strong>{{ acte.total_confirmats }}</strong></div>
                 <div class="meta-card"><span>Potser</span><strong>{{ acte.total_potser }}</strong></div>
-                <div class="meta-card"><span>No</span><strong>{{ acte.total_no }}</strong></div>
+                <div class="meta-card"><span>No hi van</span><strong>{{ acte.total_no }}</strong></div>
             </div>
             <div class="attendees-strip attendees-strip-detail mt-4">
-                <div class="small fw-semibold">Confirmats</div>
+                <div class="small fw-semibold">Confirmacions</div>
                 {% if acte.confirmats_preview %}
                     <div class="attendees-list">
                         {% for participant in acte.confirmats_preview %}
@@ -37,7 +37,7 @@
                         {% if acte.confirmats_extra %}<span class="attendee-pill attendee-pill-more">+{{ acte.confirmats_extra }}</span>{% endif %}
                     </div>
                 {% else %}
-                    <p class="text-muted small mb-0">Encara sense confirmats.</p>
+                    <p class="text-muted small mb-0">Encara no hi ha confirmacions.</p>
                 {% endif %}
             </div>
             <div class="text-muted mt-4">{{ acte.descripcio|linebreaks }}</div>
@@ -46,7 +46,7 @@
     <div class="col-12 col-xl-4">
         <section class="card card-panel h-100 p-4">
             <h3 class="h5">La meva resposta</h3>
-            <p class="text-muted">Confirma ara mateix.</p>
+            <p class="text-muted">Confirma ara mateix si hi assistiràs.</p>
             <div id="participacio-area">{% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}</div>
         </section>
     </div>

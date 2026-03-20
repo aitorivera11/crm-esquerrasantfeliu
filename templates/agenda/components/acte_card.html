@@ -13,13 +13,13 @@
     <p class="text-muted acte-card-copy">{{ acte.descripcio|default:'Sense descripció addicional.'|truncatechars:120 }}</p>
 
     <div class="acte-card-stats mb-3">
-        <span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> van</span>
+        <span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> hi van</span>
         <span class="mini-stat"><strong>{{ acte.total_potser }}</strong> potser</span>
-        <span class="mini-stat"><strong>{{ acte.total_no }}</strong> no</span>
+        <span class="mini-stat"><strong>{{ acte.total_no }}</strong> no hi van</span>
     </div>
 
     <div class="attendees-strip mb-3">
-        <div class="small fw-semibold">Qui va</div>
+        <div class="small fw-semibold">Qui hi va</div>
         {% if acte.confirmats_preview %}
             <div class="attendees-list">
                 {% for participant in acte.confirmats_preview %}
@@ -28,7 +28,7 @@
                 {% if acte.confirmats_extra %}<span class="attendee-pill attendee-pill-more">+{{ acte.confirmats_extra }}</span>{% endif %}
             </div>
         {% else %}
-            <p class="text-muted small mb-0">Encara sense confirmats.</p>
+            <p class="text-muted small mb-0">Encara no hi ha confirmacions.</p>
         {% endif %}
     </div>
 

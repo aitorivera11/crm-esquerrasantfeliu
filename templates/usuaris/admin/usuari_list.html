@@ -2,8 +2,8 @@
 {% block title %}Usuaris{% endblock %}
 {% block page_title %}Administració d'usuaris{% endblock %}
 {% block content %}
-<section class="card card-panel mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+<section class="card card-panel panel-section mb-4">
+    <div class="section-heading align-items-start">
         <div>
             <h2 class="h4 mb-1">Llistat d'usuaris</h2>
             <p class="text-muted mb-0">Cerca, filtra i mantén l'equip de campanya sota control.</p>
@@ -11,28 +11,28 @@
         <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-primary">Nou usuari</a>
     </div>
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-md-6">
+        <div class="col-lg-5">
             <label class="form-label">Cercar</label>
-            <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Nom, username, email o telèfon">
+            <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Nom, usuari, correu electrònic o telèfon">
         </div>
-        <div class="col-md-3">
+        <div class="col-lg-3">
             <label class="form-label">Rol</label>
             <select name="rol" class="form-select">
                 <option value="">Tots els rols</option>
                 {% for value,label in rols %}<option value="{{ value }}" {% if rol == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
         </div>
-        <div class="col-md-3 d-flex gap-2">
+        <div class="col-lg-4 d-flex gap-2">
             <button class="btn btn-outline-primary w-100">Filtrar</button>
             <a href="{% url 'usuaris:admin_usuari_list' %}" class="btn btn-outline-secondary">Netejar</a>
         </div>
     </form>
 </section>
 
-<section class="card card-panel">
+<section class="card card-panel panel-section">
     {% if usuaris %}
     <div class="table-responsive">
-        <table class="table align-middle app-table">
+        <table class="table align-middle app-table app-table-spacious">
             <thead>
                 <tr><th>Usuari</th><th>Contacte</th><th>Rol</th><th>Estat</th><th class="text-end">Accions</th></tr>
             </thead>
@@ -46,7 +46,7 @@
                     <td>
                         <div class="d-flex justify-content-end gap-2 flex-wrap">
                             <a href="{% url 'usuaris:admin_usuari_update' usuari.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
-                            <a href="{% url 'usuaris:admin_usuari_password' usuari.pk %}" class="btn btn-sm btn-outline-secondary">Password</a>
+                            <a href="{% url 'usuaris:admin_usuari_password' usuari.pk %}" class="btn btn-sm btn-outline-secondary">Contrasenya</a>
                             <form method="post" action="{% url 'usuaris:admin_usuari_toggle_active' usuari.pk %}" data-confirm="Segur que vols canviar l'estat d'aquest usuari?">{% csrf_token %}<button class="btn btn-sm btn-outline-dark">{% if usuari.is_active %}Desactivar{% else %}Activar{% endif %}</button></form>
                             {% if usuari != request.user %}
                             <a href="{% url 'usuaris:admin_usuari_delete' usuari.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
