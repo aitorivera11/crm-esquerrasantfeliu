@@ -92,6 +92,9 @@ class AgendaContextMixin:
         acte.user_can_attend = self._allowed_attendance(acte)
         acte.user_can_manage = self._user_can_manage_actes()
         acte.user_can_view_admin_details = self._user_can_view_admin_details()
+        color = (acte.tipus.color or '').strip() if acte.tipus_id else ''
+        acte.tipus_color = color or '#6c7a89'
+        acte.tipus_style = f'--type-accent: {acte.tipus_color};' if acte.tipus_id else ''
         return acte
 
 
@@ -108,6 +111,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
         queryset = self._visible_queryset(include_drafts=user_can_edit)
         now = timezone.now()
         show_past = self._is_true(self.request.GET.get('show_past'))
+        show_imported = self._is_true(self.request.GET.get('show_imported'))
 
         day = self.request.GET.get('day')
         if not show_past and not day:
@@ -115,6 +119,9 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
 
         if day:
             queryset = queryset.filter(inici__date=day)
+
+        if not show_imported:
+            queryset = queryset.filter(external_source='')
 
         estat = self.request.GET.get('estat')
         if estat in Acte.Estat.values:
@@ -138,7 +145,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
         elif my_status in ParticipacioActe.Intencio.values:
             queryset = queryset.filter(participants__usuari=self.request.user, participants__intencio=my_status)
 
-        return queryset.order_by('inici').distinct()
+        return queryset.order_by('-es_important', 'inici').distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -152,6 +159,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
             'estat': self.request.GET.get('estat', ''),
             'visibility': self.request.GET.get('visibility', ''),
             'show_past': self._is_true(self.request.GET.get('show_past')),
+            'show_imported': self._is_true(self.request.GET.get('show_imported')),
         }
         context.update(
             {
@@ -163,6 +171,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
                 'tipus_options': ActeTipus.objects.filter(actiu=True),
                 'current_filters': current_filters,
                 'filters_open': any(current_filters.values()),
+                'important_count': visible_base.filter(es_important=True, estat=Acte.Estat.PUBLICAT).count(),
                 'can_manage_actes': self._user_can_manage_actes(),
                 'can_view_admin_details': self._user_can_view_admin_details(),
             }

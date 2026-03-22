@@ -66,6 +66,7 @@ class Acte(TimeStampedModel):
     aforament = models.PositiveIntegerField(null=True, blank=True)
     punt_trobada = models.CharField(max_length=255, blank=True)
     estat = models.CharField(max_length=20, choices=Estat.choices, default=Estat.ESBORRANY)
+    es_important = models.BooleanField(default=False, help_text='Destaca l’acte a la llista i als resums clau.')
     creador = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

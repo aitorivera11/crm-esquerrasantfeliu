@@ -7,13 +7,14 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
             <h2 class="h4 mb-1">Agenda viva</h2>
-            <p class="text-muted mb-0">Filtra, recupera actes passats i controla ràpidament la resposta de l’equip.</p>
+            <p class="text-muted mb-0">Vista més neta, amb els actes importats amagats per defecte i els prioritaris ben visibles.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap align-items-center">
             <span class="info-chip">{{ upcoming_count }} propers</span>
+            {% if important_count %}<span class="info-chip info-chip-important">{{ important_count }} importants</span>{% endif %}
             {% if past_count %}<span class="info-chip">{{ past_count }} passats</span>{% endif %}
             {% if draft_count and can_manage_actes %}<span class="info-chip">{{ draft_count }} esborranys</span>{% endif %}
-            {% if imported_count %}<span class="info-chip">{{ imported_count }} de ciutat</span>{% endif %}
+            {% if imported_count %}<span class="info-chip">{{ imported_count }} importats</span>{% endif %}
             {% if can_manage_actes %}<a class="btn btn-primary" href="{% url 'agenda:acte_create' %}">Nou acte</a>{% endif %}
         </div>
     </div>
@@ -24,7 +25,7 @@
         <summary class="filters-summary">
             <div>
                 <strong>Filtres d’agenda</strong>
-                <span class="text-muted d-block small">Obre aquest bloc per refinar la vista sense carregar la pàgina de controls.</span>
+                <span class="text-muted d-block small">Ajusta la vista i decideix quan vols barrejar-hi actes importats o passats.</span>
             </div>
             <span class="info-chip">Ocultable</span>
         </summary>
@@ -71,7 +72,17 @@
                         </select>
                     </div>
                 {% endif %}
-                <div class="col-12">
+                <div class="col-12 col-lg-6">
+                    <label class="agenda-toggle" for="show-imported">
+                        <input type="checkbox" id="show-imported" name="show_imported" value="1" {% if current_filters.show_imported %}checked{% endif %}>
+                        <span class="agenda-toggle__control" aria-hidden="true"></span>
+                        <span class="agenda-toggle__content">
+                            <strong>Mostrar actes importats</strong>
+                            <small>Per defecte s’amaguen perquè la llista principal sigui més útil. Si l’actives, veuràs també els actes de l’API com a “Acte extern”.</small>
+                        </span>
+                    </label>
+                </div>
+                <div class="col-12 col-lg-6">
                     <label class="agenda-toggle" for="show-past">
                         <input type="checkbox" id="show-past" name="show_past" value="1" {% if current_filters.show_past %}checked{% endif %}>
                         <span class="agenda-toggle__control" aria-hidden="true"></span>
@@ -90,11 +101,11 @@
     </details>
 </section>
 
-<section class="row g-4">
+<section class="row g-3">
     {% for acte in actes %}
-        <div class="col-12 col-md-6 col-xxl-4">{% include 'agenda/components/acte_card.html' %}</div>
+        <div class="col-12">{% include 'agenda/components/acte_card.html' %}</div>
     {% empty %}
-        <div class="col-12">{% include 'components/empty_state.html' with icon='📅' title='No hi ha actes que compleixin aquest filtre' message='Prova d’obrir els actes passats o relaxa algun filtre per recuperar la vista completa.' action_url='/agenda/' action_label='Veure tota l’agenda' %}</div>
+        <div class="col-12">{% include 'components/empty_state.html' with icon='📅' title='No hi ha actes que compleixin aquest filtre' message='Prova d’obrir els actes passats o mostrar els importats per recuperar més resultats.' action_url='/agenda/' action_label='Veure tota l’agenda' %}</div>
     {% endfor %}
 </section>
 {% endblock %}

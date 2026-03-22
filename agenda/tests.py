@@ -168,3 +168,55 @@ class AgendaPermissionsAndFiltersTests(TestCase):
         self.assertNotContains(response, 'Participants')
         self.assertNotContains(response, 'Hi van')
         self.assertContains(response, 'La meva resposta')
+
+
+class AgendaImportedAndImportantUxTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username='ux-user',
+            password='test-pass-123',
+            nom_complet='UX User',
+            rol=User.Rol.COORDINACIO,
+        )
+        now = timezone.now().replace(second=0, microsecond=0)
+        self.local_event = Acte.objects.create(
+            titol='Acte local visible',
+            inici=now + timedelta(days=1),
+            ubicacio='Casal',
+            creador=self.user,
+            estat=Acte.Estat.PUBLICAT,
+            es_important=True,
+        )
+        self.imported_event = Acte.objects.create(
+            titol='Acte importat ocult',
+            inici=now + timedelta(days=2),
+            ubicacio='Plaça',
+            creador=self.user,
+            estat=Acte.Estat.PUBLICAT,
+            external_source='AGENDA_CIUTAT',
+            external_id='city-1',
+        )
+
+    def test_imported_events_are_hidden_by_default_in_list(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('agenda:acte_list'))
+
+        self.assertContains(response, 'Acte local visible')
+        self.assertNotContains(response, 'Acte importat ocult')
+
+    def test_imported_events_can_be_shown_with_toggle(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('agenda:acte_list'), {'show_imported': '1'})
+
+        self.assertContains(response, 'Acte importat ocult')
+        self.assertTrue(response.context['current_filters']['show_imported'])
+
+    def test_important_badge_is_rendered_in_list(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('agenda:acte_list'))
+
+        self.assertContains(response, 'Important')

@@ -13,7 +13,7 @@
         <article class="card card-panel h-100 p-4">
             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                 <a class="text-decoration-none" href="{% url 'agenda:acte_detail' participacio.acte.pk %}"><strong>{{ participacio.acte.titol }}</strong></a>
-                {% if participacio.acte.tipus %}<span class="badge badge-soft">{{ participacio.acte.tipus.nom }}</span>{% endif %}
+                {% if participacio.acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}{% if participacio.acte.tipus %}<span class="badge badge-type" style="--type-accent: {{ participacio.acte.tipus.color|default:'#6c7a89' }};">{{ participacio.acte.tipus.nom }}</span>{% endif %}
             </div>
             <p class="text-muted mb-3">
                 {{ participacio.acte.inici|date:'d/m/Y H:i' }}
