@@ -50,7 +50,7 @@
                                 <div>
                                     <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
                                         <strong>{{ acte.titol }}</strong>
-                                        {% if acte.external_source %}<span class="badge badge-soft">Ciutat</span>{% endif %}
+                                        {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}{% if acte.tipus %}<span class="badge badge-type" style="--type-accent: {{ acte.tipus.color|default:'#6c7a89' }};">{{ acte.tipus.nom }}</span>{% endif %}{% if acte.external_source %}<span class="badge badge-external">Importat</span>{% endif %}
                                     </div>
                                     <div class="text-muted small">{{ acte.ubicacio }}</div>
                                 </div>

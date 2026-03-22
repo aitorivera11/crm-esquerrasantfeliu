@@ -609,3 +609,16 @@ textarea.form-control { min-height: 120px; }
     .section-heading .btn { width: 100%; }
     .meta-grid { grid-template-columns: 1fr; }
 }
+
+.info-chip-important { background: rgba(180, 142, 60, .12); color: #775b15; border: 1px solid rgba(180, 142, 60, .24); }
+.badge-important { background: rgba(180, 142, 60, .12); color: #775b15; border: 1px solid rgba(180, 142, 60, .22); }
+.badge-external { background: rgba(27, 92, 138, .08); color: #1b5c8a; border: 1px solid rgba(27, 92, 138, .18); }
+.badge-type { background: color-mix(in srgb, var(--type-accent, #6c7a89) 14%, white); color: var(--type-accent, #51606f); border: 1px solid color-mix(in srgb, var(--type-accent, #6c7a89) 22%, white); }
+.acte-card-simple { gap: 1rem; }
+.acte-card-main { display: grid; gap: .35rem; }
+.acte-card-basics span { white-space: nowrap; }
+.acte-card-aside { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.acte-card-important { border-color: rgba(180, 142, 60, .35); box-shadow: 0 18px 40px rgba(180, 142, 60, .08); }
+.acte-card-important::before { content: ""; display: block; height: 4px; margin: -1.5rem -1.5rem 1rem; border-radius: 1rem 1rem 0 0; background: linear-gradient(90deg, rgba(180, 142, 60, .88), rgba(180, 142, 60, .24)); }
+.mini-stat-response { background: rgba(0,13,35,.05); }
+@media (max-width: 767.98px) { .acte-card-basics span { white-space: normal; } }

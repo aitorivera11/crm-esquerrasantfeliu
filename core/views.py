@@ -12,7 +12,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        propers_actes = Acte.objects.filter(inici__gte=timezone.now(), estat=Acte.Estat.PUBLICAT).order_by('inici')[:5]
+        propers_actes = Acte.objects.filter(inici__gte=timezone.now(), estat=Acte.Estat.PUBLICAT).order_by('-es_important', 'inici')[:5]
         context.update(
             {
                 'total_actes': Acte.objects.count(),

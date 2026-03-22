@@ -36,6 +36,7 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
             'visible_per',
             'assistencia_permesa_per',
             'estat',
+            'es_important',
         ]
         widgets = {
             'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
@@ -63,6 +64,8 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         self.fields['assistencia_permesa_per'].label = 'Assistència permesa per'
         self.fields['entitats_relacionades'].label = 'Entitats relacionades'
         self.fields['persones_relacionades'].label = 'Persones relacionades'
+        self.fields['es_important'].label = 'Acte important'
+        self.fields['es_important'].help_text = 'Es mostrarà més destacat als llistats i resums per facilitar-ne el seguiment.'
         self.fields['inici'].input_formats = self.datetime_input_formats
         self.fields['fi'].input_formats = self.datetime_input_formats
 

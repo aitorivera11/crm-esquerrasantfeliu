@@ -10,8 +10,9 @@
                 <div>
                     <div class="d-flex gap-2 flex-wrap align-items-center mb-2">
                         <p class="eyebrow mb-0">{% if acte.external_source %}Acte importat{% else %}Acte de campanya{% endif %}</p>
-                        {% if acte.tipus %}<span class="badge badge-soft">{{ acte.tipus.nom }}</span>{% endif %}
-                        {% if acte.external_source %}<span class="badge badge-soft">Agenda de ciutat</span>{% endif %}
+                        {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}
+                        {% if acte.tipus %}<span class="badge badge-type" {% if acte.tipus_style %}style="{{ acte.tipus_style }}"{% endif %}>{{ acte.tipus.nom }}</span>{% endif %}
+                        {% if acte.external_source %}<span class="badge badge-external">Agenda de ciutat</span>{% endif %}
                     </div>
                     <h2 class="h3 mb-2">{{ acte.titol }}</h2>
                     <div class="text-muted">

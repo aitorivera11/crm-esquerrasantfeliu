@@ -1,62 +1,28 @@
-<article id="acte-card-{{ acte.pk }}" class="card card-panel acte-card h-100 p-4">
-    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-        <div>
-            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                <h3 class="h5 mb-0"><a class="text-decoration-none" href="{% url 'agenda:acte_detail' acte.pk %}">{{ acte.titol }}</a></h3>
-                {% if acte.tipus %}<span class="badge badge-soft">{{ acte.tipus.nom }}</span>{% endif %}
-                {% if acte.external_source %}<span class="badge badge-soft">Ciutat</span>{% endif %}
-            </div>
-            <div class="text-muted small">
-                {{ acte.inici|date:'d/m/Y H:i' }}
-                {% if acte.fi %} → {{ acte.fi|date:'H:i' }}{% endif %}
-                · {{ acte.ubicacio }}
-            </div>
-        </div>
-        {% if acte.estat == 'PUBLICAT' %}<span class="badge badge-deep">Publicat</span>{% else %}<span class="badge badge-soft">Esborrany</span>{% endif %}
-    </div>
-
-    <div class="meta-grid meta-grid-compact mb-3">
-        <div class="meta-card"><span>Assistència</span><strong>{% if acte.user_can_attend %}Pots confirmar{% else %}Només lectura{% endif %}</strong></div>
-        <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels and acte.user_can_view_admin_details %}Restringida{% else %}Acte visible per a tu{% endif %}</strong></div>
-        {% if acte.aforament %}<div class="meta-card"><span>Aforament</span><strong>{{ acte.aforament }}</strong></div>{% endif %}
-    </div>
-
-    <p class="text-muted acte-card-copy">{{ acte.descripcio|default:'Sense descripció addicional.'|truncatechars:140 }}</p>
-
-    {% if acte.user_can_view_admin_details and acte.visible_segments_labels or acte.user_can_view_admin_details and acte.assistencia_segments_labels %}
-        <div class="audience-stack mb-3">
-            {% if acte.visible_segments_labels %}
-                <div class="small"><strong>Qui el pot veure:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
-            {% endif %}
-            {% if acte.assistencia_segments_labels %}
-                <div class="small"><strong>Qui hi pot assistir:</strong> {{ acte.assistencia_segments_labels|join:', ' }}</div>
-            {% endif %}
-        </div>
-    {% endif %}
-
-    {% if acte.user_can_view_admin_details %}
-        <div class="acte-card-stats mb-3">
-            <span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> hi van</span>
-            <span class="mini-stat"><strong>{{ acte.total_potser }}</strong> potser</span>
-            <span class="mini-stat"><strong>{{ acte.total_no }}</strong> no hi van</span>
-        </div>
-
-        <div class="attendees-strip mb-3">
-            <div class="small fw-semibold">Qui hi va</div>
-            {% if acte.confirmats_preview %}
-                <div class="attendees-list">
-                    {% for participant in acte.confirmats_preview %}
-                        <span class="attendee-pill">{{ participant.usuari.nom_complet|default:participant.usuari.username }}</span>
-                    {% endfor %}
-                    {% if acte.confirmats_extra %}<span class="attendee-pill attendee-pill-more">+{{ acte.confirmats_extra }}</span>{% endif %}
+<article id="acte-card-{{ acte.pk }}" class="card card-panel acte-card acte-card-simple {% if acte.es_important %}acte-card-important{% endif %} p-4" {% if acte.tipus_style %}style="{{ acte.tipus_style }}"{% endif %}>
+    <div class="acte-card-main">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div class="flex-grow-1">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}
+                    {% if acte.tipus %}<span class="badge badge-type">{{ acte.tipus.nom }}</span>{% endif %}
+                    {% if acte.external_source %}<span class="badge badge-external">Importat</span>{% endif %}
+                    {% if acte.estat == 'PUBLICAT' %}<span class="badge badge-deep">Publicat</span>{% else %}<span class="badge badge-soft">Esborrany</span>{% endif %}
                 </div>
-            {% else %}
-                <p class="text-muted small mb-0">Encara no hi ha confirmacions.</p>
-            {% endif %}
+                <h3 class="h5 mb-1"><a class="text-decoration-none" href="{% url 'agenda:acte_detail' acte.pk %}">{{ acte.titol }}</a></h3>
+                <div class="text-muted small d-flex flex-wrap gap-2 align-items-center acte-card-basics">
+                    <span>{{ acte.inici|date:'D d/m · H:i' }}</span>
+                    {% if acte.fi %}<span>— {{ acte.fi|date:'H:i' }}</span>{% endif %}
+                    {% if acte.ubicacio %}<span>· {{ acte.ubicacio }}</span>{% endif %}
+                </div>
+            </div>
+            <div class="acte-card-aside">
+                {% if acte.user_can_view_admin_details %}<span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> confirmats</span>{% endif %}
+                {% if acte.request_user_participacio %}<span class="mini-stat mini-stat-response">{{ acte.request_user_participacio.get_intencio_display }}</span>{% endif %}
+            </div>
         </div>
-    {% endif %}
+    </div>
 
-    <div class="card-inline-actions mt-auto">
+    <div class="card-inline-actions mt-0">
         <div class="cta-group">
             {% if acte.user_can_attend %}
                 {% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=acte.request_user_participacio target_id='closest article' render_mode='card' compact=True %}
@@ -64,6 +30,6 @@
                 <span class="mini-stat">No pots confirmar assistència</span>
             {% endif %}
         </div>
-        <a href="{% url 'agenda:acte_detail' acte.pk %}" class="btn btn-sm btn-outline-primary">Detall</a>
+        <a href="{% url 'agenda:acte_detail' acte.pk %}" class="btn btn-sm btn-outline-primary">Veure detall</a>
     </div>
 </article>

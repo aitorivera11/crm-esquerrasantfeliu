@@ -16,7 +16,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from agenda.models import Acte
+from agenda.models import Acte, ActeTipus
 
 RESOURCE_ID = "6353e8e8-53ea-47d9-b121-c4bdeac915a5"
 BASE_URL = "https://dadesobertes.seu-e.cat/api/3/action/datastore_search_sql"
@@ -49,6 +49,7 @@ class CityEventsImporter:
         records = self.fetch_all_events()
         events = self.normalize_records(records)
         owner = self.get_owner_user()
+        external_type = self.get_external_type()
 
         created = 0
         updated = 0
@@ -68,6 +69,7 @@ class CityEventsImporter:
                     "source_url": item["url"],
                     "source_payload": item["payload"],
                     "source_checksum": item["checksum"],
+                    "tipus": external_type,
                 }
                 acte, is_created = Acte.objects.update_or_create(
                     external_source=SOURCE_NAME,
@@ -83,6 +85,10 @@ class CityEventsImporter:
                 removed = Acte.objects.filter(external_source=SOURCE_NAME).exclude(external_id__in=seen_ids).update(estat=Acte.Estat.ESBORRANY)
 
         return {"created": created, "updated": updated, "fetched": len(events), "cleanup": removed}
+
+
+    def get_external_type(self):
+        return ActeTipus.objects.filter(nom__iexact="Acte extern").first()
 
     def get_owner_user(self):
         User = get_user_model()
