@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AdminPasswordChangeForm, PasswordChangeForm, UserCreationForm
+from django.forms import CheckboxInput, CheckboxSelectMultiple, RadioSelect, Select, SelectMultiple, Textarea
 
 from .models import Usuari
 
@@ -8,9 +9,23 @@ class StyledFormMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
-            css = field.widget.attrs.get('class', '')
-            field.widget.attrs['class'] = f'{css} form-control'.strip()
-            field.widget.attrs.setdefault('placeholder', field.label)
+            widget = field.widget
+            css = widget.attrs.get('class', '').strip()
+
+            if isinstance(widget, (CheckboxInput,)):
+                classes = 'form-check-input'
+            elif isinstance(widget, (Select, SelectMultiple)) and not isinstance(widget, (CheckboxSelectMultiple, RadioSelect)):
+                classes = 'form-select'
+            elif isinstance(widget, (CheckboxSelectMultiple, RadioSelect)):
+                classes = css
+            else:
+                classes = 'form-control'
+
+            if classes:
+                widget.attrs['class'] = f'{css} {classes}'.strip()
+
+            if not isinstance(widget, (CheckboxInput, CheckboxSelectMultiple, RadioSelect, SelectMultiple, Textarea)):
+                widget.attrs.setdefault('placeholder', field.label)
 
 
 class PerfilForm(StyledFormMixin, forms.ModelForm):
