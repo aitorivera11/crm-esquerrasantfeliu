@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Persones{% endblock %}
 {% block page_title %}Persones{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Contactes interns vinculables a entitats i actes de l’agenda.</p>{% endblock %}
 {% block content %}
 <section class="card card-panel panel-section mb-4">
     <div class="section-heading align-items-start">
@@ -13,7 +14,7 @@
     <form method="get" class="row g-3 align-items-end">
         <div class="col-lg-8">
             <label class="form-label">Cercar</label>
-            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nom, correu electrònic o telèfon">
+            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nom, correu electrònic, telèfon o entitat">
         </div>
         <div class="col-lg-4 d-flex gap-2">
             <button class="btn btn-outline-primary w-100">Cercar</button>
@@ -25,12 +26,21 @@
     {% if persones %}
     <div class="table-responsive">
         <table class="table align-middle app-table app-table-spacious">
-            <thead><tr><th>Nom</th><th>Contacte</th><th>Notes</th><th class="text-end">Accions</th></tr></thead>
+            <thead><tr><th>Nom</th><th>Contacte</th><th>Entitats</th><th>Notes</th><th class="text-end">Accions</th></tr></thead>
             <tbody>
             {% for persona in persones %}
                 <tr>
                     <td><strong>{{ persona.nom }}</strong></td>
                     <td>{{ persona.email|default:'—' }}<div class="text-muted small">{{ persona.telefon|default:'Sense telèfon' }}</div></td>
+                    <td>
+                        {% with entitats=persona.entitats.all %}
+                            {% if entitats %}
+                                {{ entitats|join:', ' }}
+                            {% else %}
+                                <span class="text-muted">Sense entitats</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
                     <td>{{ persona.notes|default:'Sense notes'|truncatechars:100 }}</td>
                     <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'persones:persona_update' persona.pk %}">Editar</a></td>
                 </tr>

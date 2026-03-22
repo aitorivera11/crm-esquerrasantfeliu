@@ -67,6 +67,16 @@
                     {% endif %}
                 </div>
             {% endif %}
+            {% if acte.entitats_relacionades_list or acte.persones_relacionades_list %}
+                <div class="audience-stack mt-4">
+                    {% if acte.entitats_relacionades_list %}
+                        <div><strong>Entitats relacionades:</strong> {% for entitat in acte.entitats_relacionades_list %}{{ entitat.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+                    {% endif %}
+                    {% if acte.persones_relacionades_list %}
+                        <div><strong>Persones relacionades:</strong> {% for persona in acte.persones_relacionades_list %}{{ persona.nom }}{% if persona.entitats.exists %} <span class="text-muted">({% for entitat in persona.entitats.all %}{{ entitat.nom }}{% if not forloop.last %}, {% endif %}{% endfor %})</span>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+                    {% endif %}
+                </div>
+            {% endif %}
             <div class="text-muted mt-4">{{ acte.descripcio|linebreaks }}</div>
         </article>
     </div>

@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.urls import reverse
 
 from core.models import TimeStampedModel
+from entitats.models import Entitat
 
 
 class ActeTipus(TimeStampedModel):
@@ -79,6 +80,17 @@ class Acte(TimeStampedModel):
         SegmentVisibilitat,
         blank=True,
         related_name='actes_assistencia',
+    )
+
+    persones_relacionades = models.ManyToManyField(
+        'persones.Persona',
+        blank=True,
+        related_name='actes_relacionats',
+    )
+    entitats_relacionades = models.ManyToManyField(
+        Entitat,
+        blank=True,
+        related_name='actes_relacionats',
     )
 
     external_source = models.CharField(max_length=50, blank=True)

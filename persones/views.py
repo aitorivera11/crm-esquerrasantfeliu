@@ -1,25 +1,31 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
+
+from core.mixins import RoleRequiredMixin
+from usuaris.models import Usuari
 
 from .forms import PersonaForm
 from .models import Persona
 
 
-class PersonaListView(LoginRequiredMixin, ListView):
+class PersonesPermissionMixin(RoleRequiredMixin):
+    allowed_roles = (Usuari.Rol.ADMINISTRACIO, Usuari.Rol.COORDINACIO)
+
+
+class PersonaListView(PersonesPermissionMixin, ListView):
     model = Persona
     template_name = 'persones/persona_list.html'
     context_object_name = 'persones'
 
     def get_queryset(self):
-        queryset = Persona.objects.order_by('nom')
+        queryset = Persona.objects.prefetch_related('entitats').order_by('nom')
         q = self.request.GET.get('q', '').strip()
         if q:
             queryset = queryset.filter(
-                Q(nom__icontains=q) | Q(email__icontains=q) | Q(telefon__icontains=q)
-            )
+                Q(nom__icontains=q) | Q(email__icontains=q) | Q(telefon__icontains=q) | Q(entitats__nom__icontains=q)
+            ).distinct()
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -28,7 +34,7 @@ class PersonaListView(LoginRequiredMixin, ListView):
         return context
 
 
-class PersonaCreateView(LoginRequiredMixin, CreateView):
+class PersonaCreateView(PersonesPermissionMixin, CreateView):
     model = Persona
     form_class = PersonaForm
     template_name = 'persones/persona_form.html'
@@ -39,7 +45,7 @@ class PersonaCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class PersonaUpdateView(LoginRequiredMixin, UpdateView):
+class PersonaUpdateView(PersonesPermissionMixin, UpdateView):
     model = Persona
     form_class = PersonaForm
     template_name = 'persones/persona_form.html'

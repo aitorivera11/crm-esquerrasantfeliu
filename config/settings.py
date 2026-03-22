@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'usuaris',
     'persones',
     'agenda',
+    'entitats',
 ]
 
 MIDDLEWARE = [
