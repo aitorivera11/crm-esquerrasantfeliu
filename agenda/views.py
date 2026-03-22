@@ -57,6 +57,8 @@ class AgendaContextMixin:
                 'participants__usuari',
                 'visible_per',
                 'assistencia_permesa_per',
+                'persones_relacionades__entitats',
+                'entitats_relacionades__persones',
                 current_user_participation,
             )
             .annotate(
@@ -85,6 +87,8 @@ class AgendaContextMixin:
         acte.request_user_participacio = next(iter(getattr(acte, 'participant_for_request_user', [])), None)
         acte.visible_segments_labels = [segment.etiqueta for segment in acte.visible_per.all()]
         acte.assistencia_segments_labels = [segment.etiqueta for segment in acte.assistencia_permesa_per.all()]
+        acte.persones_relacionades_list = list(acte.persones_relacionades.all())
+        acte.entitats_relacionades_list = list(acte.entitats_relacionades.all())
         acte.user_can_attend = self._allowed_attendance(acte)
         acte.user_can_manage = self._user_can_manage_actes()
         acte.user_can_view_admin_details = self._user_can_view_admin_details()

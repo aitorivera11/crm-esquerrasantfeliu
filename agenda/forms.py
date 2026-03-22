@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.formats import localize_input
 
+from entitats.models import Entitat
+from persones.models import Persona
 from usuaris.forms import StyledFormMixin
 
 from .models import Acte, ParticipacioActe, SegmentVisibilitat
@@ -29,6 +31,8 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
             'ubicacio',
             'punt_trobada',
             'aforament',
+            'entitats_relacionades',
+            'persones_relacionades',
             'visible_per',
             'assistencia_permesa_per',
             'estat',
@@ -39,6 +43,8 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
             'descripcio': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Context, objectiu, material necessari…'}),
             'visible_per': forms.CheckboxSelectMultiple(),
             'assistencia_permesa_per': forms.CheckboxSelectMultiple(),
+            'entitats_relacionades': forms.CheckboxSelectMultiple(),
+            'persones_relacionades': forms.CheckboxSelectMultiple(),
         }
 
     def __init__(self, *args, **kwargs):
@@ -47,10 +53,16 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         segment_queryset = SegmentVisibilitat.objects.filter(actiu=True).order_by('ambit', 'ordre', 'etiqueta')
         self.fields['visible_per'].queryset = segment_queryset
         self.fields['assistencia_permesa_per'].queryset = segment_queryset
+        self.fields['entitats_relacionades'].queryset = Entitat.objects.order_by('nom')
+        self.fields['persones_relacionades'].queryset = Persona.objects.order_by('nom')
         self.fields['visible_per'].help_text = 'Deixa-ho buit perquè l’acte sigui visible per a tothom amb accés a l’agenda.'
         self.fields['assistencia_permesa_per'].help_text = 'Deixa-ho buit perquè qualsevol usuari que el vegi pugui confirmar assistència.'
+        self.fields['entitats_relacionades'].help_text = 'Entitats o associacions implicades en aquest acte.'
+        self.fields['persones_relacionades'].help_text = 'Persones registrades que participen o fan seguiment de l’acte.'
         self.fields['visible_per'].label = 'Visible per'
         self.fields['assistencia_permesa_per'].label = 'Assistència permesa per'
+        self.fields['entitats_relacionades'].label = 'Entitats relacionades'
+        self.fields['persones_relacionades'].label = 'Persones relacionades'
         self.fields['inici'].input_formats = self.datetime_input_formats
         self.fields['fi'].input_formats = self.datetime_input_formats
 

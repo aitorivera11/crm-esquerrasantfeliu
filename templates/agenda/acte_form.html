@@ -45,6 +45,17 @@
 
         <section class="form-section-card mt-4">
             <div class="form-section-card__header">
+                <h3>Entitats i persones</h3>
+                <p>Relaciona les entitats implicades i les persones registrades que hi participaran o faran seguiment.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-12 col-xl-6">{% include 'agenda/components/acte_segment_field.html' with field=form.entitats_relacionades empty_message='Sense entitats vinculades a aquest acte.' %}</div>
+                <div class="col-12 col-xl-6">{% include 'agenda/components/acte_segment_field.html' with field=form.persones_relacionades empty_message='Sense persones vinculades a aquest acte.' %}</div>
+            </div>
+        </section>
+
+        <section class="form-section-card mt-4">
+            <div class="form-section-card__header">
                 <h3>Visibilitat i assistència</h3>
                 <p>Els ManyToMany passen a targetes amb selecció clara per rols i tipus d’usuari.</p>
             </div>

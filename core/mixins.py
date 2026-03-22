@@ -8,9 +8,17 @@ class RoleRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     allowed_roles = ()
     permission_denied_message = 'No tens permisos per accedir a aquesta secció.'
 
-    def test_func(self):
+    def has_role_permission(self):
         user = self.request.user
         return user.is_authenticated and user.rol in self.allowed_roles
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not self.has_role_permission():
+            raise PermissionDenied(self.permission_denied_message)
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        return self.has_role_permission()
 
     def handle_no_permission(self):
         if self.request.user.is_authenticated:

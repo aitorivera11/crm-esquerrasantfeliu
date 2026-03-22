@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Entitat{% endblock %}
+{% block page_title %}{% if object %}Editar entitat{% else %}Nova entitat{% endif %}{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Completa les dades bàsiques i vincula les persones que poden representar aquesta entitat.</p>{% endblock %}
+{% block content %}
+<section class="card card-panel form-narrow panel-section">
+    <h2 class="h4 mb-3">{% if object %}Editar entitat{% else %}Crear entitat{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% include 'components/form_fields.html' with form=form %}
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-primary">Desar</button>
+            <a href="{% url 'entitats:entitat_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

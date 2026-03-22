@@ -12,6 +12,7 @@ urlpatterns = [
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('agenda/', include(('agenda.urls', 'agenda'), namespace='agenda')),
     path('persones/', include(('persones.urls', 'persones'), namespace='persones')),
+    path('entitats/', include(('entitats.urls', 'entitats'), namespace='entitats')),
     path('usuaris/', include(('usuaris.urls', 'usuaris'), namespace='usuaris')),
     path('', include(('core.urls', 'core'), namespace='core')),
 ]
