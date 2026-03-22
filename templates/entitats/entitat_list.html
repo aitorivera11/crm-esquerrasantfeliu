@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Entitats{% endblock %}
+{% block page_title %}Entitats{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Directori d’entitats, associacions i col·lectius vinculats a la campanya i a l’agenda.</p>{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section mb-4">
+    <div class="section-heading align-items-start">
+        <div>
+            <h2 class="h4 mb-1">Base d’entitats</h2>
+            <p class="text-muted mb-0">Sincronitza cada nit el directori públic i completa’l amb relacions internes.</p>
+        </div>
+        <a href="{% url 'entitats:entitat_create' %}" class="btn btn-primary">Nova entitat</a>
+    </div>
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-lg-8">
+            <label class="form-label">Cercar</label>
+            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nom, contacte, àmbit o persona relacionada">
+        </div>
+        <div class="col-lg-4 d-flex gap-2">
+            <button class="btn btn-outline-primary w-100">Cercar</button>
+            <a href="{% url 'entitats:entitat_list' %}" class="btn btn-outline-secondary">Netejar</a>
+        </div>
+    </form>
+</section>
+<section class="card card-panel panel-section">
+    {% if entitats %}
+    <div class="table-responsive">
+        <table class="table align-middle app-table app-table-spacious">
+            <thead><tr><th>Entitat</th><th>Contacte</th><th>Classificació</th><th>Persones relacionades</th><th class="text-end">Accions</th></tr></thead>
+            <tbody>
+            {% for entitat in entitats %}
+                <tr>
+                    <td>
+                        <strong>{{ entitat.nom }}</strong>
+                        {% if entitat.web %}<div><a href="{{ entitat.web }}" target="_blank" rel="noopener">{{ entitat.web }}</a></div>{% endif %}
+                    </td>
+                    <td>{{ entitat.email|default:'—' }}<div class="text-muted small">{{ entitat.telefon|default:'Sense telèfon' }}</div></td>
+                    <td>
+                        <div>{{ entitat.tipologia|default:'Sense tipologia' }}</div>
+                        <div class="text-muted small">{{ entitat.ambit|default:'Sense àmbit' }}</div>
+                    </td>
+                    <td>
+                        {% with persones=entitat.persones.all %}
+                            {% if persones %}
+                                {{ persones|join:', ' }}
+                            {% else %}
+                                <span class="text-muted">Sense persones vinculades</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'entitats:entitat_update' entitat.pk %}">Editar</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        {% include 'components/empty_state.html' with icon='🏢' title='Encara no hi ha entitats' message='Quan importis o registris entitats apareixeran aquí.' action_url='/entitats/nova/' action_label='Afegir entitat' %}
+    {% endif %}
+</section>
+{% endblock %}
