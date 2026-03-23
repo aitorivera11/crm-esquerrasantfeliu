@@ -10,7 +10,7 @@
             <p class="text-muted mb-0">Els camps de configuració s’han reorganitzat perquè la lectura sigui molt més clara.</p>
         </div>
     </div>
-    <form method="post" class="acte-form-layout">
+    <form method="post" class="acte-form-layout responsive-form">
         {% csrf_token %}
         {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
 

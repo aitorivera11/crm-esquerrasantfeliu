@@ -2,9 +2,9 @@
 {% block title %}Persona{% endblock %}
 {% block page_title %}{% if object %}Editar persona{% else %}Nova persona{% endif %}{% endblock %}
 {% block content %}
-<section class="card card-panel form-narrow panel-section">
+<section class="card card-panel form-wide panel-section">
     <h2 class="h4 mb-3">{% if object %}Editar persona{% else %}Crear persona{% endif %}</h2>
-    <form method="post">
+    <form method="post" class="responsive-form">
         {% csrf_token %}
         {% include 'components/form_fields.html' with form=form %}
         <div class="d-flex gap-2 flex-wrap">
