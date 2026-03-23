@@ -27,7 +27,7 @@ class ActeAdmin(admin.ModelAdmin):
     list_display = ('titol', 'tipus', 'inici', 'fi', 'ubicacio', 'estat', 'creador')
     list_filter = ('estat', 'tipus')
     search_fields = ('titol', 'ubicacio', 'punt_trobada')
-    filter_horizontal = ('visible_per', 'assistencia_permesa_per')
+    filter_horizontal = ('visible_per',)
     inlines = [ParticipacioInline]
 
 

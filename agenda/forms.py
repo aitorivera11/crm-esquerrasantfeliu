@@ -11,6 +11,7 @@ from persones.models import Persona
 from usuaris.forms import StyledFormMixin
 
 from .models import Acte, ParticipacioActe, SegmentVisibilitat
+from usuaris.models import Usuari
 
 
 class ActeForm(StyledFormMixin, forms.ModelForm):
@@ -35,7 +36,6 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
             'entitats_relacionades',
             'persones_relacionades',
             'visible_per',
-            'assistencia_permesa_per',
             'estat',
             'es_important',
         ]
@@ -43,8 +43,7 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
             'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
             'fi': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
             'descripcio': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Context, objectiu, material necessari…'}),
-            'visible_per': SearchableSelectMultiple(search_placeholder='Cerca segments…', empty_text='No hi ha segments disponibles.'),
-            'assistencia_permesa_per': SearchableSelectMultiple(search_placeholder='Cerca segments…', empty_text='No hi ha segments disponibles.'),
+            'visible_per': SearchableSelectMultiple(search_placeholder='Cerca públics…', empty_text='No hi ha segments disponibles.'),
             'entitats_relacionades': SearchableSelectMultiple(search_placeholder='Cerca entitats…', empty_text='No hi ha entitats disponibles.'),
             'persones_relacionades': SearchableSelectMultiple(search_placeholder='Cerca persones…', empty_text='No hi ha persones disponibles.'),
         }
@@ -52,17 +51,21 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['tipus'].queryset = self.fields['tipus'].queryset.filter(actiu=True)
-        segment_queryset = SegmentVisibilitat.objects.filter(actiu=True).order_by('ambit', 'ordre', 'etiqueta')
+        segment_queryset = SegmentVisibilitat.objects.filter(actiu=True).exclude(
+            ambit=SegmentVisibilitat.Ambit.ROL,
+            codi=Usuari.Rol.ADMINISTRACIO,
+        ).order_by('ambit', 'ordre', 'etiqueta')
         self.fields['visible_per'].queryset = segment_queryset
-        self.fields['assistencia_permesa_per'].queryset = segment_queryset
         self.fields['entitats_relacionades'].queryset = Entitat.objects.order_by('nom')
         self.fields['persones_relacionades'].queryset = Persona.objects.order_by('nom')
-        self.fields['visible_per'].help_text = 'Deixa-ho buit perquè l’acte sigui visible per a tothom amb accés a l’agenda.'
-        self.fields['assistencia_permesa_per'].help_text = 'Deixa-ho buit perquè qualsevol usuari que el vegi pugui confirmar assistència.'
+        self.fields['visible_per'].help_text = (
+            'Deixa-ho buit perquè l’acte sigui visible i assistible per a tothom. '
+            'Si selecciones Coordinació, només serà per a coordinació. '
+            'Si selecciones Participant o algun tipus, coordinació també hi tindrà accés automàticament.'
+        )
         self.fields['entitats_relacionades'].help_text = 'Entitats o associacions implicades en aquest acte.'
         self.fields['persones_relacionades'].help_text = 'Persones registrades que participen o fan seguiment de l’acte.'
-        self.fields['visible_per'].label = 'Visible per'
-        self.fields['assistencia_permesa_per'].label = 'Assistència permesa per'
+        self.fields['visible_per'].label = 'Qui el pot veure i assistir'
         self.fields['entitats_relacionades'].label = 'Entitats relacionades'
         self.fields['persones_relacionades'].label = 'Persones relacionades'
         self.fields['es_important'].label = 'Acte important'
@@ -88,7 +91,59 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         fi = cleaned_data.get('fi')
         if inici and fi and fi <= inici:
             self.add_error('fi', "La data/hora de final ha de ser posterior a l'inici.")
+
+        selected_segments = list(cleaned_data.get('visible_per') or [])
+        if not selected_segments:
+            return cleaned_data
+
+        role_segments = [segment for segment in selected_segments if segment.ambit == SegmentVisibilitat.Ambit.ROL]
+        type_segments = [segment for segment in selected_segments if segment.ambit == SegmentVisibilitat.Ambit.TIPUS]
+
+        if any(segment.codi == Usuari.Rol.ADMINISTRACIO for segment in role_segments):
+            self.add_error('visible_per', 'Administració no es pot seleccionar com a públic específic d’un acte.')
+            return cleaned_data
+
+        coordinator_segment = next((segment for segment in role_segments if segment.codi == Usuari.Rol.COORDINACIO), None)
+        participant_segment = next((segment for segment in role_segments if segment.codi == Usuari.Rol.PARTICIPANT), None)
+
+        if coordinator_segment and not participant_segment and not type_segments:
+            cleaned_data['visible_per'] = [coordinator_segment]
+            return cleaned_data
+
+        normalized_segments = []
+        if participant_segment or type_segments:
+            if coordinator_segment is None:
+                coordinator_segment = SegmentVisibilitat.objects.filter(
+                    ambit=SegmentVisibilitat.Ambit.ROL,
+                    codi=Usuari.Rol.COORDINACIO,
+                    actiu=True,
+                ).first()
+            if participant_segment is None:
+                participant_segment = SegmentVisibilitat.objects.filter(
+                    ambit=SegmentVisibilitat.Ambit.ROL,
+                    codi=Usuari.Rol.PARTICIPANT,
+                    actiu=True,
+                ).first()
+            if coordinator_segment:
+                normalized_segments.append(coordinator_segment)
+            if participant_segment:
+                normalized_segments.append(participant_segment)
+            normalized_segments.extend(type_segments)
+            cleaned_data['visible_per'] = normalized_segments
+            return cleaned_data
+
+        cleaned_data['visible_per'] = []
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit:
+            instance.assistencia_permesa_per.set(instance.visible_per.all())
+        return instance
+
+    def save_m2m(self):
+        super().save_m2m()
+        self.instance.assistencia_permesa_per.set(self.instance.visible_per.all())
 
 
 class ParticipacioForm(StyledFormMixin, forms.ModelForm):

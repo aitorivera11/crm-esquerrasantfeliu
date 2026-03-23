@@ -58,11 +58,10 @@
         <section class="form-section-card mt-4">
             <div class="form-section-card__header">
                 <h3>Visibilitat i assistència</h3>
-                <p>Els ManyToMany passen a targetes amb selecció clara per rols i tipus d’usuari.</p>
+                <p>Ho simplifiquem a un sol criteri: qui el pot veure, també hi pot confirmar assistència.</p>
             </div>
             <div class="row g-4">
-                <div class="col-12 col-xl-6">{% include 'agenda/components/acte_segment_field.html' with field=form.visible_per empty_message='Si no selecciones res, qualsevol usuari amb accés a Agenda el podrà veure.' %}</div>
-                <div class="col-12 col-xl-6">{% include 'agenda/components/acte_segment_field.html' with field=form.assistencia_permesa_per empty_message='Si no selecciones res, qualsevol persona que el vegi podrà confirmar assistència.' %}</div>
+                <div class="col-12">{% include 'agenda/components/acte_segment_field.html' with field=form.visible_per empty_message='Si no selecciones res, qualsevol usuari amb accés a Agenda el podrà veure i s’hi podrà apuntar.' %}</div>
             </div>
         </section>
 
