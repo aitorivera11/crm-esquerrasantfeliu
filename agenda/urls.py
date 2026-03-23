@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     ActeCreateView,
     ActeDetailView,
+    ActeIcsView,
     ActeListView,
     ActeUpdateView,
     ElsMeusActesView,
@@ -18,6 +19,7 @@ urlpatterns = [
     path('nou/', ActeCreateView.as_view(), name='acte_create'),
     path('cron/import-city-events/', ImportCityEventsCronView.as_view(), name='import_city_events_cron'),
     path('<int:pk>/', ActeDetailView.as_view(), name='acte_detail'),
+    path('<int:pk>/calendar.ics', ActeIcsView.as_view(), name='acte_ics'),
     path('<int:pk>/editar/', ActeUpdateView.as_view(), name='acte_update'),
     path('<int:pk>/participar/', ParticiparActeView.as_view(), name='participar_acte'),
     path('<int:pk>/participants/', ParticipantsListView.as_view(), name='participants_list'),

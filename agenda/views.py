@@ -1,16 +1,19 @@
+from datetime import timedelta
 import io
 import os
+from urllib.parse import quote
 
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.management import call_command
 from django.db.models import Count, Prefetch, Q
-from django.http import Http404, HttpResponseForbidden, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.urls import reverse
 
 from core.models import Auditoria
 
@@ -168,7 +171,95 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
         return context
 
 
-class ActeDetailView(AgendaContextMixin, LoginRequiredMixin, DetailView):
+
+class EventSharingMixin:
+    def _format_calendar_datetime(self, value):
+        local_value = timezone.localtime(value)
+        return local_value.strftime('%Y%m%dT%H%M%S')
+
+    def _build_ics_content(self, acte):
+        start = self._format_calendar_datetime(acte.inici)
+        end_value = acte.fi or (acte.inici + timedelta(hours=1))
+        end = self._format_calendar_datetime(end_value)
+        absolute_url = self.request.build_absolute_uri(acte.get_absolute_url())
+        location = (acte.ubicacio or '').replace('\n', ' ').strip()
+        description_lines = [acte.descripcio.strip()] if acte.descripcio else []
+        if location:
+            description_lines.append(f'Lloc: {location}')
+        description_lines.append(f'Més informació: {absolute_url}')
+        description = '\n'.join(line for line in description_lines if line).replace('\r', '')
+
+        def escape(value):
+            return (
+                str(value or '')
+                .replace('\\', '\\\\')
+                .replace(';', r'\;')
+                .replace(',', r'\,')
+                .replace('\n', r'\n')
+            )
+
+        return '\r\n'.join([
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//CRM Campanya Sant Feliu//Agenda//CA',
+            'CALSCALE:GREGORIAN',
+            'BEGIN:VEVENT',
+            f'UID:acte-{acte.pk}@crm-esquerrasantfeliu',
+            f'DTSTAMP:{timezone.now().strftime("%Y%m%dT%H%M%SZ")}',
+            f'DTSTART:{start}',
+            f'DTEND:{end}',
+            f'SUMMARY:{escape(acte.titol)}',
+            f'DESCRIPTION:{escape(description)}',
+            f'LOCATION:{escape(location)}',
+            f'URL:{escape(absolute_url)}',
+            'END:VEVENT',
+            'END:VCALENDAR',
+            '',
+        ])
+
+    def _sharing_context(self, acte):
+        absolute_url = self.request.build_absolute_uri(acte.get_absolute_url())
+        share_lines = [
+            acte.titol,
+            f"📅 {timezone.localtime(acte.inici).strftime('%d/%m/%Y %H:%M')} h",
+        ]
+        if acte.fi:
+            share_lines.append(f"⏱️ Fins a les {timezone.localtime(acte.fi).strftime('%H:%M')} h")
+        if acte.ubicacio:
+            share_lines.append(f"📍 {acte.ubicacio}")
+        share_lines.extend(['', absolute_url])
+        share_text = '\n'.join(share_lines)
+
+        details = [acte.descripcio.strip()] if acte.descripcio else []
+        if acte.ubicacio:
+            details.append(f'Lloc: {acte.ubicacio}')
+        details.append(f'Enllaç: {absolute_url}')
+        share_body = '\n\n'.join([part for part in details if part])
+
+        google_dates = f"{self._format_calendar_datetime(acte.inici)}/{self._format_calendar_datetime(acte.fi or (acte.inici + timedelta(hours=1)))}"
+        google_params = {
+            'action': 'TEMPLATE',
+            'text': acte.titol,
+            'dates': google_dates,
+            'details': share_body,
+            'location': acte.ubicacio or '',
+        }
+        google_url = 'https://calendar.google.com/calendar/render?' + '&'.join(
+            f'{key}={quote(str(value))}' for key, value in google_params.items() if value
+        )
+
+        return {
+            'share_url': absolute_url,
+            'share_text': share_text,
+            'whatsapp_url': f'https://wa.me/?text={quote(share_text)}',
+            'telegram_url': f'https://t.me/share/url?url={quote(absolute_url)}&text={quote(acte.titol)}',
+            'email_url': f'mailto:?subject={quote(acte.titol)}&body={quote(share_text)}',
+            'google_calendar_url': google_url,
+            'ics_url': self.request.build_absolute_uri(reverse('agenda:acte_ics', kwargs={'pk': acte.pk})),
+        }
+
+
+class ActeDetailView(EventSharingMixin, AgendaContextMixin, LoginRequiredMixin, DetailView):
     model = Acte
     template_name = 'agenda/acte_detail.html'
     context_object_name = 'acte'
@@ -191,7 +282,22 @@ class ActeDetailView(AgendaContextMixin, LoginRequiredMixin, DetailView):
         context['participacio_form'] = ParticipacioForm(instance=participacio, usuari=self.request.user, acte=self.object)
         context['can_manage_actes'] = self._user_can_manage_actes()
         context['can_view_admin_details'] = self._user_can_view_admin_details()
+        context.update(self._sharing_context(self.object))
         return context
+
+
+class ActeIcsView(EventSharingMixin, AgendaContextMixin, LoginRequiredMixin, DetailView):
+    model = Acte
+
+    def get_queryset(self):
+        return self._visible_queryset(include_drafts=self._user_can_manage_actes())
+
+    def render_to_response(self, context, **response_kwargs):
+        acte = self.get_object()
+        filename = f"{acte.titol.lower().replace(' ', '-')[:60] or 'acte'}.ics"
+        response = HttpResponse(self._build_ics_content(acte), content_type='text/calendar; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
 
 class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):

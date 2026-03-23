@@ -78,15 +78,66 @@
         </article>
     </div>
     <div class="col-12 col-xl-4">
-        <section class="card card-panel h-100 p-4">
-            <h3 class="h5">La meva resposta</h3>
-            {% if acte.user_can_attend %}
-                <p class="text-muted">Confirma ara mateix si hi assistiràs.</p>
-                <div id="participacio-area">{% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}</div>
-            {% else %}
-                <p class="text-muted mb-0">Pots consultar el detall, però aquest acte no està obert a confirmacions.</p>
-            {% endif %}
-        </section>
+        <div class="d-grid gap-4">
+            <section class="card card-panel p-4">
+                <h3 class="h5">La meva resposta</h3>
+                {% if acte.user_can_attend %}
+                    <p class="text-muted">Confirma ara mateix si hi assistiràs.</p>
+                    <div id="participacio-area">{% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}</div>
+                {% else %}
+                    <p class="text-muted mb-0">Pots consultar el detall, però aquest acte no està obert a confirmacions.</p>
+                {% endif %}
+            </section>
+
+            <section class="card card-panel p-4 social-panel">
+                <div class="d-flex justify-content-between gap-3 align-items-start flex-wrap">
+                    <div>
+                        <h3 class="h5 mb-1">Comparteix i exporta</h3>
+                        <p class="text-muted mb-0">Envia l’acte per canals ràpids o afegeix-lo al teu calendari.</p>
+                    </div>
+                    <span class="info-chip">Social</span>
+                </div>
+
+                <div class="share-grid mt-4">
+                    <a class="share-action share-action-whatsapp" href="{{ whatsapp_url }}" target="_blank" rel="noopener">
+                        <strong>WhatsApp</strong>
+                        <span>Comparteix el resum amb enllaç</span>
+                    </a>
+                    <a class="share-action share-action-telegram" href="{{ telegram_url }}" target="_blank" rel="noopener">
+                        <strong>Telegram</strong>
+                        <span>Envia’l a grups o contactes</span>
+                    </a>
+                    <a class="share-action share-action-email" href="{{ email_url }}">
+                        <strong>Correu</strong>
+                        <span>Obre un email amb l’acte preparat</span>
+                    </a>
+                    <button type="button" class="share-action share-action-copy" data-copy-text="{{ share_url }}" data-copy-feedback="Enllaç copiat">
+                        <strong>Copiar enllaç</strong>
+                        <span>Per enganxar-lo on vulguis</span>
+                    </button>
+                </div>
+
+                <div class="share-native mt-3">
+                    <button type="button" class="btn btn-outline-primary w-100" data-native-share data-share-title="{{ acte.titol }}" data-share-text="{{ share_text }}" data-share-url="{{ share_url }}">Compartir amb el mòbil o navegador</button>
+                </div>
+
+                <div class="calendar-export mt-4">
+                    <div>
+                        <h4 class="h6 mb-1">Porta’l al calendari</h4>
+                        <p class="text-muted mb-0">Compatible amb Google Calendar i altres aplicacions.</p>
+                    </div>
+                    <div class="calendar-actions mt-3">
+                        <a class="btn btn-primary" href="{{ google_calendar_url }}" target="_blank" rel="noopener">Google Calendar</a>
+                        <a class="btn btn-outline-secondary" href="{{ ics_url }}">Descarregar .ics</a>
+                    </div>
+                </div>
+
+                <div class="share-preview mt-4">
+                    <span class="share-preview-label">Missatge suggerit</span>
+                    <pre>{{ share_text }}</pre>
+                </div>
+            </section>
+        </div>
     </div>
 </div>
 {% endblock %}

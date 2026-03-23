@@ -792,3 +792,74 @@ textarea.form-control { min-height: 120px; }
         grid-template-columns: 1fr;
     }
 }
+
+.social-panel {
+    display: grid;
+    gap: 0;
+}
+.share-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem;
+}
+.share-action {
+    display: grid;
+    gap: .25rem;
+    text-align: left;
+    text-decoration: none;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 13, 35, 0.1);
+    background: #fffaf7;
+    color: var(--deep);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.share-action:hover,
+.share-action:focus {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+    border-color: rgba(249, 88, 56, 0.25);
+    color: var(--deep);
+}
+.share-action strong { font-size: .98rem; }
+.share-action span { color: var(--muted); font-size: .88rem; }
+.share-action-whatsapp { background: rgba(37, 211, 102, 0.08); border-color: rgba(37, 211, 102, 0.2); }
+.share-action-telegram { background: rgba(39, 166, 229, 0.08); border-color: rgba(39, 166, 229, 0.2); }
+.share-action-email { background: rgba(249, 88, 56, 0.06); border-color: rgba(249, 88, 56, 0.18); }
+.share-action-copy { appearance: none; width: 100%; }
+.calendar-export {
+    padding: 1rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(0,13,35,.03), rgba(255,255,255,.92));
+    border: 1px solid rgba(0, 13, 35, 0.08);
+}
+.calendar-actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+.share-preview {
+    padding: 1rem;
+    border-radius: 1rem;
+    background: rgba(0, 13, 35, 0.03);
+    border: 1px dashed rgba(0, 13, 35, 0.12);
+}
+.share-preview-label {
+    display: inline-block;
+    margin-bottom: .5rem;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    font-weight: 800;
+}
+.share-preview pre {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: .92rem;
+    color: var(--deep);
+}
+@media (max-width: 767.98px) {
+    .share-grid { grid-template-columns: 1fr; }
+}
