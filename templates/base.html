@@ -22,7 +22,7 @@
                     <img class="brand-logo brand-logo-lg" src="https://www.esquerra.cat/wp-content/uploads/erc-logo.png" alt="Logo Esquerra Republicana">
                     <div>
                         <p class="eyebrow mb-1">Campanya municipal</p>
-                        <span class="brand-link">Sant Feliu 2026<span>CRM de proximitat</span></span>
+                        <span class="brand-link">Sant Feliu 2027<span>CRM de proximitat</span></span>
                     </div>
                 </a>
                 <div class="brand-logo-wrap">
@@ -47,7 +47,7 @@
                     {% block page_intro %}<p class="page-subtitle mb-0">Coordinació clara i ràpida.</p>{% endblock %}
                 </div>
             </div>
-            <div class="header-user card-shadow-sm">
+            <div class="header-user card-shadow-sm d-none d-md-flex">
                 <div>
                     <strong>{{ request.user.nom_complet|default:request.user.username }}</strong>
                     <div class="text-muted small">{{ request.user.get_rol_display }}</div>

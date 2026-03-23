@@ -10,6 +10,15 @@
     {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}<a href="{% url 'entitats:entitat_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'entitats' %}active{% endif %}">Entitats</a>{% endif %}
     <a href="{% url 'usuaris:perfil' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'perfil' %}active{% endif %}">El meu perfil</a>
     <a href="{% url 'usuaris:canvi_password' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'canvi_password' %}active{% endif %}">Contrasenya</a>
+    <div class="sidebar-mobile-account d-md-none">
+        <div class="sidebar-section">Compte</div>
+        <div class="sidebar-mobile-account__name">{{ request.user.nom_complet|default:request.user.username }}</div>
+        <div class="sidebar-mobile-account__role">{{ request.user.get_rol_display }}</div>
+        <form method="post" action="{% url 'logout' %}" class="mt-2">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-light w-100">Sortir</button>
+        </form>
+    </div>
     {% if request.user.rol == 'ADMINISTRACIO' %}
         <div class="sidebar-section">Administració</div>
         <a href="{% url 'usuaris:admin_usuari_list' %}" class="nav-link-side nav-link-side-split {% if request.resolver_match.namespace == 'usuaris' and 'admin_usuari' in request.resolver_match.url_name %}active{% endif %}">

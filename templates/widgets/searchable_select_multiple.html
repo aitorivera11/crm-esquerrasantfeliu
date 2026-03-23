@@ -1,20 +1,45 @@
 <div class="searchable-multiselect" data-searchable-multiselect>
     <div class="searchable-multiselect__toolbar">
-        <input
-            type="search"
-            class="form-control searchable-multiselect__search"
-            placeholder="{{ widget.search_placeholder }}"
-            autocomplete="off"
-            data-searchable-multiselect-input
-            aria-label="Cercar opcions per {{ widget.name }}"
-        >
+        <div class="searchable-multiselect__search-wrap">
+            <input
+                type="search"
+                class="form-control searchable-multiselect__search"
+                placeholder="{{ widget.search_placeholder }}"
+                autocomplete="off"
+                data-searchable-multiselect-input
+                aria-label="Cercar opcions per {{ widget.name }}"
+            >
+        </div>
         <div class="searchable-multiselect__meta">
             <span class="searchable-multiselect__summary" data-searchable-multiselect-summary>{{ widget.summary_text }}</span>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-searchable-multiselect-clear>Buida</button>
+            <div class="searchable-multiselect__actions">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-searchable-multiselect-select-visible>Selecciona visibles</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-searchable-multiselect-clear>Buida</button>
+            </div>
         </div>
     </div>
     <div class="searchable-multiselect__help text-muted small" id="{{ widget.attrs.id }}_search_help">
-        Escriu per filtrar i mantén premuda la tecla Ctrl/Cmd per seleccionar diverses opcions.
+        Escriu per filtrar i toca les opcions per afegir-les o treure-les. Les seleccionades queden destacades.
+    </div>
+    <div class="searchable-multiselect__selected d-none" data-searchable-multiselect-selected></div>
+    <div class="searchable-multiselect__options" data-searchable-multiselect-options>
+        {% for group_name, group_choices, group_index in widget.optgroups %}
+            {% if group_name %}
+                <div class="searchable-multiselect__group-label">{{ group_name }}</div>
+            {% endif %}
+            {% for option in group_choices %}
+                <button
+                    type="button"
+                    class="searchable-multiselect__option{% if option.selected %} is-selected{% endif %}"
+                    data-searchable-multiselect-option
+                    data-value="{{ option.value|stringformat:'s' }}"
+                    data-label="{{ option.label }}"
+                >
+                    <span class="searchable-multiselect__option-check" aria-hidden="true"></span>
+                    <span class="searchable-multiselect__option-label">{{ option.label }}</span>
+                </button>
+            {% endfor %}
+        {% endfor %}
     </div>
     <div class="searchable-multiselect__empty text-muted small d-none" data-searchable-multiselect-empty>
         {{ widget.empty_text }}
