@@ -1,7 +1,7 @@
 <article id="acte-card-{{ acte.pk }}" class="card card-panel acte-card acte-card-simple {% if acte.es_important %}acte-card-important{% endif %} p-4" {% if acte.tipus_style %}style="{{ acte.tipus_style }}"{% endif %}>
     <div class="acte-card-main">
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-            <div class="flex-grow-1">
+            <div class="flex-grow-1 min-w-0">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                     {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}
                     {% if acte.tipus %}<span class="badge badge-type">{{ acte.tipus.nom }}</span>{% endif %}
@@ -30,6 +30,15 @@
                 <span class="mini-stat">No pots confirmar assistència</span>
             {% endif %}
         </div>
-        <a href="{% url 'agenda:acte_detail' acte.pk %}" class="btn btn-sm btn-outline-primary">Veure detall</a>
+        <div class="card-inline-secondary-actions">
+            {% if acte.user_can_manage %}
+                <div class="card-admin-actions" aria-label="Accions socials">
+                    <a href="{{ acte.share_url }}" class="icon-action" title="Compartir enllaç" aria-label="Compartir enllaç">↗</a>
+                    <a href="{{ acte.whatsapp_url }}" class="icon-action icon-action-whatsapp" target="_blank" rel="noopener" title="WhatsApp" aria-label="Compartir per WhatsApp">◔</a>
+                    <a href="{{ acte.google_calendar_url }}" class="icon-action icon-action-calendar" target="_blank" rel="noopener" title="Afegir al calendari" aria-label="Afegir al calendari">✦</a>
+                </div>
+            {% endif %}
+            <a href="{% url 'agenda:acte_detail' acte.pk %}" class="btn btn-sm btn-outline-primary">Veure detall</a>
+        </div>
     </div>
 </article>

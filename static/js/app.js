@@ -1,4 +1,37 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+  document.querySelectorAll('.filters-panel').forEach((details) => {
+    const label = details.querySelector('.filter-toggle-label');
+    const dayInput = details.querySelector('#filter-day');
+    const fromInput = details.querySelector('#filter-date-from');
+    const toInput = details.querySelector('#filter-date-to');
+
+    const syncToggleLabel = () => {
+      if (!label) return;
+      label.textContent = details.open ? (label.dataset.expandedLabel || 'Ocultar filtres') : (label.dataset.collapsedLabel || 'Mostrar filtres');
+    };
+
+    syncToggleLabel();
+    details.addEventListener('toggle', syncToggleLabel);
+
+    if (dayInput && fromInput && toInput) {
+      dayInput.addEventListener('change', () => {
+        if (dayInput.value) {
+          fromInput.value = dayInput.value;
+          toInput.value = dayInput.value;
+        }
+      });
+
+      const clearSingleDay = () => {
+        if (dayInput.value && (fromInput.value !== dayInput.value || toInput.value !== dayInput.value)) {
+          dayInput.value = '';
+        }
+      };
+
+      fromInput.addEventListener('change', clearSingleDay);
+      toInput.addEventListener('change', clearSingleDay);
+    }
+  });
   document.querySelectorAll('form[data-confirm]').forEach((form) => {
     form.addEventListener('submit', (event) => {
       if (!window.confirm(form.dataset.confirm)) {
