@@ -300,3 +300,46 @@ class AgendaImportedAndImportantUxTests(TestCase):
         response = self.client.get(reverse('agenda:acte_list'))
 
         self.assertContains(response, 'Important')
+
+    def test_default_list_filters_next_seven_days(self):
+        self.client.force_login(self.user)
+        later_event = Acte.objects.create(
+            titol='Acte massa llunyà',
+            inici=timezone.now().replace(second=0, microsecond=0) + timedelta(days=12),
+            ubicacio='Lluny',
+            creador=self.user,
+            estat=Acte.Estat.PUBLICAT,
+        )
+
+        response = self.client.get(reverse('agenda:acte_list'))
+
+        self.assertContains(response, 'Acte local visible')
+        self.assertNotContains(response, later_event.titol)
+        self.assertEqual(response.context['current_filters']['date_to'], (timezone.localdate() + timedelta(days=6)).isoformat())
+
+    def test_text_search_filters_the_list(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('agenda:acte_list'), {'q': 'Casal'})
+
+        self.assertContains(response, 'Acte local visible')
+        self.assertNotContains(response, 'Acte importat ocult')
+
+    def test_admin_cards_show_compact_social_actions(self):
+        self.client.force_login(self.user)
+        self.user.user_permissions.add(Permission.objects.get(codename='change_acte'))
+
+        response = self.client.get(reverse('agenda:acte_list'))
+
+        self.assertContains(response, 'aria-label="Compartir enllaç"')
+        self.assertContains(response, 'aria-label="Compartir per WhatsApp"')
+        self.assertContains(response, 'aria-label="Afegir al calendari"')
+
+    def test_compact_card_uses_short_cta_labels(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('agenda:acte_list'))
+
+        self.assertContains(response, '>Sí<', html=False)
+        self.assertContains(response, '>Potser<', html=False)
+        self.assertContains(response, '>No<', html=False)

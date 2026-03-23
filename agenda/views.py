@@ -98,22 +98,65 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
     def _is_true(self, value):
         return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
 
+    def _parse_date(self, value):
+        if not value:
+            return None
+        try:
+            return timezone.datetime.fromisoformat(value).date()
+        except ValueError:
+            return None
+
+    def _format_calendar_datetime(self, value):
+        return EventSharingMixin._format_calendar_datetime(self, value)
+
+    def _sharing_context(self, acte):
+        return EventSharingMixin._sharing_context(self, acte)
+
     def get_queryset(self):
         user_can_edit = self._user_can_manage_actes()
         queryset = self._visible_queryset(include_drafts=user_can_edit)
         now = timezone.now()
+        today = timezone.localdate()
+        default_end = today + timedelta(days=6)
         show_past = self._is_true(self.request.GET.get('show_past'))
         show_imported = self._is_true(self.request.GET.get('show_imported'))
 
-        day = self.request.GET.get('day')
-        if not show_past and not day:
-            queryset = queryset.filter(inici__gte=now)
+        day = self._parse_date(self.request.GET.get('day'))
+        date_from = self._parse_date(self.request.GET.get('date_from'))
+        date_to = self._parse_date(self.request.GET.get('date_to'))
 
         if day:
-            queryset = queryset.filter(inici__date=day)
+            date_from = day
+            date_to = day
+        elif not (date_from or date_to):
+            date_from = today
+            date_to = default_end
+
+        if date_from and date_to and date_from > date_to:
+            date_from, date_to = date_to, date_from
+
+        if date_from:
+            queryset = queryset.filter(inici__date__gte=date_from)
+        elif not show_past:
+            queryset = queryset.filter(inici__gte=now)
+
+        if date_to:
+            queryset = queryset.filter(inici__date__lte=date_to)
+
+        if not show_past and not date_from and not day:
+            queryset = queryset.filter(inici__gte=now)
 
         if not show_imported:
             queryset = queryset.filter(external_source='')
+
+        search = (self.request.GET.get('q') or '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(titol__icontains=search)
+                | Q(descripcio__icontains=search)
+                | Q(ubicacio__icontains=search)
+                | Q(punt_trobada__icontains=search)
+            )
 
         estat = self.request.GET.get('estat')
         if estat in Acte.Estat.values:
@@ -141,11 +184,22 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        actes = [self._enrich_acte(acte) for acte in context['actes']]
+        actes = []
+        for acte in context['actes']:
+            acte = self._enrich_acte(acte)
+            if self._user_can_manage_actes():
+                for key, value in self._sharing_context(acte).items():
+                    setattr(acte, key, value)
+            actes.append(acte)
         now = timezone.now()
         visible_base = self._visible_queryset(include_drafts=self._user_can_manage_actes())
+        today = timezone.localdate()
+        default_end = today + timedelta(days=6)
         current_filters = {
+            'q': self.request.GET.get('q', ''),
             'day': self.request.GET.get('day', ''),
+            'date_from': self.request.GET.get('date_from', today.isoformat()),
+            'date_to': self.request.GET.get('date_to', default_end.isoformat()),
             'my_status': self.request.GET.get('my_status', ''),
             'tipus': self.request.GET.get('tipus', ''),
             'estat': self.request.GET.get('estat', ''),
@@ -153,6 +207,23 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
             'show_past': self._is_true(self.request.GET.get('show_past')),
             'show_imported': self._is_true(self.request.GET.get('show_imported')),
         }
+        if current_filters['day']:
+            current_filters['date_from'] = current_filters['day']
+            current_filters['date_to'] = current_filters['day']
+        has_active_filters = any(
+            [
+                current_filters['q'],
+                current_filters['day'],
+                current_filters['my_status'],
+                current_filters['tipus'],
+                current_filters['estat'],
+                current_filters['visibility'],
+                current_filters['show_past'],
+                current_filters['show_imported'],
+                current_filters['date_from'] != today.isoformat(),
+                current_filters['date_to'] != default_end.isoformat(),
+            ]
+        )
         context.update(
             {
                 'actes': actes,
@@ -162,7 +233,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
                 'draft_count': visible_base.filter(estat=Acte.Estat.ESBORRANY).count(),
                 'tipus_options': ActeTipus.objects.filter(actiu=True),
                 'current_filters': current_filters,
-                'filters_open': any(current_filters.values()),
+                'filters_open': has_active_filters,
                 'important_count': visible_base.filter(es_important=True, estat=Acte.Estat.PUBLICAT).count(),
                 'can_manage_actes': self._user_can_manage_actes(),
                 'can_view_admin_details': self._user_can_view_admin_details(),

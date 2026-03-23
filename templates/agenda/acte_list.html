@@ -6,8 +6,8 @@
 <section class="card card-panel agenda-toolbar mb-4 p-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-            <h2 class="h4 mb-1">Agenda viva</h2>
-            <p class="text-muted mb-0">Vista més neta, amb els actes importats amagats per defecte i els prioritaris ben visibles.</p>
+            <h2 class="h4 mb-1">Agenda</h2>
+            <p class="text-muted mb-0">Consulta ràpidament els propers actes i crea’n de nous quan calgui.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap align-items-center">
             <span class="info-chip">{{ upcoming_count }} propers</span>
@@ -25,24 +25,36 @@
         <summary class="filters-summary">
             <div>
                 <strong>Filtres d’agenda</strong>
-                <span class="text-muted d-block small">Ajusta la vista i decideix quan vols barrejar-hi actes importats o passats.</span>
+                <span class="text-muted d-block small">Cerca per text, data, estat i visibilitat per trobar l’acte en menys temps.</span>
             </div>
-            <span class="info-chip">Ocultable</span>
+            <span class="info-chip filter-toggle-label" data-collapsed-label="Mostrar filtres" data-expanded-label="Ocultar filtres">{% if filters_open %}Ocultar filtres{% else %}Mostrar filtres{% endif %}</span>
         </summary>
-        <form method="get" class="mt-4">
-            <div class="row g-3">
-                <div class="col-12 col-md-6 col-xl-3">
-                    <label class="form-label" for="filter-day">Dia</label>
+        <form method="get" class="mt-4 agenda-filter-form">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-xl-4">
+                    <label class="form-label" for="filter-q">Cerca ràpida</label>
+                    <input id="filter-q" type="search" name="q" value="{{ current_filters.q }}" class="form-control" placeholder="Títol, descripció, lloc o punt de trobada">
+                </div>
+                <div class="col-12 col-md-6 col-xl-2">
+                    <label class="form-label" for="filter-day">Dia concret</label>
                     <input id="filter-day" type="date" name="day" value="{{ current_filters.day }}" class="form-control">
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
-                    <label class="form-label" for="filter-status">La meva confirmació</label>
+                <div class="col-6 col-md-3 col-xl-2">
+                    <label class="form-label" for="filter-date-from">Des de</label>
+                    <input id="filter-date-from" type="date" name="date_from" value="{{ current_filters.date_from }}" class="form-control">
+                </div>
+                <div class="col-6 col-md-3 col-xl-2">
+                    <label class="form-label" for="filter-date-to">Fins a</label>
+                    <input id="filter-date-to" type="date" name="date_to" value="{{ current_filters.date_to }}" class="form-control">
+                </div>
+                <div class="col-12 col-md-6 col-xl-2">
+                    <label class="form-label" for="filter-status">La meva resposta</label>
                     <select id="filter-status" name="my_status" class="form-select">
                         <option value="">Totes</option>
-                        <option value="HI_ANIRE" {% if current_filters.my_status == 'HI_ANIRE' %}selected{% endif %}>He confirmat que hi vaig</option>
-                        <option value="POTSER" {% if current_filters.my_status == 'POTSER' %}selected{% endif %}>He dit potser</option>
-                        <option value="NO_HI_ANIRE" {% if current_filters.my_status == 'NO_HI_ANIRE' %}selected{% endif %}>He dit que no</option>
-                        <option value="pending" {% if current_filters.my_status == 'pending' %}selected{% endif %}>Encara no he respost</option>
+                        <option value="HI_ANIRE" {% if current_filters.my_status == 'HI_ANIRE' %}selected{% endif %}>Sí</option>
+                        <option value="POTSER" {% if current_filters.my_status == 'POTSER' %}selected{% endif %}>Potser</option>
+                        <option value="NO_HI_ANIRE" {% if current_filters.my_status == 'NO_HI_ANIRE' %}selected{% endif %}>No</option>
+                        <option value="pending" {% if current_filters.my_status == 'pending' %}selected{% endif %}>Sense resposta</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-6 col-xl-2">
@@ -78,7 +90,7 @@
                         <span class="agenda-toggle__control" aria-hidden="true"></span>
                         <span class="agenda-toggle__content">
                             <strong>Mostrar actes importats</strong>
-                            <small>Per defecte s’amaguen perquè la llista principal sigui més útil. Si l’actives, veuràs també els actes de l’API com a “Acte extern”.</small>
+                            <small>Afegeix a la vista els actes externs per tenir una agenda més completa.</small>
                         </span>
                     </label>
                 </div>
@@ -87,8 +99,8 @@
                         <input type="checkbox" id="show-past" name="show_past" value="1" {% if current_filters.show_past %}checked{% endif %}>
                         <span class="agenda-toggle__control" aria-hidden="true"></span>
                         <span class="agenda-toggle__content">
-                            <strong>Mostrar també actes passats</strong>
-                            <small>Activa-ho si vols recuperar actes anteriors o filtrar un dia que ja ha passat.</small>
+                            <strong>Mostrar actes passats</strong>
+                            <small>Útil per recuperar actes antics o ampliar el rang més enllà d’avui.</small>
                         </span>
                     </label>
                 </div>
@@ -101,11 +113,11 @@
     </details>
 </section>
 
-<section class="row g-3">
+<section class="agenda-results-grid row g-3">
     {% for acte in actes %}
-        <div class="col-12">{% include 'agenda/components/acte_card.html' %}</div>
+        <div class="col-12 col-xl-6">{% include 'agenda/components/acte_card.html' %}</div>
     {% empty %}
-        <div class="col-12">{% include 'components/empty_state.html' with icon='📅' title='No hi ha actes que compleixin aquest filtre' message='Prova d’obrir els actes passats o mostrar els importats per recuperar més resultats.' action_url='/agenda/' action_label='Veure tota l’agenda' %}</div>
+        <div class="col-12">{% include 'components/empty_state.html' with icon='📅' title='No hi ha actes que compleixin aquest filtre' message='Prova d’ampliar el rang, obrir els actes passats o mostrar els importats per recuperar més resultats.' action_url='/agenda/' action_label='Veure tota l’agenda' %}</div>
     {% endfor %}
 </section>
 {% endblock %}

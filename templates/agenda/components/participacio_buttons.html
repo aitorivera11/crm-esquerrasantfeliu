@@ -5,21 +5,21 @@
             <input type="hidden" name="intencio" value="HI_ANIRE">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
             <input type="hidden" name="render_mode" value="{{ render_mode|default:'detail' }}">
-            <button class="btn {% if participacio and participacio.intencio == 'HI_ANIRE' %}btn-success{% else %}btn-outline-success{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">Hi vaig</button>
+            <button class="btn {% if participacio and participacio.intencio == 'HI_ANIRE' %}btn-success{% else %}btn-outline-success{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">{% if compact %}Sí{% else %}Hi vaig{% endif %}</button>
         </form>
         <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="{{ target_id|default:'#participacio-area' }}" hx-swap="{% if render_mode == 'card' %}outerHTML{% else %}innerHTML{% endif %}">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="POTSER">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
             <input type="hidden" name="render_mode" value="{{ render_mode|default:'detail' }}">
-            <button class="btn {% if participacio and participacio.intencio == 'POTSER' %}btn-warning{% else %}btn-outline-warning{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">Potser hi vaig</button>
+            <button class="btn {% if participacio and participacio.intencio == 'POTSER' %}btn-warning{% else %}btn-outline-warning{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">{% if compact %}Potser{% else %}Potser hi vaig{% endif %}</button>
         </form>
         <form hx-post="{% url 'agenda:participar_acte' acte.pk %}" hx-target="{{ target_id|default:'#participacio-area' }}" hx-swap="{% if render_mode == 'card' %}outerHTML{% else %}innerHTML{% endif %}">
             {% csrf_token %}
             <input type="hidden" name="intencio" value="NO_HI_ANIRE">
             <input type="hidden" name="observacions" value="{% if participacio %}{{ participacio.observacions }}{% endif %}">
             <input type="hidden" name="render_mode" value="{{ render_mode|default:'detail' }}">
-            <button class="btn {% if participacio and participacio.intencio == 'NO_HI_ANIRE' %}btn-danger{% else %}btn-outline-danger{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">No hi vaig</button>
+            <button class="btn {% if participacio and participacio.intencio == 'NO_HI_ANIRE' %}btn-danger{% else %}btn-outline-danger{% endif %} {% if compact %}btn-sm{% endif %}" type="submit">{% if compact %}No{% else %}No hi vaig{% endif %}</button>
         </form>
     </div>
     {% if not compact %}
@@ -38,7 +38,7 @@
         </details>
     {% else %}
         <div class="small text-muted mb-0">
-            {% if participacio %}La teva resposta: <strong>{{ participacio.get_intencio_display }}</strong>.{% else %}Encara sense resposta.{% endif %}
+            {% if participacio %}<span class='participation-inline-label'>Resposta:</span> <strong>{{ participacio.get_intencio_display }}</strong>.{% else %}Encara sense resposta.{% endif %}
         </div>
     {% endif %}
 </div>

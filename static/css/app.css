@@ -863,3 +863,124 @@ textarea.form-control { min-height: 120px; }
 @media (max-width: 767.98px) {
     .share-grid { grid-template-columns: 1fr; }
 }
+
+.agenda-filter-form .form-label {
+    font-size: .9rem;
+    font-weight: 700;
+    margin-bottom: .45rem;
+}
+.filters-summary strong { font-size: 1.05rem; }
+.filter-toggle-label { min-width: 9rem; justify-content: center; }
+.agenda-results-grid { align-items: stretch; }
+.acte-card {
+    height: 100%;
+    display: grid;
+    gap: 1rem;
+}
+.acte-card .h5 a { color: inherit; }
+.acte-card .h5 a:hover { color: var(--accent); }
+.acte-card-main .min-w-0 { min-width: 0; }
+.card-inline-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(226, 191, 161, .7);
+}
+.cta-group { min-width: 0; }
+.participacio-compact {
+    gap: .6rem !important;
+}
+.participacio-compact > .d-flex {
+    flex-wrap: nowrap !important;
+    width: 100%;
+}
+.participacio-compact > .d-flex form {
+    flex: 1 1 0;
+}
+.participacio-compact > .d-flex .btn {
+    width: 100%;
+    padding-inline: .85rem;
+    white-space: nowrap;
+}
+.participation-inline-label {
+    color: var(--muted);
+    font-weight: 600;
+}
+.card-inline-secondary-actions {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.card-admin-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}
+.icon-action {
+    width: 2.3rem;
+    height: 2.3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    text-decoration: none;
+    border: 1px solid rgba(249, 88, 56, .2);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 800;
+}
+.icon-action:hover {
+    border-color: var(--accent);
+    background: white;
+    transform: translateY(-1px);
+}
+.icon-action-whatsapp {
+    color: #159d55;
+    border-color: rgba(21, 157, 85, .2);
+    background: rgba(21, 157, 85, .08);
+}
+.icon-action-calendar {
+    color: #3558d9;
+    border-color: rgba(53, 88, 217, .2);
+    background: rgba(53, 88, 217, .08);
+}
+
+@media (max-width: 1199.98px) {
+    .agenda-results-grid > [class*='col-'] { width: 100%; }
+}
+
+@media (max-width: 767.98px) {
+    .agenda-toolbar .d-flex.justify-content-between {
+        align-items: stretch !important;
+    }
+    .filter-toggle-label {
+        min-width: auto;
+    }
+    .filters-summary {
+        align-items: flex-start;
+    }
+    .card-inline-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .card-inline-secondary-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .card-inline-secondary-actions .btn {
+        flex: 1 1 auto;
+    }
+    .icon-action {
+        width: 2.15rem;
+        height: 2.15rem;
+    }
+    .participacio-compact > .d-flex .btn {
+        font-size: .94rem;
+        padding-inline: .55rem;
+    }
+}
