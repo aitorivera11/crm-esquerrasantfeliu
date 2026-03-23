@@ -226,6 +226,29 @@ class AgendaPermissionsAndFiltersTests(TestCase):
         self.assertNotContains(response, 'Hi van')
         self.assertContains(response, 'La meva resposta')
 
+    def test_detail_context_exposes_social_share_links(self):
+        self.client.force_login(self.coord)
+
+        response = self.client.get(reverse('agenda:acte_detail', args=[self.future_event.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('wa.me/?text=', response.context['whatsapp_url'])
+        self.assertIn('calendar.google.com/calendar/render', response.context['google_calendar_url'])
+        self.assertTrue(response.context['ics_url'].endswith(f"/agenda/{self.future_event.pk}/calendar.ics"))
+        self.assertContains(response, 'Comparteix i exporta')
+        self.assertContains(response, 'Google Calendar')
+
+    def test_ics_export_returns_calendar_file(self):
+        self.client.force_login(self.coord)
+
+        response = self.client.get(reverse('agenda:acte_ics', args=[self.future_event.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/calendar; charset=utf-8')
+        self.assertIn('attachment;', response['Content-Disposition'])
+        self.assertContains(response, 'BEGIN:VCALENDAR')
+        self.assertContains(response, 'SUMMARY:Acte futur')
+
 
 class AgendaImportedAndImportantUxTests(TestCase):
     def setUp(self):

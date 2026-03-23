@@ -142,4 +142,59 @@ document.addEventListener('DOMContentLoaded', () => {
     syncAllButtons();
     filterOptions();
   });
+
+  document.querySelectorAll('[data-copy-text]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const text = button.dataset.copyText || '';
+      const original = button.querySelector('strong')?.textContent || button.textContent;
+      const feedback = button.dataset.copyFeedback || 'Copiat';
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const helper = document.createElement('textarea');
+          helper.value = text;
+          helper.setAttribute('readonly', 'readonly');
+          helper.style.position = 'absolute';
+          helper.style.left = '-9999px';
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand('copy');
+          document.body.removeChild(helper);
+        }
+
+        const label = button.querySelector('strong');
+        if (label) {
+          label.textContent = feedback;
+          window.setTimeout(() => {
+            label.textContent = original;
+          }, 1800);
+        }
+      } catch (error) {
+        window.alert('No s’ha pogut copiar l’enllaç.');
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-native-share]').forEach((button) => {
+    if (!navigator.share) {
+      button.classList.add('d-none');
+      return;
+    }
+
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.share({
+          title: button.dataset.shareTitle,
+          text: button.dataset.shareText,
+          url: button.dataset.shareUrl,
+        });
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          window.alert('No s’ha pogut obrir el menú de compartir.');
+        }
+      }
+    });
+  });
 });
