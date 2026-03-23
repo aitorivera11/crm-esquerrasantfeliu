@@ -117,7 +117,8 @@
     {% for acte in actes %}
         <div class="col-12 col-xl-6">{% include 'agenda/components/acte_card.html' %}</div>
     {% empty %}
-        <div class="col-12">{% include 'components/empty_state.html' with icon='📅' title='No hi ha actes que compleixin aquest filtre' message='Prova d’ampliar el rang, obrir els actes passats o mostrar els importats per recuperar més resultats.' action_url='/agenda/' action_label='Veure tota l’agenda' %}</div>
+        {% url 'agenda:acte_list' as agenda_list_url %}
+        <div class="col-12">{% include 'components/empty_state.html' with icon='📅' title='No hi ha actes que compleixin aquest filtre' message='Prova d’ampliar el rang, obrir els actes passats o mostrar els importats per recuperar més resultats.' action_url=agenda_list_url action_label='Veure tota l’agenda' %}</div>
     {% endfor %}
 </section>
 {% endblock %}

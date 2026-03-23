@@ -92,7 +92,7 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
             )
             acte.visible_per.set([coordinacio_segment])
             acte.assistencia_permesa_per.set([coordinacio_segment])
-        elif creating:
+        else:
             acte.visible_per.clear()
             acte.assistencia_permesa_per.clear()
 

@@ -1,9 +1,12 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
+
+from core.mixins import RoleRequiredMixin
+from usuaris.models import Usuari
 
 from .forms import (
     ActaForm,
@@ -15,12 +18,25 @@ from .forms import (
     TascaRelacioReunioForm,
     inicialitzar_punts_acta_des_de_ordre_dia,
 )
-from .models import Acta, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
+from .models import Acta, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca
 
 
-class ReunionsBaseMixin(LoginRequiredMixin):
+class ReunionsPermissionMixin(RoleRequiredMixin):
+    allowed_roles = (Usuari.Rol.ADMINISTRACIO, Usuari.Rol.COORDINACIO)
+
+
+class ReunionsBaseMixin(ReunionsPermissionMixin):
     def get_success_url(self):
         return self.object.get_absolute_url()
+
+
+def tasques_obertes_queryset(queryset=None):
+    base_queryset = queryset if queryset is not None else Tasca.objects.all()
+    return base_queryset.filter(estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA])
+
+
+def tasques_vencudes_queryset(queryset=None):
+    return tasques_obertes_queryset(queryset).filter(data_limit__lt=timezone.localdate())
 
 
 class ReunioListView(ReunionsBaseMixin, ListView):
@@ -31,7 +47,7 @@ class ReunioListView(ReunionsBaseMixin, ListView):
     def get_queryset(self):
         qs = Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related(
             'etiquetes',
-            Prefetch('tasques_originades', queryset=Tasca.objects.filter(estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA])),
+            Prefetch('tasques_originades', queryset=tasques_obertes_queryset()),
         ).annotate(
             total_punts=Count('punts_ordre_dia', distinct=True),
             total_tasques_obertes=Count('tasques_originades', filter=Q(tasques_originades__estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]), distinct=True),
@@ -56,7 +72,7 @@ class ReunioListView(ReunionsBaseMixin, ListView):
             'reunions_obertes': Reunio.objects.filter(estat__in=[Reunio.Estat.PREPARACIO, Reunio.Estat.CONVOCADA]).count(),
             'reunions_celebrades': Reunio.objects.filter(estat__in=[Reunio.Estat.CELEBRADA, Reunio.Estat.TANCADA]).count(),
             'tasques_bloquejades': Tasca.objects.filter(estat=Tasca.Estat.BLOQUEJADA).count(),
-            'tasques_vencudes': sum(1 for tasca in Tasca.objects.exclude(estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]).only('data_limit', 'estat') if tasca.esta_vencuda),
+            'tasques_vencudes': tasques_vencudes_queryset().count(),
         })
         return context
 
@@ -91,7 +107,7 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
             'acta_form': ActaForm(instance=acta, reunio=reunio) if acta else ActaForm(reunio=reunio, initial={'redactada_per': self.request.user}),
             'punt_acta_form': PuntActaForm(reunio=reunio),
             'tasques_relacionades': Tasca.objects.filter(relacions_reunio__reunio=reunio).select_related('responsable').distinct(),
-            'tasques_obertes': Tasca.objects.filter(relacions_reunio__reunio=reunio, estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]).select_related('responsable').distinct(),
+            'tasques_obertes': tasques_obertes_queryset(Tasca.objects.filter(relacions_reunio__reunio=reunio)).select_related('responsable').distinct(),
             'acta': acta,
             'agenda_acte': agenda_acte,
             'agenda_confirmats': agenda_confirmats,
@@ -156,7 +172,7 @@ class PuntOrdreDiaUpdateView(ReunionsBaseMixin, UpdateView):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.object.reunio_id}) + '#ordre-dia'
 
 
-class PuntOrdreDiaDeleteView(LoginRequiredMixin, TemplateView):
+class PuntOrdreDiaDeleteView(ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         punt = get_object_or_404(PuntOrdreDia, pk=kwargs['punt_pk'])
         reunio_id = punt.reunio_id
@@ -183,7 +199,7 @@ class ActaUpdateView(ReunionsBaseMixin, UpdateView):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.object.reunio_id}) + '#acta'
 
 
-class ActaCreateOrUpdateView(LoginRequiredMixin, TemplateView):
+class ActaCreateOrUpdateView(ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
         acta = getattr(reunio, 'acta', None)
@@ -256,7 +272,7 @@ class TascaListView(ReunionsBaseMixin, ListView):
             if current in values:
                 qs = qs.filter(**{field: current})
         if self.request.GET.get('vencudes') == '1':
-            qs = [tasca for tasca in qs if tasca.esta_vencuda]
+            qs = tasques_vencudes_queryset(qs)
         if self.request.GET.get('bloquejades') == '1':
             qs = qs.filter(estat=Tasca.Estat.BLOQUEJADA)
         return qs
@@ -323,7 +339,7 @@ class TascaUpdateView(ReunionsBaseMixin, UpdateView):
         return super().form_valid(form)
 
 
-class SeguimentTascaCreateView(LoginRequiredMixin, TemplateView):
+class SeguimentTascaCreateView(ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
         form = SeguimentTascaForm(request.POST, tasca=tasca, autor=request.user)
@@ -335,7 +351,7 @@ class SeguimentTascaCreateView(LoginRequiredMixin, TemplateView):
         return redirect('reunions:tasca_detail', pk=tasca.pk)
 
 
-class TascaRelacioReunioCreateView(LoginRequiredMixin, TemplateView):
+class TascaRelacioReunioCreateView(ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
         form = TascaRelacioReunioForm(request.POST, tasca=tasca)
@@ -353,11 +369,11 @@ class SeguimentPanelView(ReunionsBaseMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         tasques = Tasca.objects.select_related('responsable', 'area', 'reunio_origen').prefetch_related('relacions_reunio__reunio')
-        obertes = tasques.filter(estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA])
+        obertes = tasques_obertes_queryset(tasques)
         context.update({
             'tasques_obertes': obertes.order_by('data_limit', '-es_estrategica')[:10],
             'tasques_bloquejades': tasques.filter(estat=Tasca.Estat.BLOQUEJADA)[:10],
-            'tasques_vencudes': [tasca for tasca in obertes if tasca.esta_vencuda][:10],
+            'tasques_vencudes': tasques_vencudes_queryset(tasques).order_by('data_limit', '-es_estrategica')[:10],
             'seguiments_recents': SeguimentTasca.objects.select_related('tasca', 'autor', 'reunio')[:12],
             'reunions_amb_tasques_obertes': Reunio.objects.annotate(
                 total_obertes=Count('relacions_tasca', filter=Q(relacions_tasca__tasca__estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]), distinct=True)

@@ -99,7 +99,8 @@
         </table>
     </div>
     {% else %}
-        {% include 'components/empty_state.html' with icon='👥' title='No s’han trobat usuaris' message='Ajusta els filtres o crea el primer usuari de la plataforma.' action_url='/usuaris/admin/usuaris/nou/' action_label='Crear usuari' %}
+        {% url 'usuaris:admin_usuari_create' as admin_usuari_create_url %}
+        {% include 'components/empty_state.html' with icon='👥' title='No s’han trobat usuaris' message='Ajusta els filtres o crea el primer usuari de la plataforma.' action_url=admin_usuari_create_url action_label='Crear usuari' %}
     {% endif %}
 </section>
 {% endblock %}

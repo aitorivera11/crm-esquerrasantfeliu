@@ -40,7 +40,7 @@
                 {% for value, label in estat_options %}<option value="{{ value }}" {% if current_filters.estat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
         </div>
-        <div class="col-12 col-md-1 d-grid"><button class="btn btn-outline-primary" type="submit">Filtra</button></div>
+        <div class="col-12 col-md-1 d-grid"><button class="btn btn-outline-primary" type="submit">Aplicar filtres</button></div>
     </form>
 </section>
 
@@ -73,7 +73,8 @@
             </article>
         </div>
     {% empty %}
-        <div class="col-12">{% include 'components/empty_state.html' with icon='🗓️' title='Encara no hi ha reunions' message='Crea la primera reunió per començar a preparar l’ordre del dia i l’acta.' action_url='/reunions/nova/' action_label='Crear reunió' %}</div>
+        {% url 'reunions:reunio_create' as reunio_create_url %}
+        <div class="col-12">{% include 'components/empty_state.html' with icon='🗓️' title='Encara no hi ha reunions' message='Crea la primera reunió per començar a preparar l’ordre del dia i l’acta.' action_url=reunio_create_url action_label='Crear reunió' %}</div>
     {% endfor %}
 </section>
 {% endblock %}

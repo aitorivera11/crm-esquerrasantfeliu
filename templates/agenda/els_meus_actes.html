@@ -28,7 +28,8 @@
         </article>
     </div>
 {% empty %}
-    <div class="col-12">{% include 'components/empty_state.html' with icon='🗓️' title='Encara no t’has apuntat a cap acte' message='Quan responguis a un acte el veuràs resumit aquí.' action_url='/agenda/' action_label='Veure agenda' %}</div>
+    {% url 'agenda:acte_list' as agenda_list_url %}
+    <div class="col-12">{% include 'components/empty_state.html' with icon='🗓️' title='Encara no t’has apuntat a cap acte' message='Quan responguis a un acte el veuràs resumit aquí.' action_url=agenda_list_url action_label='Veure agenda' %}</div>
 {% endfor %}
 </div>
 {% endblock %}

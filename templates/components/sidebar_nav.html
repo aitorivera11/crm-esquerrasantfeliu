@@ -6,15 +6,17 @@
             <a href="{% url 'agenda:els_meus_actes' %}" class="nav-link-sub {% if request.resolver_match.url_name == 'els_meus_actes' %}active{% endif %}">Els meus actes</a>
         </div>
     </div>
+    {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}
     <div class="nav-group {% if request.resolver_match.namespace == 'reunions' %}open{% endif %}">
         <a href="{% url 'reunions:reunio_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name != 'tasca_list' and request.resolver_match.url_name != 'panel_seguiment' %}active{% endif %}">Reunions</a>
         <div class="nav-submenu">
             <a href="{% url 'reunions:tasca_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'tasca_list' %}active{% endif %}">Tasques</a>
-            <a href="{% url 'reunions:panel_seguiment' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'panel_seguiment' %}active{% endif %}">Seguiment</a>
+            <a href="{% url 'reunions:panel_seguiment' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'panel_seguiment' %}active{% endif %}">Panell de seguiment</a>
         </div>
     </div>
     <a href="{% url 'persones:persona_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'persones' %}active{% endif %}">Persones</a>
-    {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}<a href="{% url 'entitats:entitat_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'entitats' %}active{% endif %}">Entitats</a>{% endif %}
+    <a href="{% url 'entitats:entitat_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'entitats' %}active{% endif %}">Entitats</a>
+    {% endif %}
     <a href="{% url 'usuaris:perfil' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'perfil' %}active{% endif %}">El meu perfil</a>
     <a href="{% url 'usuaris:canvi_password' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'canvi_password' %}active{% endif %}">Contrasenya</a>
     <div class="sidebar-mobile-account d-md-none">

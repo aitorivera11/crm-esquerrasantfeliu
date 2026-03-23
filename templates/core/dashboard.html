@@ -63,7 +63,12 @@
                     {% endfor %}
                 </div>
             {% else %}
-                {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Crea el primer acte per activar l’agenda.' action_url='/agenda/nou/' action_label='Crear acte' %}
+                {% if perms.agenda.add_acte %}
+                    {% url 'agenda:acte_create' as create_acte_url %}
+                    {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Crea el primer acte per activar l’agenda.' action_url=create_acte_url action_label='Crear acte' %}
+                {% else %}
+                    {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Quan es publiqui el primer acte, el veuràs aquí.' %}
+                {% endif %}
             {% endif %}
         </section>
     </div>
@@ -72,7 +77,8 @@
             <h3 class="h4 mb-3">Accions</h3>
             <div class="d-grid gap-2 quick-actions">
                 {% if perms.agenda.add_acte %}<a href="{% url 'agenda:acte_create' %}" class="btn btn-primary">Nou acte</a>{% endif %}
-                <a href="{% url 'persones:persona_create' %}" class="btn btn-outline-primary">Afegir persona</a>
+                {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}<a href="{% url 'persones:persona_create' %}" class="btn btn-outline-primary">Afegir persona</a>{% endif %}
+                {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}<a href="{% url 'reunions:reunio_create' %}" class="btn btn-outline-primary">Nova reunió</a>{% endif %}
                 <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">El meu perfil</a>
                 {% if request.user.rol == 'ADMINISTRACIO' %}
                 <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-outline-dark">Nou usuari</a>
