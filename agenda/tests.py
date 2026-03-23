@@ -67,8 +67,8 @@ class ActeFormBehaviorTests(TestCase):
 
         form = ActeForm(instance=acte)
 
-        self.assertIn(f'value="{localtime(acte.inici).strftime('%Y-%m-%dT%H:%M')}"', str(form['inici']))
-        self.assertIn(f'value="{localtime(acte.fi).strftime('%Y-%m-%dT%H:%M')}"', str(form['fi']))
+        self.assertIn(f"value=\"{localtime(acte.inici).strftime('%Y-%m-%dT%H:%M')}\"", str(form['inici']))
+        self.assertIn(f"value=\"{localtime(acte.fi).strftime('%Y-%m-%dT%H:%M')}\"", str(form['fi']))
 
     def test_accepts_datetime_local_input_format(self):
         inici = timezone.now().replace(second=0, microsecond=0) + timedelta(days=3)
@@ -84,12 +84,70 @@ class ActeFormBehaviorTests(TestCase):
                 'punt_trobada': '',
                 'aforament': '',
                 'visible_per': [],
-                'assistencia_permesa_per': [],
                 'estat': Acte.Estat.PUBLICAT,
             }
         )
 
         self.assertTrue(form.is_valid(), form.errors)
+
+    def test_participant_selection_auto_adds_coordinacio_and_syncs_attendance(self):
+        segment_coord, _ = SegmentVisibilitat.objects.get_or_create(
+            ambit=SegmentVisibilitat.Ambit.ROL,
+            codi=get_user_model().Rol.COORDINACIO,
+            defaults={'etiqueta': 'Rol - Coordinació'},
+        )
+        segment_participant, _ = SegmentVisibilitat.objects.get_or_create(
+            ambit=SegmentVisibilitat.Ambit.ROL,
+            codi=get_user_model().Rol.PARTICIPANT,
+            defaults={'etiqueta': 'Rol - Participant'},
+        )
+        segment_tipus, _ = SegmentVisibilitat.objects.get_or_create(
+            ambit=SegmentVisibilitat.Ambit.TIPUS,
+            codi=get_user_model().Tipus.MILITANT,
+            defaults={'etiqueta': 'Tipus - Militant'},
+        )
+        inici = timezone.now().replace(second=0, microsecond=0) + timedelta(days=3)
+        fi = inici + timedelta(hours=2)
+        form = ActeForm(
+            data={
+                'titol': 'Acte segmentat',
+                'tipus': '',
+                'descripcio': 'Desc',
+                'inici': inici.strftime('%Y-%m-%dT%H:%M'),
+                'fi': fi.strftime('%Y-%m-%dT%H:%M'),
+                'ubicacio': 'Local',
+                'punt_trobada': '',
+                'aforament': '',
+                'visible_per': [str(segment_tipus.pk)],
+                'estat': Acte.Estat.PUBLICAT,
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.instance.creador = self.user
+        acte = form.save()
+
+        self.assertQuerySetEqual(
+            acte.visible_per.order_by('ambit', 'codi'),
+            [segment_coord, segment_participant, segment_tipus],
+            transform=lambda segment: segment,
+        )
+        self.assertQuerySetEqual(
+            acte.assistencia_permesa_per.order_by('ambit', 'codi'),
+            [segment_coord, segment_participant, segment_tipus],
+            transform=lambda segment: segment,
+        )
+
+    def test_admin_segment_is_not_available_in_form_queryset(self):
+        SegmentVisibilitat.objects.get_or_create(
+            ambit=SegmentVisibilitat.Ambit.ROL,
+            codi=get_user_model().Rol.ADMINISTRACIO,
+            defaults={'etiqueta': 'Rol - Administració'},
+        )
+
+        form = ActeForm()
+
+        self.assertFalse(form.fields['visible_per'].queryset.filter(codi=get_user_model().Rol.ADMINISTRACIO).exists())
 
 
 class AgendaPermissionsAndFiltersTests(TestCase):
@@ -140,7 +198,6 @@ class AgendaPermissionsAndFiltersTests(TestCase):
             estat=Acte.Estat.PUBLICAT,
         )
         self.future_event.visible_per.add(self.segment_rol, self.segment_tipus)
-        self.future_event.assistencia_permesa_per.add(self.segment_tipus)
         ParticipacioActe.objects.create(acte=self.future_event, usuari=self.coord, intencio=ParticipacioActe.Intencio.HI_ANIRE)
 
     def test_day_filter_can_show_past_day_without_show_past_toggle(self):
@@ -164,7 +221,7 @@ class AgendaPermissionsAndFiltersTests(TestCase):
         response = self.client.get(reverse('agenda:acte_detail', args=[self.future_event.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'Qui el pot veure:')
+        self.assertNotContains(response, 'Qui el pot veure i assistir:')
         self.assertNotContains(response, 'Participants')
         self.assertNotContains(response, 'Hi van')
         self.assertContains(response, 'La meva resposta')

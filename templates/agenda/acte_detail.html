@@ -39,17 +39,13 @@
                     <div class="meta-card"><span>Hi van</span><strong>{{ acte.total_confirmats }}</strong></div>
                     <div class="meta-card"><span>Potser</span><strong>{{ acte.total_potser }}</strong></div>
                     <div class="meta-card"><span>No hi van</span><strong>{{ acte.total_no }}</strong></div>
-                    <div class="meta-card"><span>Visibilitat</span><strong>{% if acte.visible_segments_labels %}Segmentada{% else %}General{% endif %}</strong></div>
-                    <div class="meta-card"><span>Assistència</span><strong>{% if acte.assistencia_segments_labels %}Restringida{% else %}Oberta{% endif %}</strong></div>
+                    <div class="meta-card"><span>Visibilitat i assistència</span><strong>{% if acte.visible_segments_labels %}Segmentada{% else %}General{% endif %}</strong></div>
                 {% endif %}
             </div>
-            {% if can_view_admin_details and acte.visible_segments_labels or can_view_admin_details and acte.assistencia_segments_labels %}
+            {% if can_view_admin_details and acte.visible_segments_labels %}
                 <div class="audience-stack mt-4">
                     {% if acte.visible_segments_labels %}
-                        <div><strong>Qui el pot veure:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
-                    {% endif %}
-                    {% if acte.assistencia_segments_labels %}
-                        <div><strong>Qui hi pot assistir:</strong> {{ acte.assistencia_segments_labels|join:', ' }}</div>
+                        <div><strong>Qui el pot veure i assistir:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
                     {% endif %}
                 </div>
             {% endif %}
@@ -88,7 +84,7 @@
                 <p class="text-muted">Confirma ara mateix si hi assistiràs.</p>
                 <div id="participacio-area">{% include 'agenda/components/participacio_buttons.html' with acte=acte participacio=participacio %}</div>
             {% else %}
-                <p class="text-muted mb-0">Pots consultar el detall, però aquest acte no admet confirmació per al teu perfil.</p>
+                <p class="text-muted mb-0">Pots consultar el detall, però aquest acte no està obert a confirmacions.</p>
             {% endif %}
         </section>
     </div>

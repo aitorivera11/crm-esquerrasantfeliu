@@ -35,15 +35,6 @@ class AgendaContextMixin:
     def _user_can_view_admin_details(self):
         return self.request.user.has_perm('agenda.can_view_participants')
 
-    def _allowed_attendance(self, acte):
-        attendance_segments = list(acte.assistencia_permesa_per.all())
-        if not attendance_segments:
-            return True
-        return any(
-            (segment.ambit == SegmentVisibilitat.Ambit.ROL and segment.codi == self.request.user.rol)
-            or (segment.ambit == SegmentVisibilitat.Ambit.TIPUS and segment.codi == self.request.user.tipus)
-            for segment in attendance_segments
-        )
 
     def _base_queryset(self):
         current_user_participation = Prefetch(
@@ -56,7 +47,6 @@ class AgendaContextMixin:
             .prefetch_related(
                 'participants__usuari',
                 'visible_per',
-                'assistencia_permesa_per',
                 'persones_relacionades__entitats',
                 'entitats_relacionades__persones',
                 current_user_participation,
@@ -86,11 +76,10 @@ class AgendaContextMixin:
         acte.confirmats_extra = max(len(confirmats) - len(acte.confirmats_preview), 0)
         acte.request_user_participacio = next(iter(getattr(acte, 'participant_for_request_user', [])), None)
         acte.visible_segments_labels = [segment.etiqueta for segment in acte.visible_per.all()]
-        acte.assistencia_segments_labels = [segment.etiqueta for segment in acte.assistencia_permesa_per.all()]
         acte.persones_relacionades_list = list(acte.persones_relacionades.all())
         acte.entitats_relacionades_list = list(acte.entitats_relacionades.all())
-        acte.user_can_attend = self._allowed_attendance(acte)
         acte.user_can_manage = self._user_can_manage_actes()
+        acte.user_can_attend = acte.estat == Acte.Estat.PUBLICAT or acte.user_can_manage
         acte.user_can_view_admin_details = self._user_can_view_admin_details()
         color = (acte.tipus.color or '').strip() if acte.tipus_id else ''
         acte.tipus_color = color or '#6c7a89'
