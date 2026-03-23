@@ -12,26 +12,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const input = container.querySelector('[data-searchable-multiselect-input]');
     const summary = container.querySelector('[data-searchable-multiselect-summary]');
     const empty = container.querySelector('[data-searchable-multiselect-empty]');
+    const hint = container.querySelector('[data-searchable-multiselect-hint]');
     const clearButton = container.querySelector('[data-searchable-multiselect-clear]');
     const selectVisibleButton = container.querySelector('[data-searchable-multiselect-select-visible]');
-    const optionsList = Array.from(container.querySelectorAll('[data-searchable-multiselect-option]'));
+    const optionsContainer = container.querySelector('[data-searchable-multiselect-options]');
+    const optionButtons = Array.from(container.querySelectorAll('[data-searchable-multiselect-option]'));
     const selectedContainer = container.querySelector('[data-searchable-multiselect-selected]');
+    const minQueryLength = 1;
 
-    if (!select || !input || !summary || !empty || !selectedContainer) return;
+    if (!select || !input || !summary || !empty || !selectedContainer || !optionsContainer) return;
 
     const options = Array.from(select.options);
     const byValue = new Map(options.map((option) => [String(option.value), option]));
-    const optionButtons = new Map(optionsList.map((button) => [button.dataset.value, button]));
+    const buttonByValue = new Map(optionButtons.map((button) => [button.dataset.value, button]));
 
     const updateSummary = () => {
       const selected = options.filter((option) => option.selected);
       if (selected.length === 0) {
         summary.textContent = 'Cap element seleccionat';
       } else if (selected.length === 1) {
-        summary.textContent = `1 element seleccionat`;
+        summary.textContent = '1 element seleccionat';
       } else {
         summary.textContent = `${selected.length} elements seleccionats`;
       }
+    };
+
+    const syncButtonState = (value) => {
+      const button = buttonByValue.get(String(value));
+      const option = byValue.get(String(value));
+      if (!button || !option) return;
+      button.classList.toggle('is-selected', option.selected);
+      button.setAttribute('aria-pressed', option.selected ? 'true' : 'false');
     };
 
     const renderSelected = () => {
@@ -50,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tag.querySelector('button').addEventListener('click', () => {
           option.selected = false;
           syncButtonState(String(option.value));
+          filterOptions();
           select.dispatchEvent(new Event('change', { bubbles: true }));
         });
         selectedContainer.appendChild(tag);
@@ -58,12 +70,33 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedContainer.classList.remove('d-none');
     };
 
-    const syncButtonState = (value) => {
-      const button = optionButtons.get(String(value));
-      const option = byValue.get(String(value));
-      if (!button || !option) return;
-      button.classList.toggle('is-selected', option.selected);
-      button.setAttribute('aria-pressed', option.selected ? 'true' : 'false');
+    const updateActionState = (hasVisibleOptions) => {
+      if (selectVisibleButton) {
+        selectVisibleButton.disabled = !hasVisibleOptions;
+      }
+    };
+
+    const filterOptions = () => {
+      const query = input.value.trim().toLowerCase();
+      const hasQuery = query.length >= minQueryLength;
+      let visibleCount = 0;
+
+      options.forEach((option) => {
+        const matches = hasQuery && option.text.toLowerCase().includes(query);
+        option.hidden = !matches;
+        const button = buttonByValue.get(String(option.value));
+        if (button) {
+          button.classList.toggle('d-none', !matches);
+        }
+        if (matches) visibleCount += 1;
+      });
+
+      optionsContainer.classList.toggle('d-none', !hasQuery || visibleCount === 0);
+      empty.classList.toggle('d-none', !hasQuery || visibleCount > 0);
+      if (hint) {
+        hint.classList.toggle('d-none', hasQuery);
+      }
+      updateActionState(hasQuery && visibleCount > 0);
     };
 
     const syncAllButtons = () => {
@@ -72,27 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
       renderSelected();
     };
 
-    const filterOptions = () => {
-      const query = input.value.trim().toLowerCase();
-      let visibleCount = 0;
-
-      options.forEach((option) => {
-        const matches = option.text.toLowerCase().includes(query);
-        option.hidden = !matches;
-        const button = optionButtons.get(String(option.value));
-        if (button) {
-          button.classList.toggle('d-none', !matches);
-        }
-        if (matches) visibleCount += 1;
-      });
-
-      empty.classList.toggle('d-none', visibleCount > 0);
-    };
-
     input.addEventListener('input', filterOptions);
     select.addEventListener('change', syncAllButtons);
 
-    optionsList.forEach((button) => {
+    optionButtons.forEach((button) => {
       button.addEventListener('click', () => {
         const option = byValue.get(button.dataset.value);
         if (!option) return;
@@ -105,7 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearButton) {
       clearButton.addEventListener('click', () => {
         input.value = '';
-        options.forEach((option) => { option.selected = false; });
+        options.forEach((option) => {
+          option.selected = false;
+        });
         filterOptions();
         select.dispatchEvent(new Event('change', { bubbles: true }));
         input.focus();

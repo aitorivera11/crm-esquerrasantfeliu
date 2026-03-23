@@ -19,10 +19,13 @@
         </div>
     </div>
     <div class="searchable-multiselect__help text-muted small" id="{{ widget.attrs.id }}_search_help">
-        Escriu per filtrar i toca les opcions per afegir-les o treure-les. Les seleccionades queden destacades.
+        Escriu com a mínim 1 lletra per veure coincidències i toca les opcions per afegir-les o treure-les. Les seleccionades queden destacades.
     </div>
     <div class="searchable-multiselect__selected d-none" data-searchable-multiselect-selected></div>
-    <div class="searchable-multiselect__options" data-searchable-multiselect-options>
+    <div class="searchable-multiselect__hint text-muted small" data-searchable-multiselect-hint>
+        Comença a escriure per mostrar opcions.
+    </div>
+    <div class="searchable-multiselect__options d-none" data-searchable-multiselect-options>
         {% for group_name, group_choices, group_index in widget.optgroups %}
             {% if group_name %}
                 <div class="searchable-multiselect__group-label">{{ group_name }}</div>

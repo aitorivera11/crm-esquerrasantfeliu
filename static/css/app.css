@@ -775,6 +775,10 @@ textarea.form-control { min-height: 120px; }
 .searchable-multiselect__help {
     margin-top: -.25rem;
 }
+.searchable-multiselect__hint,
+.searchable-multiselect__empty {
+    padding: .25rem .1rem 0;
+}
 
 @media (max-width: 991.98px) {
     .form-grid { grid-template-columns: 1fr; }
