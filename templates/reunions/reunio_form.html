@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Editar reunió{% else %}Nova reunió{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Editar reunió{% else %}Nova reunió{% endif %}{% endblock %}
+{% block content %}
+<section class="card card-panel p-4 form-wide">
+    <form method="post">
+        {% csrf_token %}
+        {% include 'components/form_fields.html' with form=form %}
+        <div class="d-flex gap-2 flex-wrap mt-4">
+            <button class="btn btn-primary" type="submit">Desar reunió</button>
+            <a class="btn btn-outline-secondary" href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'reunions:reunio_list' %}{% endif %}">Cancel·lar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

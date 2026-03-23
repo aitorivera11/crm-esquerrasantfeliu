@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Tasques{% endblock %}
+{% block page_title %}Tasques{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Seguiment pràctic de tasques nascudes de reunions o creades de forma independent.</p>{% endblock %}
+{% block content %}
+<section class="card card-panel mb-4 p-4">
+    <div class="d-flex justify-content-between gap-3 align-items-center flex-wrap">
+        <div>
+            <h2 class="h4 mb-1">Seguiment de tasques</h2>
+            <p class="text-muted mb-0">Prioritza, detecta bloquejos i prepara què ha d’entrar al següent ordre del dia.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="info-chip">{{ pendents_count }} pendents</span>
+            <span class="info-chip">{{ bloquejades_count }} bloquejades</span>
+            <span class="info-chip">{{ estrategiques_count }} estratègiques</span>
+            <a class="btn btn-primary" href="{% url 'reunions:tasca_create' %}">Nova tasca</a>
+            <a class="btn btn-outline-secondary" href="{% url 'reunions:panel_seguiment' %}">Panel</a>
+        </div>
+    </div>
+</section>
+<section class="card card-panel mb-4 p-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-12 col-xl-4"><label class="form-label">Cerca</label><input class="form-control" type="search" name="q" value="{{ current_filters.q }}"></div>
+        <div class="col-12 col-md-3 col-xl-2"><label class="form-label">Estat</label><select class="form-select" name="estat"><option value="">Tots</option>{% for value, label in estat_options %}<option value="{{ value }}" {% if current_filters.estat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-12 col-md-3 col-xl-2"><label class="form-label">Prioritat</label><select class="form-select" name="prioritat"><option value="">Totes</option>{% for value, label in prioritat_options %}<option value="{{ value }}" {% if current_filters.prioritat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-12 col-md-3 col-xl-2"><label class="form-label">Origen</label><select class="form-select" name="origen"><option value="">Tots</option>{% for value, label in origen_options %}<option value="{{ value }}" {% if current_filters.origen == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-1"><label class="form-label">Vencudes</label><input type="checkbox" name="vencudes" value="1" {% if current_filters.vencudes == '1' %}checked{% endif %}></div>
+        <div class="col-6 col-md-1"><label class="form-label">Bloq.</label><input type="checkbox" name="bloquejades" value="1" {% if current_filters.bloquejades == '1' %}checked{% endif %}></div>
+        <div class="col-12"><button class="btn btn-outline-primary">Aplicar filtres</button></div>
+    </form>
+</section>
+<section class="row g-3">
+    {% for tasca in tasques %}
+    <div class="col-12 col-xl-6">
+        <article class="card card-panel p-4 h-100">
+            <div class="d-flex justify-content-between gap-3 flex-wrap mb-3">
+                <div>
+                    <p class="eyebrow mb-1">{{ tasca.get_origen_display }}</p>
+                    <h3 class="h4 mb-1"><a class="text-decoration-none" href="{{ tasca.get_absolute_url }}">{{ tasca.titol }}</a></h3>
+                    <div class="text-muted">Responsable: {{ tasca.responsable }}{% if tasca.data_limit %} · Límit {{ tasca.data_limit|date:'d/m/Y' }}{% endif %}</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap"><span class="badge text-bg-light">{{ tasca.get_estat_display }}</span><span class="badge text-bg-dark">{{ tasca.get_prioritat_display }}</span>{% if tasca.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}</div>
+            </div>
+            <p>{{ tasca.descripcio|truncatechars:220 }}</p>
+            <div class="d-flex gap-2 flex-wrap">{% for etiqueta in tasca.etiquetes.all %}<span class="info-chip">{{ etiqueta.nom }}</span>{% endfor %}</div>
+        </article>
+    </div>
+    {% empty %}
+    <div class="col-12">{% include 'components/empty_state.html' with icon='✅' title='No hi ha tasques amb aquests filtres' message='Prova d’ampliar els criteris o crea una tasca nova.' action_url='/reunions/tasques/nova/' action_label='Crear tasca' %}</div>
+    {% endfor %}
+</section>
+{% endblock %}

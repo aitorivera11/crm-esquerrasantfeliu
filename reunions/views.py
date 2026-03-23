@@ -1,0 +1,353 @@
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count, Prefetch, Q
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
+
+from .forms import (
+    ActaForm,
+    PuntActaForm,
+    PuntOrdreDiaForm,
+    ReunioForm,
+    SeguimentTascaForm,
+    TascaForm,
+    TascaRelacioReunioForm,
+    inicialitzar_punts_acta_des_de_ordre_dia,
+)
+from .models import Acta, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
+
+
+class ReunionsBaseMixin(LoginRequiredMixin):
+    def get_success_url(self):
+        return self.object.get_absolute_url()
+
+
+class ReunioListView(ReunionsBaseMixin, ListView):
+    model = Reunio
+    template_name = 'reunions/reunio_list.html'
+    context_object_name = 'reunions'
+
+    def get_queryset(self):
+        qs = Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related(
+            'etiquetes',
+            Prefetch('tasques_originades', queryset=Tasca.objects.filter(estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA])),
+        ).annotate(
+            total_punts=Count('punts_ordre_dia', distinct=True),
+            total_tasques_obertes=Count('tasques_originades', filter=Q(tasques_originades__estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]), distinct=True),
+        )
+        q = (self.request.GET.get('q') or '').strip()
+        if q:
+            qs = qs.filter(Q(titol__icontains=q) | Q(descripcio__icontains=q) | Q(ubicacio__icontains=q))
+        tipus = self.request.GET.get('tipus')
+        if tipus in Reunio.Tipus.values:
+            qs = qs.filter(tipus=tipus)
+        estat = self.request.GET.get('estat')
+        if estat in Reunio.Estat.values:
+            qs = qs.filter(estat=estat)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'tipus_options': Reunio.Tipus.choices,
+            'estat_options': Reunio.Estat.choices,
+            'current_filters': {'q': self.request.GET.get('q', ''), 'tipus': self.request.GET.get('tipus', ''), 'estat': self.request.GET.get('estat', '')},
+            'reunions_obertes': Reunio.objects.filter(estat__in=[Reunio.Estat.PREPARACIO, Reunio.Estat.CONVOCADA]).count(),
+            'reunions_celebrades': Reunio.objects.filter(estat__in=[Reunio.Estat.CELEBRADA, Reunio.Estat.TANCADA]).count(),
+            'tasques_bloquejades': Tasca.objects.filter(estat=Tasca.Estat.BLOQUEJADA).count(),
+            'tasques_vencudes': sum(1 for tasca in Tasca.objects.exclude(estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]).only('data_limit', 'estat') if tasca.esta_vencuda),
+        })
+        return context
+
+
+class ReunioDetailView(ReunionsBaseMixin, DetailView):
+    model = Reunio
+    template_name = 'reunions/reunio_detail.html'
+    context_object_name = 'reunio'
+
+    def get_queryset(self):
+        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related(
+            'assistents', 'etiquetes', 'persones_relacionades', 'entitats_relacionades',
+            'punts_ordre_dia__responsable', 'relacions_tasca__tasca__responsable', 'relacions_tasca__punt_ordre_dia',
+            'acta__punts__punt_ordre_origen', 'acta__punts__tasques_generades__responsable',
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        reunio = context['reunio']
+        acta = getattr(reunio, 'acta', None)
+        context.update({
+            'punt_form': PuntOrdreDiaForm(),
+            'acta_form': ActaForm(instance=acta, reunio=reunio) if acta else ActaForm(reunio=reunio, initial={'redactada_per': self.request.user}),
+            'punt_acta_form': PuntActaForm(reunio=reunio),
+            'tasques_relacionades': Tasca.objects.filter(relacions_reunio__reunio=reunio).select_related('responsable').distinct(),
+            'tasques_obertes': Tasca.objects.filter(relacions_reunio__reunio=reunio, estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]).select_related('responsable').distinct(),
+            'acta': acta,
+        })
+        return context
+
+
+class ReunioCreateView(ReunionsBaseMixin, CreateView):
+    model = Reunio
+    form_class = ReunioForm
+    template_name = 'reunions/reunio_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['convocada_per'] = self.request.user
+        initial['moderada_per'] = self.request.user
+        return initial
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Reunió creada correctament.')
+        return super().form_valid(form)
+
+
+class ReunioUpdateView(ReunionsBaseMixin, UpdateView):
+    model = Reunio
+    form_class = ReunioForm
+    template_name = 'reunions/reunio_form.html'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Reunió actualitzada.')
+        return super().form_valid(form)
+
+
+class PuntOrdreDiaCreateView(ReunionsBaseMixin, CreateView):
+    model = PuntOrdreDia
+    form_class = PuntOrdreDiaForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.reunio = self.reunio
+        if not form.instance.ordre:
+            form.instance.ordre = self.reunio.punts_ordre_dia.count() + 1
+        messages.success(self.request, 'Punt de l’ordre del dia afegit.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('reunions:reunio_detail', kwargs={'pk': self.reunio.pk}) + '#ordre-dia'
+
+
+class PuntOrdreDiaUpdateView(ReunionsBaseMixin, UpdateView):
+    model = PuntOrdreDia
+    form_class = PuntOrdreDiaForm
+    template_name = 'reunions/punt_ordre_form.html'
+
+    def get_success_url(self):
+        messages.success(self.request, 'Punt de l’ordre del dia actualitzat.')
+        return reverse('reunions:reunio_detail', kwargs={'pk': self.object.reunio_id}) + '#ordre-dia'
+
+
+class PuntOrdreDiaDeleteView(LoginRequiredMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        punt = get_object_or_404(PuntOrdreDia, pk=kwargs['punt_pk'])
+        reunio_id = punt.reunio_id
+        punt.delete()
+        messages.success(request, 'Punt de l’ordre del dia eliminat.')
+        return redirect('reunions:reunio_detail', pk=reunio_id)
+
+
+class ActaUpdateView(ReunionsBaseMixin, UpdateView):
+    model = Acta
+    form_class = ActaForm
+    template_name = 'reunions/acta_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['reunio'] = self.object.reunio
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Acta actualitzada.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('reunions:reunio_detail', kwargs={'pk': self.object.reunio_id}) + '#acta'
+
+
+class ActaCreateOrUpdateView(LoginRequiredMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        acta = getattr(reunio, 'acta', None)
+        form = ActaForm(request.POST, instance=acta, reunio=reunio)
+        if form.is_valid():
+            acta = form.save(commit=False)
+            acta.reunio = reunio
+            acta.save()
+            inicialitzades = inicialitzar_punts_acta_des_de_ordre_dia(acta)
+            if inicialitzades:
+                messages.success(request, f'Acta guardada i {inicialitzades} punts inicialitzats des de l’ordre del dia.')
+            else:
+                messages.success(request, 'Acta guardada correctament.')
+        else:
+            messages.error(request, 'Revisa els camps de l’acta.')
+        return redirect('reunions:reunio_detail', pk=reunio.pk)
+
+
+class PuntActaCreateView(ReunionsBaseMixin, CreateView):
+    model = PuntActa
+    form_class = PuntActaForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.acta = get_object_or_404(Acta, pk=kwargs['acta_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['reunio'] = self.acta.reunio
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.acta = self.acta
+        if not form.instance.ordre:
+            form.instance.ordre = self.acta.punts.count() + 1
+        messages.success(self.request, 'Punt d’acta afegit.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('reunions:reunio_detail', kwargs={'pk': self.acta.reunio_id}) + '#acta'
+
+
+class PuntActaUpdateView(ReunionsBaseMixin, UpdateView):
+    model = PuntActa
+    form_class = PuntActaForm
+    template_name = 'reunions/punt_acta_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['reunio'] = self.object.acta.reunio
+        return kwargs
+
+    def get_success_url(self):
+        messages.success(self.request, 'Punt d’acta actualitzat.')
+        return reverse('reunions:reunio_detail', kwargs={'pk': self.object.acta.reunio_id}) + '#acta'
+
+
+class TascaListView(ReunionsBaseMixin, ListView):
+    model = Tasca
+    template_name = 'reunions/tasca_list.html'
+    context_object_name = 'tasques'
+
+    def get_queryset(self):
+        qs = Tasca.objects.select_related('responsable', 'creada_per', 'area', 'reunio_origen', 'punt_acta_origen__acta__reunio').prefetch_related('collaboradors', 'etiquetes')
+        search = (self.request.GET.get('q') or '').strip()
+        if search:
+            qs = qs.filter(Q(titol__icontains=search) | Q(descripcio__icontains=search) | Q(observacions_seguiment__icontains=search))
+        for field, values in [('estat', Tasca.Estat.values), ('prioritat', Tasca.Prioritat.values), ('origen', Tasca.Origen.values)]:
+            current = self.request.GET.get(field)
+            if current in values:
+                qs = qs.filter(**{field: current})
+        if self.request.GET.get('vencudes') == '1':
+            qs = [tasca for tasca in qs if tasca.esta_vencuda]
+        if self.request.GET.get('bloquejades') == '1':
+            qs = qs.filter(estat=Tasca.Estat.BLOQUEJADA)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'current_filters': {key: self.request.GET.get(key, '') for key in ['q', 'estat', 'prioritat', 'origen', 'vencudes', 'bloquejades']},
+            'estat_options': Tasca.Estat.choices,
+            'prioritat_options': Tasca.Prioritat.choices,
+            'origen_options': Tasca.Origen.choices,
+            'pendents_count': Tasca.objects.filter(estat=Tasca.Estat.PENDENT).count(),
+            'bloquejades_count': Tasca.objects.filter(estat=Tasca.Estat.BLOQUEJADA).count(),
+            'estrategiques_count': Tasca.objects.filter(es_estrategica=True).count(),
+        })
+        return context
+
+
+class TascaDetailView(ReunionsBaseMixin, DetailView):
+    model = Tasca
+    template_name = 'reunions/tasca_detail.html'
+    context_object_name = 'tasca'
+
+    def get_queryset(self):
+        return Tasca.objects.select_related('responsable', 'creada_per', 'area', 'reunio_origen', 'punt_acta_origen__acta__reunio').prefetch_related(
+            'collaboradors', 'persones_relacionades', 'entitats_relacionades', 'etiquetes',
+            'relacions_reunio__reunio', 'relacions_reunio__punt_ordre_dia', 'relacions_reunio__punt_acta',
+            'seguiments__autor', 'seguiments__reunio', 'historic_estats__canviat_per',
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tasca = context['tasca']
+        context.update({
+            'seguiment_form': SeguimentTascaForm(tasca=tasca, autor=self.request.user),
+            'relacio_form': TascaRelacioReunioForm(tasca=tasca),
+        })
+        return context
+
+
+class TascaCreateView(ReunionsBaseMixin, CreateView):
+    model = Tasca
+    form_class = TascaForm
+    template_name = 'reunions/tasca_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['creada_per'] = self.request.user
+        initial['responsable'] = self.request.user
+        return initial
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Tasca creada correctament.')
+        return super().form_valid(form)
+
+
+class TascaUpdateView(ReunionsBaseMixin, UpdateView):
+    model = Tasca
+    form_class = TascaForm
+    template_name = 'reunions/tasca_form.html'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Tasca actualitzada.')
+        return super().form_valid(form)
+
+
+class SeguimentTascaCreateView(LoginRequiredMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
+        form = SeguimentTascaForm(request.POST, tasca=tasca, autor=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Seguiment afegit.')
+        else:
+            messages.error(request, 'No s’ha pogut afegir el seguiment.')
+        return redirect('reunions:tasca_detail', pk=tasca.pk)
+
+
+class TascaRelacioReunioCreateView(LoginRequiredMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
+        form = TascaRelacioReunioForm(request.POST, tasca=tasca)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Relació amb reunió registrada.')
+        else:
+            messages.error(request, 'No s’ha pogut registrar la relació amb la reunió.')
+        return redirect('reunions:tasca_detail', pk=tasca.pk)
+
+
+class SeguimentPanelView(ReunionsBaseMixin, TemplateView):
+    template_name = 'reunions/panel_seguiment.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tasques = Tasca.objects.select_related('responsable', 'area', 'reunio_origen').prefetch_related('relacions_reunio__reunio')
+        obertes = tasques.filter(estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA])
+        context.update({
+            'tasques_obertes': obertes.order_by('data_limit', '-es_estrategica')[:10],
+            'tasques_bloquejades': tasques.filter(estat=Tasca.Estat.BLOQUEJADA)[:10],
+            'tasques_vencudes': [tasca for tasca in obertes if tasca.esta_vencuda][:10],
+            'seguiments_recents': SeguimentTasca.objects.select_related('tasca', 'autor', 'reunio')[:12],
+            'reunions_amb_tasques_obertes': Reunio.objects.annotate(
+                total_obertes=Count('relacions_tasca', filter=Q(relacions_tasca__tasca__estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]), distinct=True)
+            ).filter(total_obertes__gt=0).select_related('area')[:10],
+        })
+        return context
