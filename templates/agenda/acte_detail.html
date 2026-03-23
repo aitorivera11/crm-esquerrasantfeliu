@@ -23,6 +23,7 @@
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     {% if acte.source_url %}<a class="btn btn-outline-primary" href="{{ acte.source_url }}" target="_blank" rel="noopener">Veure la font</a>{% endif %}
+                    {% if acte.reunio_relacionada_obj %}<a class="btn btn-outline-primary" href="{% url 'reunions:reunio_detail' acte.reunio_relacionada_obj.pk %}">Gestionar reunió</a>{% endif %}
                     {% if can_manage_actes and not acte.external_source %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar</a>{% endif %}
                     {% if can_view_admin_details %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
                 </div>
@@ -47,6 +48,12 @@
                     {% if acte.visible_segments_labels %}
                         <div><strong>Qui el pot veure i assistir:</strong> {{ acte.visible_segments_labels|join:', ' }}</div>
                     {% endif %}
+                </div>
+            {% endif %}
+            {% if acte.reunio_relacionada_obj %}
+                <div class="audience-stack mt-4">
+                    <div><strong>Reunió vinculada:</strong> <a href="{% url 'reunions:reunio_detail' acte.reunio_relacionada_obj.pk %}">Obrir la fitxa operativa de la reunió</a></div>
+                    <div class="text-muted small">Les confirmacions de l’agenda sincronitzen automàticament els assistents de la reunió.</div>
                 </div>
             {% endif %}
             {% if can_view_admin_details %}

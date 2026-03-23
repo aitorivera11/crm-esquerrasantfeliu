@@ -12,13 +12,13 @@
                     <h2 class="h3 mb-1">{{ reunio.titol }}</h2>
                     <div class="text-muted">{{ reunio.inici|date:'d/m/Y H:i' }}{% if reunio.fi %} · fins {{ reunio.fi|date:'H:i' }}{% endif %}{% if reunio.ubicacio %} · {{ reunio.ubicacio }}{% endif %}</div>
                 </div>
-                <div class="d-flex gap-2 flex-wrap"><span class="badge text-bg-light">{{ reunio.get_estat_display }}</span>{% if reunio.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}<a class="btn btn-primary" href="{% url 'reunions:reunio_update' reunio.pk %}">Editar</a></div>
+                <div class="d-flex gap-2 flex-wrap"><span class="badge text-bg-light">{{ reunio.get_estat_display }}</span>{% if reunio.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}{% if agenda_acte %}<a class="btn btn-outline-primary" href="{% url 'agenda:acte_detail' agenda_acte.pk %}">Veure acte a l’agenda</a>{% endif %}<a class="btn btn-primary" href="{% url 'reunions:reunio_update' reunio.pk %}">Editar</a></div>
             </div>
             <div class="meta-grid mb-4">
                 <div class="meta-card"><span>Àrea</span><strong>{{ reunio.area|default:'—' }}</strong></div>
                 <div class="meta-card"><span>Convocada per</span><strong>{{ reunio.convocada_per }}</strong></div>
                 <div class="meta-card"><span>Moderada per</span><strong>{{ reunio.moderada_per|default:'—' }}</strong></div>
-                <div class="meta-card"><span>Assistents</span><strong>{{ reunio.assistents.count }}</strong></div>
+                <div class="meta-card"><span>Assistents reunió</span><strong>{{ reunio.assistents.count }}</strong></div>{% if agenda_acte %}<div class="meta-card"><span>Confirmats agenda</span><strong>{{ agenda_confirmats|length }}</strong></div>{% endif %}
             </div>
             {% if reunio.objectiu %}<div class="mb-3"><strong>Objectiu</strong><div class="text-muted mt-1">{{ reunio.objectiu|linebreaks }}</div></div>{% endif %}
             {% if reunio.descripcio %}<div><strong>Context</strong><div class="text-muted mt-1">{{ reunio.descripcio|linebreaks }}</div></div>{% endif %}
@@ -80,8 +80,17 @@
             <div class="mt-3"><a class="btn btn-outline-primary w-100" href="{% url 'reunions:tasca_create' %}?reunio={{ reunio.pk }}">Crear tasca</a></div>
         </section>
         <section class="card card-panel p-4">
-            <h3 class="h5">Assistents i context</h3>
-            <div class="mb-3"><strong>Assistents interns</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for usuari in reunio.assistents.all %}<span class="info-chip">{{ usuari }}</span>{% empty %}<span class="text-muted small">Sense assistents marcats.</span>{% endfor %}</div></div>
+            <h3 class="h5">Agenda i assistència</h3>
+            {% if agenda_acte %}
+                <p class="text-muted">Aquesta reunió està vinculada a un acte de l’agenda. Les autoconfirmacions actualitzen automàticament els assistents de la reunió.</p>
+                <div class="mb-3"><strong>Acte vinculat</strong><div class="mt-2"><a href="{% url 'agenda:acte_detail' agenda_acte.pk %}">{{ agenda_acte.titol }}</a><div class="small text-muted">{{ agenda_acte.inici|date:'d/m/Y H:i' }}{% if agenda_acte.fi %} · fins {{ agenda_acte.fi|date:'H:i' }}{% endif %}</div></div></div>
+                <div class="mb-3"><strong>Confirmats des de l’agenda</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for participant in agenda_confirmats %}<span class="info-chip">{{ participant.usuari }}</span>{% empty %}<span class="text-muted small">Encara no hi ha confirmacions.</span>{% endfor %}</div></div>
+                <div class="mb-3"><strong>Potser</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for participant in agenda_potser %}<span class="info-chip">{{ participant.usuari }}</span>{% empty %}<span class="text-muted small">Cap resposta en espera.</span>{% endfor %}</div></div>
+                <div class="mb-3"><strong>No hi van</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for participant in agenda_no %}<span class="info-chip">{{ participant.usuari }}</span>{% empty %}<span class="text-muted small">Cap resposta negativa.</span>{% endfor %}</div></div>
+            {% else %}
+                <p class="text-muted mb-3">Aquesta reunió encara no té cap acte de l’agenda vinculat.</p>
+            {% endif %}
+            <div class="mb-3"><strong>Assistents reunió</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for usuari in reunio.assistents.all %}<span class="info-chip">{{ usuari }}</span>{% empty %}<span class="text-muted small">Sense assistents marcats.</span>{% endfor %}</div></div>
             <div class="mb-3"><strong>Persones relacionades</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for persona in reunio.persones_relacionades.all %}<span class="info-chip">{{ persona.nom }}</span>{% empty %}<span class="text-muted small">Cap.</span>{% endfor %}</div></div>
             <div><strong>Entitats relacionades</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for entitat in reunio.entitats_relacionades.all %}<span class="info-chip">{{ entitat.nom }}</span>{% empty %}<span class="text-muted small">Cap.</span>{% endfor %}</div></div>
         </section>

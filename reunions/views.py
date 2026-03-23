@@ -67,7 +67,7 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
     context_object_name = 'reunio'
 
     def get_queryset(self):
-        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related(
+        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area', 'acte_agenda', 'acte_agenda__tipus').prefetch_related(
             'assistents', 'etiquetes', 'persones_relacionades', 'entitats_relacionades',
             'punts_ordre_dia__responsable', 'relacions_tasca__tasca__responsable', 'relacions_tasca__punt_ordre_dia',
             'acta__punts__punt_ordre_origen', 'acta__punts__tasques_generades__responsable',
@@ -77,6 +77,15 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
         context = super().get_context_data(**kwargs)
         reunio = context['reunio']
         acta = getattr(reunio, 'acta', None)
+        agenda_acte = reunio.acte_agenda
+        agenda_confirmats = []
+        agenda_potser = []
+        agenda_no = []
+        if agenda_acte:
+            participants = list(agenda_acte.participants.select_related('usuari'))
+            agenda_confirmats = [p for p in participants if p.intencio == 'HI_ANIRE']
+            agenda_potser = [p for p in participants if p.intencio == 'POTSER']
+            agenda_no = [p for p in participants if p.intencio == 'NO_HI_ANIRE']
         context.update({
             'punt_form': PuntOrdreDiaForm(),
             'acta_form': ActaForm(instance=acta, reunio=reunio) if acta else ActaForm(reunio=reunio, initial={'redactada_per': self.request.user}),
@@ -84,6 +93,10 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
             'tasques_relacionades': Tasca.objects.filter(relacions_reunio__reunio=reunio).select_related('responsable').distinct(),
             'tasques_obertes': Tasca.objects.filter(relacions_reunio__reunio=reunio, estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]).select_related('responsable').distinct(),
             'acta': acta,
+            'agenda_acte': agenda_acte,
+            'agenda_confirmats': agenda_confirmats,
+            'agenda_potser': agenda_potser,
+            'agenda_no': agenda_no,
         })
         return context
 
