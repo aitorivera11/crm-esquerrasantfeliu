@@ -98,6 +98,13 @@ class Reunio(TimeStampedModel):
         blank=True,
         related_name='reunions',
     )
+    acte_agenda = models.OneToOneField(
+        'agenda.Acte',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reunio_relacionada',
+    )
 
     class Meta:
         ordering = ['-inici', '-creat_el']

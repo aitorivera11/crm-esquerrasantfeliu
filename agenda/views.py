@@ -46,7 +46,7 @@ class AgendaContextMixin:
             to_attr='participant_for_request_user',
         )
         return (
-            Acte.objects.select_related('creador', 'tipus')
+            Acte.objects.select_related('creador', 'tipus', 'reunio_relacionada')
             .prefetch_related(
                 'participants__usuari',
                 'visible_per',
@@ -84,6 +84,7 @@ class AgendaContextMixin:
         acte.user_can_manage = self._user_can_manage_actes()
         acte.user_can_attend = acte.estat == Acte.Estat.PUBLICAT or acte.user_can_manage
         acte.user_can_view_admin_details = self._user_can_view_admin_details()
+        acte.reunio_relacionada_obj = getattr(acte, 'reunio_relacionada', None)
         color = (acte.tipus.color or '').strip() if acte.tipus_id else ''
         acte.tipus_color = color or '#6c7a89'
         acte.tipus_style = f'--type-accent: {acte.tipus_color};' if acte.tipus_id else ''
@@ -424,6 +425,12 @@ class ParticiparActeView(AgendaContextMixin, LoginRequiredMixin, View):
             participacio.usuari = request.user
             participacio.acte = acte
             participacio.save()
+            reunio = getattr(acte, 'reunio_relacionada', None)
+            if reunio:
+                if participacio.intencio == ParticipacioActe.Intencio.HI_ANIRE:
+                    reunio.assistents.add(request.user)
+                else:
+                    reunio.assistents.remove(request.user)
             Auditoria.objects.create(
                 usuari=request.user,
                 accio=Auditoria.Accio.STATUS,

@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from agenda.models import Acte, ActeTipus, SegmentVisibilitat
 from core.forms import SearchableSelectMultiple
 from entitats.models import Entitat
 from persones.models import Persona
@@ -17,7 +18,7 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
         fields = [
             'titol', 'tipus', 'estat', 'inici', 'fi', 'ubicacio', 'descripcio', 'objectiu',
             'area', 'convocada_per', 'moderada_per', 'assistents', 'persones_relacionades',
-            'entitats_relacionades', 'etiquetes', 'es_estrategica', 'es_interna',
+            'entitats_relacionades', 'etiquetes', 'es_estrategica', 'es_interna', 'acte_agenda',
         ]
         widgets = {
             'inici': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
@@ -38,6 +39,65 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
         self.fields['persones_relacionades'].queryset = Persona.objects.order_by('nom')
         self.fields['entitats_relacionades'].queryset = Entitat.objects.order_by('nom')
         self.fields['area'].queryset = AreaCampanya.objects.filter(activa=True).order_by('ordre', 'nom')
+        self.fields['acte_agenda'].queryset = Acte.objects.filter(external_source='').order_by('-inici', 'titol')
+        self.fields['acte_agenda'].required = False
+        self.fields['acte_agenda'].label = 'Acte vinculat a l’agenda'
+        self.fields['acte_agenda'].help_text = 'Si el deixes buit, es crearà o s’actualitzarà automàticament un acte de l’agenda per aquesta reunió.'
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+            self.save_m2m()
+            self.sync_acte_agenda(instance)
+        return instance
+
+    def save_m2m(self):
+        super().save_m2m()
+        if self.instance.pk:
+            self.sync_acte_agenda(self.instance)
+
+    def sync_acte_agenda(self, reunio):
+        acte = reunio.acte_agenda
+        creating = acte is None
+        if creating:
+            acte = Acte(creador=reunio.convocada_per)
+
+        tipus_nom = reunio.get_tipus_display()
+        acte_tipus, _ = ActeTipus.objects.get_or_create(nom=tipus_nom, defaults={'ordre': 0, 'actiu': True})
+        acte.titol = reunio.titol
+        acte.tipus = acte_tipus
+        acte.descripcio = reunio.descripcio or reunio.objectiu
+        acte.inici = reunio.inici
+        acte.fi = reunio.fi
+        acte.ubicacio = reunio.ubicacio
+        acte.estat = Acte.Estat.PUBLICAT if reunio.estat in {Reunio.Estat.CONVOCADA, Reunio.Estat.CELEBRADA, Reunio.Estat.TANCADA} else Acte.Estat.ESBORRANY
+        acte.es_important = reunio.es_estrategica
+        if not acte.creador_id:
+            acte.creador = reunio.convocada_per
+        acte.save()
+
+        if creating or reunio.acte_agenda_id != acte.pk:
+            reunio.acte_agenda = acte
+            reunio.save(update_fields=['acte_agenda', 'actualitzat_el'])
+
+        acte.persones_relacionades.set(reunio.persones_relacionades.all())
+        acte.entitats_relacionades.set(reunio.entitats_relacionades.all())
+
+        if reunio.es_interna:
+            coordinacio_segment, _ = SegmentVisibilitat.objects.get_or_create(
+                ambit=SegmentVisibilitat.Ambit.ROL,
+                codi=Usuari.Rol.COORDINACIO,
+                defaults={'etiqueta': 'Coordinació'},
+            )
+            acte.visible_per.set([coordinacio_segment])
+            acte.assistencia_permesa_per.set([coordinacio_segment])
+        elif creating:
+            acte.visible_per.clear()
+            acte.assistencia_permesa_per.clear()
+
+        confirmats_ids = reunio.acte_agenda.participants.filter(intencio='HI_ANIRE').values_list('usuari_id', flat=True) if reunio.acte_agenda_id else []
+        reunio.assistents.add(*list(confirmats_ids))
 
 
 class PuntOrdreDiaForm(StyledFormMixin, forms.ModelForm):

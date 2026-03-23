@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import localtime
 
+from reunions.models import Reunio
 from .forms import ActeForm
 from .models import Acte, ParticipacioActe, SegmentVisibilitat
 
@@ -343,3 +344,71 @@ class AgendaImportedAndImportantUxTests(TestCase):
         self.assertContains(response, '>Sí<', html=False)
         self.assertContains(response, '>Potser<', html=False)
         self.assertContains(response, '>No<', html=False)
+
+
+class AgendaMeetingSyncTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.coord = User.objects.create_user(
+            username='coord-sync',
+            password='test-pass-123',
+            nom_complet='Coord Sync',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.participant = User.objects.create_user(
+            username='participant-sync',
+            password='test-pass-123',
+            nom_complet='Participant Sync',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.client.force_login(self.participant)
+        now = timezone.now().replace(second=0, microsecond=0) + timedelta(days=2)
+        self.acte = Acte.objects.create(
+            titol='Executiva local',
+            inici=now,
+            fi=now + timedelta(hours=2),
+            ubicacio='Online',
+            creador=self.coord,
+            estat=Acte.Estat.PUBLICAT,
+        )
+        self.reunio = Reunio.objects.create(
+            titol='Executiva local',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.CONVOCADA,
+            inici=self.acte.inici,
+            fi=self.acte.fi,
+            ubicacio=self.acte.ubicacio,
+            descripcio='Seguiment setmanal',
+            convocada_per=self.coord,
+            moderada_per=self.coord,
+            acte_agenda=self.acte,
+        )
+
+    def test_confirming_participation_adds_user_to_linked_meeting_attendees(self):
+        response = self.client.post(
+            reverse('agenda:participar_acte', args=[self.acte.pk]),
+            {'intencio': ParticipacioActe.Intencio.HI_ANIRE, 'observacions': '', 'render_mode': 'detail'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.reunio.refresh_from_db()
+        self.assertTrue(self.reunio.assistents.filter(pk=self.participant.pk).exists())
+
+    def test_declining_participation_removes_user_from_linked_meeting_attendees(self):
+        self.reunio.assistents.add(self.participant)
+
+        response = self.client.post(
+            reverse('agenda:participar_acte', args=[self.acte.pk]),
+            {'intencio': ParticipacioActe.Intencio.NO_HI_ANIRE, 'observacions': '', 'render_mode': 'detail'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.reunio.refresh_from_db()
+        self.assertFalse(self.reunio.assistents.filter(pk=self.participant.pk).exists())
+
+    def test_acte_detail_shows_link_to_meeting_management(self):
+        response = self.client.get(reverse('agenda:acte_detail', args=[self.acte.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Gestionar reunió')
+
