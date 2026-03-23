@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Editar punt d'acta{% endblock %}
+{% block page_title %}Editar punt d'acta{% endblock %}
+{% block content %}
+<section class="card card-panel p-4 form-narrow">
+    <form method="post">{% csrf_token %}
+        {% include 'components/form_fields.html' with form=form %}
+        <div class="d-flex gap-2 mt-4"><button class="btn btn-primary">Desar punt</button><a class="btn btn-outline-secondary" href="{% url 'reunions:reunio_detail' object.acta.reunio_id %}">Tornar</a></div>
+    </form>
+</section>
+{% endblock %}

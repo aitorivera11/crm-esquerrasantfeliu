@@ -1,0 +1,43 @@
+from django.urls import path
+
+from .views import (
+    ActaCreateOrUpdateView,
+    ActaUpdateView,
+    PuntActaCreateView,
+    PuntActaUpdateView,
+    PuntOrdreDiaCreateView,
+    PuntOrdreDiaDeleteView,
+    PuntOrdreDiaUpdateView,
+    ReunioCreateView,
+    ReunioDetailView,
+    ReunioListView,
+    ReunioUpdateView,
+    SeguimentPanelView,
+    SeguimentTascaCreateView,
+    TascaCreateView,
+    TascaDetailView,
+    TascaListView,
+    TascaRelacioReunioCreateView,
+    TascaUpdateView,
+)
+
+urlpatterns = [
+    path('', ReunioListView.as_view(), name='reunio_list'),
+    path('seguiment/', SeguimentPanelView.as_view(), name='panel_seguiment'),
+    path('nova/', ReunioCreateView.as_view(), name='reunio_create'),
+    path('<int:pk>/', ReunioDetailView.as_view(), name='reunio_detail'),
+    path('<int:pk>/editar/', ReunioUpdateView.as_view(), name='reunio_update'),
+    path('<int:pk>/ordre-dia/afegir/', PuntOrdreDiaCreateView.as_view(), name='punt_ordre_create'),
+    path('ordre-dia/<int:pk>/editar/', PuntOrdreDiaUpdateView.as_view(), name='punt_ordre_update'),
+    path('<int:pk>/ordre-dia/<int:punt_pk>/eliminar/', PuntOrdreDiaDeleteView.as_view(), name='punt_ordre_delete'),
+    path('<int:pk>/acta/', ActaCreateOrUpdateView.as_view(), name='acta_upsert'),
+    path('acta/<int:pk>/editar/', ActaUpdateView.as_view(), name='acta_update'),
+    path('acta/<int:acta_pk>/punts/afegir/', PuntActaCreateView.as_view(), name='punt_acta_create'),
+    path('punts-acta/<int:pk>/editar/', PuntActaUpdateView.as_view(), name='punt_acta_update'),
+    path('tasques/', TascaListView.as_view(), name='tasca_list'),
+    path('tasques/nova/', TascaCreateView.as_view(), name='tasca_create'),
+    path('tasques/<int:pk>/', TascaDetailView.as_view(), name='tasca_detail'),
+    path('tasques/<int:pk>/editar/', TascaUpdateView.as_view(), name='tasca_update'),
+    path('tasques/<int:pk>/seguiments/afegir/', SeguimentTascaCreateView.as_view(), name='seguiment_create'),
+    path('tasques/<int:pk>/relacions/afegir/', TascaRelacioReunioCreateView.as_view(), name='tasca_relacio_create'),
+]

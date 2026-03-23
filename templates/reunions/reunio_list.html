@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Reunions{% endblock %}
+{% block page_title %}Reunions i assemblees{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Prepara l’ordre del dia, tanca actes i connecta les tasques amb el seguiment polític real.</p>{% endblock %}
+{% block content %}
+<section class="card card-panel mb-4 p-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div>
+            <h2 class="h4 mb-1">Panell de reunions</h2>
+            <p class="text-muted mb-0">Una vista clara per coordinar reunions internes, assemblees i el seu impacte en tasques obertes.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="info-chip">{{ reunions_obertes }} obertes</span>
+            <span class="info-chip">{{ reunions_celebrades }} celebrades</span>
+            <span class="info-chip">{{ tasques_bloquejades }} tasques bloquejades</span>
+            <span class="info-chip">{{ tasques_vencudes }} tasques vencudes</span>
+            <a class="btn btn-primary" href="{% url 'reunions:reunio_create' %}">Nova reunió</a>
+            <a class="btn btn-outline-secondary" href="{% url 'reunions:tasca_list' %}">Veure tasques</a>
+        </div>
+    </div>
+</section>
+
+<section class="card card-panel mb-4 p-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-5">
+            <label class="form-label">Cerca</label>
+            <input type="search" name="q" value="{{ current_filters.q }}" class="form-control" placeholder="Títol, descripció o ubicació">
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label">Tipus</label>
+            <select name="tipus" class="form-select">
+                <option value="">Tots</option>
+                {% for value, label in tipus_options %}<option value="{{ value }}" {% if current_filters.tipus == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label">Estat</label>
+            <select name="estat" class="form-select">
+                <option value="">Tots</option>
+                {% for value, label in estat_options %}<option value="{{ value }}" {% if current_filters.estat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-1 d-grid"><button class="btn btn-outline-primary" type="submit">Filtra</button></div>
+    </form>
+</section>
+
+<section class="row g-3">
+    {% for reunio in reunions %}
+        <div class="col-12 col-xl-6">
+            <article class="card card-panel h-100 p-4">
+                <div class="d-flex justify-content-between gap-3 flex-wrap mb-3">
+                    <div>
+                        <p class="eyebrow mb-1">{{ reunio.get_tipus_display }}</p>
+                        <h3 class="h4 mb-1"><a href="{{ reunio.get_absolute_url }}" class="text-decoration-none">{{ reunio.titol }}</a></h3>
+                        <div class="text-muted">{{ reunio.inici|date:'d/m/Y H:i' }}{% if reunio.ubicacio %} · {{ reunio.ubicacio }}{% endif %}</div>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge text-bg-light">{{ reunio.get_estat_display }}</span>
+                        {% if reunio.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}
+                    </div>
+                </div>
+                {% if reunio.objectiu %}<p class="mb-3">{{ reunio.objectiu|truncatechars:220 }}</p>{% endif %}
+                <div class="meta-grid">
+                    <div class="meta-card"><span>Punts</span><strong>{{ reunio.total_punts }}</strong></div>
+                    <div class="meta-card"><span>Tasques obertes</span><strong>{{ reunio.total_tasques_obertes }}</strong></div>
+                    <div class="meta-card"><span>Àrea</span><strong>{{ reunio.area|default:'—' }}</strong></div>
+                    <div class="meta-card"><span>Convoca</span><strong>{{ reunio.convocada_per }}</strong></div>
+                </div>
+                <div class="d-flex justify-content-between gap-2 flex-wrap mt-4 align-items-center">
+                    <div class="d-flex gap-2 flex-wrap">{% for etiqueta in reunio.etiquetes.all %}<span class="info-chip">{{ etiqueta.nom }}</span>{% empty %}<span class="text-muted small">Sense etiquetes</span>{% endfor %}</div>
+                    <a class="btn btn-outline-primary" href="{{ reunio.get_absolute_url }}">Obrir fitxa</a>
+                </div>
+            </article>
+        </div>
+    {% empty %}
+        <div class="col-12">{% include 'components/empty_state.html' with icon='🗓️' title='Encara no hi ha reunions' message='Crea la primera reunió per començar a preparar l’ordre del dia i l’acta.' action_url='/reunions/nova/' action_label='Crear reunió' %}</div>
+    {% endfor %}
+</section>
+{% endblock %}

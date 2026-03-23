@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}{{ tasca.titol }}{% endblock %}
+{% block page_title %}Detall de tasca{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Traçabilitat real: origen, reunions on s’ha tractat, seguiments i evolució d’estat.</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <section class="card card-panel p-4 mb-4">
+            <div class="d-flex justify-content-between gap-3 flex-wrap mb-3">
+                <div>
+                    <p class="eyebrow mb-1">{{ tasca.get_origen_display }}</p>
+                    <h2 class="h3 mb-1">{{ tasca.titol }}</h2>
+                    <div class="text-muted">Responsable: {{ tasca.responsable }} · Creada per {{ tasca.creada_per }}{% if tasca.data_limit %} · Límit {{ tasca.data_limit|date:'d/m/Y' }}{% endif %}</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap"><span class="badge text-bg-light">{{ tasca.get_estat_display }}</span><span class="badge text-bg-dark">{{ tasca.get_prioritat_display }}</span><a class="btn btn-primary" href="{% url 'reunions:tasca_update' tasca.pk %}">Editar</a></div>
+            </div>
+            <div class="meta-grid mb-4">
+                <div class="meta-card"><span>Àrea</span><strong>{{ tasca.area|default:'—' }}</strong></div>
+                <div class="meta-card"><span>Estratègica</span><strong>{% if tasca.es_estrategica %}Sí{% else %}No{% endif %}</strong></div>
+                <div class="meta-card"><span>Visibilitat</span><strong>{{ tasca.get_visibilitat_display }}</strong></div>
+                <div class="meta-card"><span>Proposar al següent O.D.</span><strong>{% if tasca.proposar_seguent_ordre_dia %}Sí{% else %}No{% endif %}</strong></div>
+            </div>
+            <div class="mb-3">{{ tasca.descripcio|linebreaks }}</div>
+            {% if tasca.observacions_seguiment %}<div class="mb-3"><strong>Observacions de seguiment</strong><div class="text-muted mt-1">{{ tasca.observacions_seguiment|linebreaks }}</div></div>{% endif %}
+            {% if tasca.resultat_tancament %}<div class="mb-3"><strong>Resultat / tancament</strong><div class="text-muted mt-1">{{ tasca.resultat_tancament|linebreaks }}</div></div>{% endif %}
+            {% if tasca.motiu_proposta_ordre_dia %}<div><strong>Motiu per elevar-la</strong><div class="text-muted mt-1">{{ tasca.motiu_proposta_ordre_dia|linebreaks }}</div></div>{% endif %}
+        </section>
+        <section class="card card-panel p-4 mb-4">
+            <div class="section-heading"><div><h3 class="h4 mb-1">Cronologia i seguiment</h3><p class="text-muted mb-0">Comentaris interns, canvis d’estat i seguiment ràpid.</p></div></div>
+            <form method="post" action="{% url 'reunions:seguiment_create' tasca.pk %}">{% csrf_token %}{% include 'components/form_fields.html' with form=seguiment_form %}<button class="btn btn-outline-primary mt-3">Afegir seguiment</button></form>
+            <hr class="my-4">
+            <div class="timeline-simple">
+                {% for seguiment in tasca.seguiments.all %}
+                    <div class="timeline-simple__item"><strong>{{ seguiment.get_tipus_display }}</strong> · {{ seguiment.autor }} · {{ seguiment.creat_el|date:'d/m/Y H:i' }}{% if seguiment.reunio %} · <a href="{{ seguiment.reunio.get_absolute_url }}">{{ seguiment.reunio.titol }}</a>{% endif %}<div class="text-muted mt-1">{{ seguiment.comentari|linebreaksbr }}</div>{% if seguiment.nou_estat %}<div class="small mt-1">Nou estat: {{ seguiment.get_nou_estat_display }}</div>{% endif %}</div>
+                {% empty %}<p class="text-muted mb-0">Sense seguiments registrats.</p>{% endfor %}
+            </div>
+        </section>
+        <section class="card card-panel p-4">
+            <div class="section-heading"><div><h3 class="h4 mb-1">Històric d’estats</h3><p class="text-muted mb-0">Control de canvis per evitar pèrdua de context.</p></div></div>
+            <div class="list-group list-group-flush">{% for item in tasca.historic_estats.all %}<div class="list-group-item px-0 py-3 border-bottom"><strong>{{ item.estat_anterior|default:'(inici)' }}</strong> → <strong>{{ item.estat_nou }}</strong><div class="small text-muted">{{ item.creat_el|date:'d/m/Y H:i' }}{% if item.canviat_per %} · {{ item.canviat_per }}{% endif %}</div>{% if item.motiu %}<div class="text-muted mt-1">{{ item.motiu|linebreaksbr }}</div>{% endif %}</div>{% empty %}<p class="text-muted mb-0">Sense canvis d’estat registrats.</p>{% endfor %}</div>
+        </section>
+    </div>
+    <div class="col-12 col-xl-4">
+        <section class="card card-panel p-4 mb-4">
+            <h3 class="h5">Origen i context</h3>
+            <div class="stack-gap">
+                <div><strong>Reunió d’origen:</strong> {% if tasca.reunio_origen %}<a href="{{ tasca.reunio_origen.get_absolute_url }}">{{ tasca.reunio_origen.titol }}</a>{% else %}<span class="text-muted">Independent</span>{% endif %}</div>
+                <div><strong>Punt d’acta d’origen:</strong> {% if tasca.punt_acta_origen %}{{ tasca.punt_acta_origen.titol }}{% else %}<span class="text-muted">—</span>{% endif %}</div>
+                <div><strong>Col·laboradores:</strong> {% for usuari in tasca.collaboradors.all %}{{ usuari }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Cap</span>{% endfor %}</div>
+                <div><strong>Persones relacionades:</strong> {% for persona in tasca.persones_relacionades.all %}{{ persona.nom }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Cap</span>{% endfor %}</div>
+                <div><strong>Entitats relacionades:</strong> {% for entitat in tasca.entitats_relacionades.all %}{{ entitat.nom }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Cap</span>{% endfor %}</div>
+                <div><strong>Etiquetes:</strong> {% for etiqueta in tasca.etiquetes.all %}<span class="info-chip">{{ etiqueta.nom }}</span>{% empty %}<span class="text-muted">Sense etiquetes</span>{% endfor %}</div>
+            </div>
+        </section>
+        <section class="card card-panel p-4">
+            <h3 class="h5">Reunions on s’ha tractat</h3>
+            <div class="list-group list-group-flush mb-4">{% for relacio in tasca.relacions_reunio.all %}<div class="list-group-item px-0 py-3 border-bottom"><a href="{{ relacio.reunio.get_absolute_url }}"><strong>{{ relacio.reunio.titol }}</strong></a><div class="small text-muted">{{ relacio.get_tipus_relacio_display }} · {{ relacio.tractada_el|date:'d/m/Y H:i' }}</div>{% if relacio.resum %}<div class="text-muted mt-1">{{ relacio.resum|linebreaksbr }}</div>{% endif %}</div>{% empty %}<p class="text-muted mb-0">Encara no s’ha vinculat a cap reunió.</p>{% endfor %}</div>
+            <h4 class="h6">Afegir relació</h4>
+            <form method="post" action="{% url 'reunions:tasca_relacio_create' tasca.pk %}">{% csrf_token %}{% include 'components/form_fields.html' with form=relacio_form %}<button class="btn btn-outline-primary mt-3">Registrar tractament</button></form>
+        </section>
+    </div>
+</div>
+{% endblock %}
