@@ -1,5 +1,6 @@
 from django import forms
 
+from core.forms import SearchableSelectMultiple
 from entitats.models import Entitat
 from usuaris.forms import StyledFormMixin
 
@@ -10,7 +11,7 @@ class PersonaForm(StyledFormMixin, forms.ModelForm):
     entitats = forms.ModelMultipleChoiceField(
         queryset=Entitat.objects.order_by('nom'),
         required=False,
-        widget=forms.CheckboxSelectMultiple(),
+        widget=SearchableSelectMultiple(search_placeholder='Cerca entitats per nom…'),
         help_text='Selecciona les entitats amb què es relaciona aquesta persona.',
     )
 

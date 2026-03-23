@@ -1,20 +1,12 @@
 <div class="segment-field">
     <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
         <div>
-            <label class="form-label mb-1">{{ field.label }}</label>
+            <label class="form-label mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
             {% if field.help_text %}<div class="form-text mt-0">{{ field.help_text }}</div>{% endif %}
         </div>
         <span class="info-chip info-chip-muted">Opcional</span>
     </div>
-    <div class="segment-checklist">
-        {% for choice in field %}
-            <label class="segment-option" for="{{ choice.id_for_label }}">
-                {{ choice.tag }}
-                <span class="segment-option__label">{{ choice.choice_label }}</span>
-            </label>
-        {% empty %}
-            <div class="text-muted small">{{ empty_message }}</div>
-        {% endfor %}
-    </div>
+    {{ field }}
+    {% if empty_message %}<div class="form-text mt-2">{{ empty_message }}</div>{% endif %}
     {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
 </div>
