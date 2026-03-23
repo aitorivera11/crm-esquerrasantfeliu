@@ -1,0 +1,31 @@
+<div class="searchable-multiselect" data-searchable-multiselect>
+    <div class="searchable-multiselect__toolbar">
+        <input
+            type="search"
+            class="form-control searchable-multiselect__search"
+            placeholder="{{ widget.search_placeholder }}"
+            autocomplete="off"
+            data-searchable-multiselect-input
+            aria-label="Cercar opcions per {{ widget.name }}"
+        >
+        <div class="searchable-multiselect__meta">
+            <span class="searchable-multiselect__summary" data-searchable-multiselect-summary>{{ widget.summary_text }}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-searchable-multiselect-clear>Buida</button>
+        </div>
+    </div>
+    <div class="searchable-multiselect__help text-muted small" id="{{ widget.attrs.id }}_search_help">
+        Escriu per filtrar i mantén premuda la tecla Ctrl/Cmd per seleccionar diverses opcions.
+    </div>
+    <div class="searchable-multiselect__empty text-muted small d-none" data-searchable-multiselect-empty>
+        {{ widget.empty_text }}
+    </div>
+    <select name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}{% if widget.value %} data-selected-values="{% for group_name, group_choices, group_index in widget.optgroups %}{% for option in group_choices %}{% if option.selected %}{{ option.value }} {% endif %}{% endfor %}{% endfor %}"{% endif %}>
+        {% for group_name, group_choices, group_index in widget.optgroups %}
+            {% if group_name %}<optgroup label="{{ group_name }}">{% endif %}
+            {% for option in group_choices %}
+                <option value="{{ option.value|stringformat:'s' }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+            {% if group_name %}</optgroup>{% endif %}
+        {% endfor %}
+    </select>
+</div>

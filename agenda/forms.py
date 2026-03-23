@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.formats import localize_input
 
+from core.forms import SearchableSelectMultiple
 from entitats.models import Entitat
 from persones.models import Persona
 from usuaris.forms import StyledFormMixin
@@ -42,10 +43,10 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
             'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
             'fi': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
             'descripcio': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Context, objectiu, material necessari…'}),
-            'visible_per': forms.CheckboxSelectMultiple(),
-            'assistencia_permesa_per': forms.CheckboxSelectMultiple(),
-            'entitats_relacionades': forms.CheckboxSelectMultiple(),
-            'persones_relacionades': forms.CheckboxSelectMultiple(),
+            'visible_per': SearchableSelectMultiple(search_placeholder='Cerca segments…', empty_text='No hi ha segments disponibles.'),
+            'assistencia_permesa_per': SearchableSelectMultiple(search_placeholder='Cerca segments…', empty_text='No hi ha segments disponibles.'),
+            'entitats_relacionades': SearchableSelectMultiple(search_placeholder='Cerca entitats…', empty_text='No hi ha entitats disponibles.'),
+            'persones_relacionades': SearchableSelectMultiple(search_placeholder='Cerca persones…', empty_text='No hi ha persones disponibles.'),
         }
 
     def __init__(self, *args, **kwargs):

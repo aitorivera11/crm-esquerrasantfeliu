@@ -622,3 +622,41 @@ textarea.form-control { min-height: 120px; }
 .acte-card-important::before { content: ""; display: block; height: 4px; margin: -1.5rem -1.5rem 1rem; border-radius: 1rem 1rem 0 0; background: linear-gradient(90deg, rgba(180, 142, 60, .88), rgba(180, 142, 60, .24)); }
 .mini-stat-response { background: rgba(0,13,35,.05); }
 @media (max-width: 767.98px) { .acte-card-basics span { white-space: normal; } }
+
+
+.searchable-multiselect {
+    display: grid;
+    gap: .75rem;
+    padding: 1rem;
+    border: 1px solid rgba(226, 191, 161, .7);
+    border-radius: 1rem;
+    background: rgba(255,255,255,.8);
+}
+.searchable-multiselect__toolbar {
+    display: grid;
+    gap: .75rem;
+}
+.searchable-multiselect__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+.searchable-multiselect__summary {
+    font-size: .92rem;
+    font-weight: 700;
+    color: var(--muted);
+}
+.searchable-multiselect select.form-select {
+    min-height: 15rem;
+    padding: .5rem;
+}
+.searchable-multiselect select.form-select option {
+    border-radius: .7rem;
+    padding: .55rem .7rem;
+    margin-bottom: .15rem;
+}
+.searchable-multiselect__help {
+    margin-top: -.25rem;
+}

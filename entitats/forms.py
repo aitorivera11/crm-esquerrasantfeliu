@@ -1,5 +1,6 @@
 from django import forms
 
+from core.forms import SearchableSelectMultiple
 from persones.models import Persona
 from usuaris.forms import StyledFormMixin
 
@@ -11,7 +12,7 @@ class EntitatForm(StyledFormMixin, forms.ModelForm):
         model = Entitat
         fields = ['nom', 'email', 'telefon', 'web', 'tipologia', 'ambit', 'persones', 'notes']
         widgets = {
-            'persones': forms.CheckboxSelectMultiple(),
+            'persones': SearchableSelectMultiple(search_placeholder='Cerca persones per nom…'),
             'notes': forms.Textarea(attrs={'rows': 4}),
         }
 
