@@ -58,11 +58,18 @@ FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
+DATABASE_URL = os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+DB_SSL_REQUIRE = os.getenv('DB_SSL_REQUIRE')
+
+_database_ssl_require = False if DATABASE_URL.startswith('sqlite://') else True
+if DB_SSL_REQUIRE is not None:
+    _database_ssl_require = DB_SSL_REQUIRE.lower() == 'true'
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+        default=DATABASE_URL,
         conn_max_age=600,
-        ssl_require=os.getenv('DB_SSL_REQUIRE', 'True').lower() == 'true',
+        ssl_require=_database_ssl_require,
     )
 }
 

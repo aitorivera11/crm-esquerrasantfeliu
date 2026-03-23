@@ -14,7 +14,7 @@
             <span class="info-chip">{{ bloquejades_count }} bloquejades</span>
             <span class="info-chip">{{ estrategiques_count }} estratègiques</span>
             <a class="btn btn-primary" href="{% url 'reunions:tasca_create' %}">Nova tasca</a>
-            <a class="btn btn-outline-secondary" href="{% url 'reunions:panel_seguiment' %}">Panel</a>
+            <a class="btn btn-outline-secondary" href="{% url 'reunions:panel_seguiment' %}">Panell de seguiment</a>
         </div>
     </div>
 </section>
@@ -46,7 +46,8 @@
         </article>
     </div>
     {% empty %}
-    <div class="col-12">{% include 'components/empty_state.html' with icon='✅' title='No hi ha tasques amb aquests filtres' message='Prova d’ampliar els criteris o crea una tasca nova.' action_url='/reunions/tasques/nova/' action_label='Crear tasca' %}</div>
+    {% url 'reunions:tasca_create' as tasca_create_url %}
+    <div class="col-12">{% include 'components/empty_state.html' with icon='✅' title='No hi ha tasques amb aquests filtres' message='Prova d’ampliar els criteris o crea una tasca nova.' action_url=tasca_create_url action_label='Crear tasca' %}</div>
     {% endfor %}
 </section>
 {% endblock %}

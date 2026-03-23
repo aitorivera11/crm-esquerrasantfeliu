@@ -55,7 +55,8 @@
         </table>
     </div>
     {% else %}
-        {% include 'components/empty_state.html' with icon='🏢' title='Encara no hi ha entitats' message='Quan importis o registris entitats apareixeran aquí.' action_url='/entitats/nova/' action_label='Afegir entitat' %}
+        {% url 'entitats:entitat_create' as entitat_create_url %}
+        {% include 'components/empty_state.html' with icon='🏢' title='Encara no hi ha entitats' message='Quan importis o registris entitats apareixeran aquí.' action_url=entitat_create_url action_label='Afegir entitat' %}
     {% endif %}
 </section>
 {% endblock %}

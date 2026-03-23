@@ -49,7 +49,8 @@
         </table>
     </div>
     {% else %}
-        {% include 'components/empty_state.html' with icon='🗂️' title='Encara no hi ha persones' message='Quan comencis a registrar contactes apareixeran aquí.' action_url='/persones/nova/' action_label='Afegir persona' %}
+        {% url 'persones:persona_create' as persona_create_url %}
+        {% include 'components/empty_state.html' with icon='🗂️' title='Encara no hi ha persones' message='Quan comencis a registrar contactes apareixeran aquí.' action_url=persona_create_url action_label='Afegir persona' %}
     {% endif %}
 </section>
 {% endblock %}
