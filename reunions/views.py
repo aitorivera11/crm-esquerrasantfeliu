@@ -3,7 +3,7 @@ from urllib.parse import quote
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Count, Max, Prefetch, Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -98,6 +98,8 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
         context = super().get_context_data(**kwargs)
         reunio = context['reunio']
         acta = getattr(reunio, 'acta', None)
+        reunio_url = self.request.build_absolute_uri(reunio.get_absolute_url())
+        ordre_export_url = self.request.build_absolute_uri(reverse('reunions:ordre_dia_export', kwargs={'pk': reunio.pk}))
         ordre_dia_text = generar_text_ordre_dia(reunio)
         acta_text = generar_text_acta(acta) if acta else ''
         agenda_acte = reunio.acte_agenda
@@ -122,13 +124,54 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
             ).exclude(relacions_reunio__reunio=reunio).select_related('responsable', 'reunio_origen').distinct()[:8],
             'ordre_dia_text': ordre_dia_text,
             'ordre_dia_text_url': quote(ordre_dia_text),
+            'ordre_dia_share_url': reunio_url,
+            'ordre_dia_export_url': ordre_export_url,
+            'ordre_dia_telegram_url': f'https://t.me/share/url?url={quote(reunio_url)}&text={quote(ordre_dia_text)}',
+            'ordre_dia_whatsapp_url': f'https://wa.me/?text={quote(ordre_dia_text)}',
+            'ordre_dia_email_url': f'mailto:?subject=Ordre del dia · {quote(reunio.titol)}&body={quote(ordre_dia_text)}',
             'acta_text': acta_text,
             'acta_text_url': quote(acta_text) if acta_text else '',
+            'acta_share_url': reunio_url,
+            'acta_export_url': self.request.build_absolute_uri(reverse('reunions:acta_export', kwargs={'pk': reunio.pk})) if acta else '',
+            'acta_telegram_url': f'https://t.me/share/url?url={quote(reunio_url)}&text={quote(acta_text)}' if acta else '',
+            'acta_whatsapp_url': f'https://wa.me/?text={quote(acta_text)}' if acta else '',
+            'acta_email_url': f'mailto:?subject=Acta · {quote(reunio.titol)}&body={quote(acta_text)}' if acta else '',
             'acta': acta,
             'agenda_acte': agenda_acte,
             'agenda_confirmats': agenda_confirmats,
             'agenda_potser': agenda_potser,
             'agenda_no': agenda_no,
+        })
+        return context
+
+
+class ReunioActaWorkspaceView(ReunionsBaseMixin, DetailView):
+    model = Reunio
+    template_name = 'reunions/acta_workspace.html'
+    context_object_name = 'reunio'
+
+    def get_queryset(self):
+        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related('punts_ordre_dia', 'acta__punts')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        reunio = context['reunio']
+        acta, _created = Acta.objects.get_or_create(
+            reunio=reunio,
+            defaults={'redactada_per': self.request.user},
+        )
+        inicialitzar_punts_acta_des_de_ordre_dia(acta)
+        acta_text = generar_text_acta(acta)
+        reunio_url = self.request.build_absolute_uri(reunio.get_absolute_url())
+        context.update({
+            'acta': acta,
+            'acta_text_url': quote(acta_text),
+            'acta_text': acta_text,
+            'acta_share_url': reunio_url,
+            'acta_export_url': self.request.build_absolute_uri(reverse('reunions:acta_export', kwargs={'pk': reunio.pk})),
+            'acta_telegram_url': f'https://t.me/share/url?url={quote(reunio_url)}&text={quote(acta_text)}',
+            'acta_whatsapp_url': f'https://wa.me/?text={quote(acta_text)}',
+            'acta_email_url': f'mailto:?subject=Acta · {quote(reunio.titol)}&body={quote(acta_text)}',
         })
         return context
 
@@ -369,6 +412,17 @@ class PuntActaUpdateView(ReunionsBaseMixin, UpdateView):
     def get_success_url(self):
         messages.success(self.request, 'Punt d’acta actualitzat.')
         return reverse('reunions:reunio_detail', kwargs={'pk': self.object.acta.reunio_id}) + '#acta'
+
+
+class PuntActaQuickUpdateView(ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        punt = get_object_or_404(PuntActa, pk=kwargs['pk'])
+        field = request.POST.get('field', '').strip()
+        if field not in {'contingut', 'acords', 'titol'}:
+            return JsonResponse({'ok': False, 'error': 'Camp no permès.'}, status=400)
+        setattr(punt, field, request.POST.get('value', ''))
+        punt.save(update_fields=[field, 'actualitzat_el'])
+        return JsonResponse({'ok': True, 'updated': timezone.localtime(punt.actualitzat_el).strftime('%H:%M:%S')})
 
 
 class TascaListView(ReunionsBaseMixin, ListView):

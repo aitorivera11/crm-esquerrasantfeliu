@@ -230,4 +230,65 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  const getCsrfToken = () => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split('; csrftoken=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  };
+
+  const autosaveStatus = document.querySelector('[data-autosave-status]');
+  const setAutosaveStatus = (text, isError = false) => {
+    if (!autosaveStatus) return;
+    autosaveStatus.textContent = text;
+    autosaveStatus.classList.toggle('text-danger', isError);
+  };
+
+  const saveTimers = new WeakMap();
+  document.querySelectorAll('[data-quick-save]').forEach((field) => {
+    const feedbackNode = field.closest('[data-acta-point]')?.querySelector('[data-point-feedback]');
+
+    const runSave = async () => {
+      setAutosaveStatus('Desant...');
+      try {
+        const formData = new URLSearchParams({
+          field: field.dataset.field || '',
+          value: field.value || '',
+        });
+        const response = await fetch(field.dataset.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          body: formData.toString(),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error || 'No s’ha pogut desar');
+        }
+        setAutosaveStatus(`Desat a les ${payload.updated}`);
+        if (feedbackNode) feedbackNode.textContent = payload.updated;
+      } catch (error) {
+        setAutosaveStatus('Error en desar', true);
+      }
+    };
+
+    field.addEventListener('input', () => {
+      const currentTimer = saveTimers.get(field);
+      if (currentTimer) window.clearTimeout(currentTimer);
+      setAutosaveStatus('Pendent de desar...');
+      const timer = window.setTimeout(runSave, 700);
+      saveTimers.set(field, timer);
+    });
+
+    field.addEventListener('blur', () => {
+      const currentTimer = saveTimers.get(field);
+      if (currentTimer) {
+        window.clearTimeout(currentTimer);
+      }
+      runSave();
+    });
+  });
 });
