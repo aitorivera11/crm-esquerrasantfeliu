@@ -286,6 +286,16 @@ textarea.form-control { min-height: 120px; }
     padding: 1rem;
     background: #fffdfa;
 }
+.meeting-item-actions .btn {
+    min-width: 5.5rem;
+    border-radius: 999px;
+}
+.meeting-item-actions form .btn {
+    min-width: 2.5rem;
+}
+[data-acta-point] textarea.form-control {
+    min-height: 96px;
+}
 .form-control, .form-select {
     border-radius: 1rem;
     border-color: rgba(226, 191, 161, .9);

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Execució de reunió · {{ reunio.titol }}{% endblock %}
+{% block page_title %}Execució i redacció d’acta{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Mode àgil per anar redactant l’acta sense entrar a editar cada punt.</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <section class="card card-panel p-4 mb-4">
+            <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+                <div>
+                    <p class="eyebrow mb-1">Execució de reunió</p>
+                    <h2 class="h3 mb-1">{{ reunio.titol }}</h2>
+                    <div class="text-muted">{{ reunio.inici|date:'d/m/Y H:i' }}{% if reunio.fi %} · fins {{ reunio.fi|date:'H:i' }}{% endif %}</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-outline-secondary" href="{% url 'reunions:reunio_detail' reunio.pk %}">Tornar a gestió</a>
+                    <a class="btn btn-outline-primary" href="{% url 'reunions:acta_update' acta.pk %}">Editar metadades</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="card card-panel p-4 mb-4">
+            <div class="section-heading">
+                <div>
+                    <h3 class="h4 mb-1">Redacció contínua de punts</h3>
+                    <p class="text-muted mb-0">Es desa automàticament mentre escrius (AJAX).</p>
+                </div>
+                <div class="small text-muted">Estat: <span data-autosave-status>Preparat</span></div>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for punt in acta.punts.all %}
+                    <article class="list-group-item px-0 py-3 border-bottom" data-acta-point>
+                        <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start mb-2">
+                            <div><span class="badge badge-deep">#{{ punt.ordre }}</span> <strong>{{ punt.titol }}</strong></div>
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'reunions:punt_acta_update' punt.pk %}">Editar complet</a>
+                        </div>
+                        <label class="form-label" for="punt-contingut-{{ punt.pk }}">Contingut</label>
+                        <textarea id="punt-contingut-{{ punt.pk }}" class="form-control mb-2" rows="4" data-quick-save data-field="contingut" data-url="{% url 'reunions:punt_acta_quick_update' punt.pk %}">{{ punt.contingut }}</textarea>
+                        <label class="form-label" for="punt-acords-{{ punt.pk }}">Acords</label>
+                        <textarea id="punt-acords-{{ punt.pk }}" class="form-control" rows="3" data-quick-save data-field="acords" data-url="{% url 'reunions:punt_acta_quick_update' punt.pk %}">{{ punt.acords }}</textarea>
+                        <div class="small text-muted mt-2">Última actualització: <span data-point-feedback>—</span></div>
+                    </article>
+                {% empty %}
+                    <p class="text-muted mb-0">No hi ha punts d’acta. Afegeix-ne des de la pantalla de gestió.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        {% include 'components/share_actions_panel.html' with heading='Comparteix acta' description='Mòdul centralitzat per compartir o exportar l’acta.' chip='Acta' whatsapp_url=acta_whatsapp_url telegram_url=acta_telegram_url email_url=acta_email_url share_url=acta_share_url share_text=acta_text native_title='Acta' export_url=acta_export_url %}
+    </div>
+</div>
+{% endblock %}
