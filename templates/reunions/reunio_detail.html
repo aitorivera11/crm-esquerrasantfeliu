@@ -25,7 +25,21 @@
         </section>
 
         <section id="ordre-dia" class="card card-panel p-4 mb-4">
-            <div class="section-heading"><div><h3 class="h4 mb-1">Ordre del dia</h3><p class="text-muted mb-0">Punts preparats abans de la reunió, amb estat i responsable.</p></div></div>
+            <div class="section-heading"><div><h3 class="h4 mb-1">1) Prepara l’ordre del dia</h3><p class="text-muted mb-0">Crea els títols dels punts i ordena’ls. La descripció és opcional.</p></div><div class="d-flex gap-2 flex-wrap"><a class="btn btn-outline-primary btn-sm" href="{% url 'reunions:ordre_dia_export' reunio.pk %}">Exportar TXT</a><a class="btn btn-outline-primary btn-sm" target="_blank" href="https://wa.me/?text={{ ordre_dia_text_url }}">WhatsApp</a><a class="btn btn-outline-primary btn-sm" href="mailto:?subject=Ordre del dia · {{ reunio.titol|urlencode }}&body={{ ordre_dia_text_url }}">Correu</a></div></div>
+            {% if tasques_proposades_ordre %}
+            <div class="workflow-alert mb-3">
+                <strong>Tasques marcades per al següent ordre del dia</strong>
+                <div class="small text-muted mb-2">Detectades automàticament. Pots convertir-les en punt amb un clic.</div>
+                <div class="d-grid gap-2">
+                    {% for tasca in tasques_proposades_ordre %}
+                        <div class="d-flex justify-content-between gap-2 flex-wrap align-items-center">
+                            <div><strong>{{ tasca.titol }}</strong><div class="small text-muted">{{ tasca.responsable|default:'Sense responsable' }}{% if tasca.reunio_origen %} · Reunió origen: {{ tasca.reunio_origen.titol }}{% endif %}</div></div>
+                            <form method="post" action="{% url 'reunions:punt_ordre_from_tasca' reunio.pk tasca.pk %}">{% csrf_token %}<button class="btn btn-sm btn-workflow">Crear punt</button></form>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
             <div class="list-group list-group-flush">
                 {% for punt in reunio.punts_ordre_dia.all %}
                     <div class="list-group-item px-0 py-3 border-bottom">
@@ -35,7 +49,12 @@
                                 {% if punt.descripcio %}<div class="text-muted">{{ punt.descripcio|linebreaksbr }}</div>{% endif %}
                                 <div class="small text-muted">Responsable: {{ punt.responsable|default:'—' }}{% if punt.durada_estimada %} · {{ punt.durada_estimada }} min{% endif %}</div>
                             </div>
-                            <div class="d-flex gap-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'reunions:punt_ordre_update' punt.pk %}">Editar</a><form method="post" action="{% url 'reunions:punt_ordre_delete' reunio.pk punt.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button></form></div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <form method="post" action="{% url 'reunions:punt_ordre_move' reunio.pk punt.pk %}">{% csrf_token %}<input type="hidden" name="direction" value="up"><button class="btn btn-sm btn-outline-secondary">↑</button></form>
+                                <form method="post" action="{% url 'reunions:punt_ordre_move' reunio.pk punt.pk %}">{% csrf_token %}<input type="hidden" name="direction" value="down"><button class="btn btn-sm btn-outline-secondary">↓</button></form>
+                                <a class="btn btn-sm btn-outline-primary" href="{% url 'reunions:punt_ordre_update' punt.pk %}">Editar</a>
+                                <form method="post" action="{% url 'reunions:punt_ordre_delete' reunio.pk punt.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
+                            </div>
                         </div>
                     </div>
                 {% empty %}
@@ -43,13 +62,34 @@
                 {% endfor %}
             </div>
             <hr class="my-4">
-            <h4 class="h5">Afegir punt</h4>
-            <form method="post" action="{% url 'reunions:punt_ordre_create' reunio.pk %}">{% csrf_token %}{% include 'components/form_fields.html' with form=punt_form %}<button class="btn btn-outline-primary mt-3">Afegir punt</button></form>
+            <h4 class="h5">Afegir punt ràpid</h4>
+            <form method="post" action="{% url 'reunions:punt_ordre_create' reunio.pk %}" class="workflow-form">{% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="{{ punt_form.titol.id_for_label }}">Títol del punt</label>
+                        {{ punt_form.titol }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="{{ punt_form.responsable.id_for_label }}">Responsable (opcional)</label>
+                        {{ punt_form.responsable }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="{{ punt_form.durada_estimada.id_for_label }}">Durada estimada (min)</label>
+                        {{ punt_form.durada_estimada }}
+                    </div>
+                </div>
+                <details class="mt-3">
+                    <summary class="text-muted">Afegir més detall (opcional)</summary>
+                    <div class="mt-3">{{ punt_form.descripcio }}</div>
+                    <div class="mt-3 d-flex gap-3 flex-wrap"><div class="form-check">{{ punt_form.requereix_acord }} <label class="form-check-label" for="{{ punt_form.requereix_acord.id_for_label }}">Requereix acord</label></div><div>{{ punt_form.estat }}</div></div>
+                </details>
+                <button class="btn btn-workflow mt-3">Afegir punt</button>
+            </form>
         </section>
 
         <section id="acta" class="card card-panel p-4">
-            <div class="section-heading"><div><h3 class="h4 mb-1">Acta</h3><p class="text-muted mb-0">Base construïda des de l’ordre del dia, amb opcions per afegir punts nous.</p></div>{% if acta %}<a class="btn btn-outline-primary" href="{% url 'reunions:acta_update' acta.pk %}">Editar acta</a>{% endif %}</div>
-            <form method="post" action="{% url 'reunions:acta_upsert' reunio.pk %}">{% csrf_token %}{% include 'components/form_fields.html' with form=acta_form %}<button class="btn btn-primary mt-3">Desar acta</button></form>
+            <div class="section-heading"><div><h3 class="h4 mb-1">2) Inicia i redacta l’acta</h3><p class="text-muted mb-0">L’acta neix amb els punts de l’ordre del dia i pots afegir-ne de nous en directe.</p></div>{% if acta %}<div class="d-flex gap-2 flex-wrap"><a class="btn btn-outline-primary btn-sm" href="{% url 'reunions:acta_update' acta.pk %}">Editar acta</a><a class="btn btn-outline-primary btn-sm" href="{% url 'reunions:acta_export' reunio.pk %}">Exportar TXT</a><a class="btn btn-outline-primary btn-sm" target="_blank" href="https://wa.me/?text={{ acta_text_url }}">WhatsApp</a><a class="btn btn-outline-primary btn-sm" href="mailto:?subject=Acta · {{ reunio.titol|urlencode }}&body={{ acta_text_url }}">Correu</a></div>{% endif %}</div>
+            <form method="post" action="{% url 'reunions:acta_upsert' reunio.pk %}" class="workflow-form">{% csrf_token %}{% include 'components/form_fields.html' with form=acta_form %}<button class="btn btn-workflow mt-3">Desar acta</button></form>
             {% if acta %}
                 <hr class="my-4">
                 <div class="list-group list-group-flush">
@@ -65,6 +105,18 @@
                 <hr class="my-4">
                 <h4 class="h5">Afegir punt d’acta</h4>
                 <form method="post" action="{% url 'reunions:punt_acta_create' acta.pk %}">{% csrf_token %}{% include 'components/form_fields.html' with form=punt_acta_form %}<button class="btn btn-outline-primary mt-3">Afegir punt d’acta</button></form>
+                <hr class="my-4">
+                <h4 class="h5">Crear tasca ràpida mentre redactes</h4>
+                <p class="text-muted">Registra una tasca mínima ara i completa-la després sense perdre el fil.</p>
+                <form method="post" action="{% url 'reunions:tasca_rapida_create' reunio.pk %}" class="workflow-form">{% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">{{ tasca_rapida_form.titol.label_tag }}{{ tasca_rapida_form.titol }}</div>
+                        <div class="col-12 col-md-4">{{ tasca_rapida_form.responsable.label_tag }}{{ tasca_rapida_form.responsable }}</div>
+                        <div class="col-12 col-md-4">{{ tasca_rapida_form.prioritat.label_tag }}{{ tasca_rapida_form.prioritat }}</div>
+                        <div class="col-12 col-md-4">{{ tasca_rapida_form.data_limit.label_tag }}{{ tasca_rapida_form.data_limit }}</div>
+                    </div>
+                    <button class="btn btn-workflow mt-3">Afegir tasca ràpida</button>
+                </form>
             {% endif %}
         </section>
     </div>
@@ -77,7 +129,7 @@
                     <a class="list-group-item px-0 py-3 border-bottom text-decoration-none" href="{{ tasca.get_absolute_url }}"><strong>{{ tasca.titol }}</strong><div class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.responsable }}</div></a>
                 {% empty %}<p class="text-muted mb-0">No hi ha tasques vinculades encara.</p>{% endfor %}
             </div>
-            <div class="mt-3"><a class="btn btn-outline-primary w-100" href="{% url 'reunions:tasca_create' %}?reunio={{ reunio.pk }}">Crear tasca</a></div>
+            <div class="mt-3"><a class="btn btn-workflow w-100" href="{% url 'reunions:tasca_create' %}?reunio={{ reunio.pk }}">Crear tasca completa</a></div>
         </section>
         <section class="card card-panel p-4">
             <h3 class="h5">Agenda i assistència</h3>

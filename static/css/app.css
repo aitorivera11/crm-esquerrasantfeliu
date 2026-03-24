@@ -100,6 +100,18 @@ a:hover { color: var(--accent); }
     color: var(--deep);
     border-color: rgba(0, 13, 35, 0.24);
 }
+.btn-workflow {
+    background: linear-gradient(135deg, #f95838, #ff7b5e);
+    border-color: #f95838;
+    color: white;
+    box-shadow: 0 10px 22px rgba(249, 88, 56, .25);
+}
+.btn-workflow:hover,
+.btn-workflow:focus {
+    background: linear-gradient(135deg, #e24a2b, #f95838);
+    border-color: #e24a2b;
+    color: white;
+}
 
 .app-shell { min-height: 100vh; display: flex; width: 100%; overflow-x: clip; }
 .app-sidebar {
@@ -262,6 +274,18 @@ textarea.form-control { min-height: 120px; }
 .meta-card strong { display:block; margin-top:.35rem; }
 .badge-soft { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(249,88,56,.15); }
 .badge-deep { background: rgba(0,13,35,.08); color: var(--deep); border: 1px solid rgba(0,13,35,.1); }
+.workflow-alert {
+    border: 1px solid rgba(249,88,56,.22);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #fff8f3, #fff);
+    padding: 1rem;
+}
+.workflow-form {
+    border: 1px dashed rgba(226,191,161,.9);
+    border-radius: 1rem;
+    padding: 1rem;
+    background: #fffdfa;
+}
 .form-control, .form-select {
     border-radius: 1rem;
     border-color: rgba(226, 191, 161, .9);

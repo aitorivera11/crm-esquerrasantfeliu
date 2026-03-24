@@ -1,4 +1,7 @@
+from urllib.parse import quote
+
 from django.contrib import messages
+from django.http import HttpResponse
 from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -15,10 +18,11 @@ from .forms import (
     ReunioForm,
     SeguimentTascaForm,
     TascaForm,
+    TascaRapidaReunioForm,
     TascaRelacioReunioForm,
     inicialitzar_punts_acta_des_de_ordre_dia,
 )
-from .models import Acta, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca
+from .models import Acta, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
 
 
 class ReunionsPermissionMixin(RoleRequiredMixin):
@@ -93,6 +97,8 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
         context = super().get_context_data(**kwargs)
         reunio = context['reunio']
         acta = getattr(reunio, 'acta', None)
+        ordre_dia_text = generar_text_ordre_dia(reunio)
+        acta_text = generar_text_acta(acta) if acta else ''
         agenda_acte = reunio.acte_agenda
         agenda_confirmats = []
         agenda_potser = []
@@ -106,8 +112,17 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
             'punt_form': PuntOrdreDiaForm(),
             'acta_form': ActaForm(instance=acta, reunio=reunio) if acta else ActaForm(reunio=reunio, initial={'redactada_per': self.request.user}),
             'punt_acta_form': PuntActaForm(reunio=reunio),
+            'tasca_rapida_form': TascaRapidaReunioForm(usuari=self.request.user),
             'tasques_relacionades': Tasca.objects.filter(relacions_reunio__reunio=reunio).select_related('responsable').distinct(),
             'tasques_obertes': tasques_obertes_queryset(Tasca.objects.filter(relacions_reunio__reunio=reunio)).select_related('responsable').distinct(),
+            'tasques_proposades_ordre': Tasca.objects.filter(
+                proposar_seguent_ordre_dia=True,
+                estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA],
+            ).exclude(relacions_reunio__reunio=reunio).select_related('responsable', 'reunio_origen').distinct()[:8],
+            'ordre_dia_text': ordre_dia_text,
+            'ordre_dia_text_url': quote(ordre_dia_text),
+            'acta_text': acta_text,
+            'acta_text_url': quote(acta_text) if acta_text else '',
             'acta': acta,
             'agenda_acte': agenda_acte,
             'agenda_confirmats': agenda_confirmats,
@@ -153,8 +168,7 @@ class PuntOrdreDiaCreateView(ReunionsBaseMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.reunio = self.reunio
-        if not form.instance.ordre:
-            form.instance.ordre = self.reunio.punts_ordre_dia.count() + 1
+        form.instance.ordre = self.reunio.punts_ordre_dia.count() + 1
         messages.success(self.request, 'Punt de l’ordre del dia afegit.')
         return super().form_valid(form)
 
@@ -179,6 +193,46 @@ class PuntOrdreDiaDeleteView(ReunionsBaseMixin, TemplateView):
         punt.delete()
         messages.success(request, 'Punt de l’ordre del dia eliminat.')
         return redirect('reunions:reunio_detail', pk=reunio_id)
+
+
+class PuntOrdreDiaMoveView(ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        punt = get_object_or_404(PuntOrdreDia, pk=kwargs['punt_pk'], reunio=reunio)
+        direction = request.POST.get('direction')
+        neighbour_order = punt.ordre - 1 if direction == 'up' else punt.ordre + 1
+        neighbour = reunio.punts_ordre_dia.filter(ordre=neighbour_order).first()
+        if neighbour:
+            punt.ordre, neighbour.ordre = neighbour.ordre, punt.ordre
+            punt.save(update_fields=['ordre'])
+            neighbour.save(update_fields=['ordre'])
+            messages.success(request, 'Ordre del dia reordenat.')
+        else:
+            messages.info(request, 'Aquest punt ja és a la posició límit.')
+        return redirect('reunions:reunio_detail', pk=reunio.pk)
+
+
+class PuntOrdreDiaCreateFromTaskView(ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        tasca = get_object_or_404(Tasca, pk=kwargs['tasca_pk'])
+        nou_ordre = reunio.punts_ordre_dia.count() + 1
+        PuntOrdreDia.objects.create(
+            reunio=reunio,
+            ordre=nou_ordre,
+            titol=tasca.titol,
+            descripcio=tasca.motiu_proposta_ordre_dia or '',
+            responsable=tasca.responsable,
+            estat=PuntOrdreDia.Estat.PENDENT,
+        )
+        TascaRelacioReunio.objects.get_or_create(
+            tasca=tasca,
+            reunio=reunio,
+            tipus_relacio=TascaRelacioReunio.TipusRelacio.PROPOSTA_ORDRE_DIA,
+            defaults={'resum': 'Punt de l’ordre del dia generat des de la tasca proposada.'},
+        )
+        messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
+        return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 
 class ActaUpdateView(ReunionsBaseMixin, UpdateView):
@@ -240,6 +294,56 @@ class PuntActaCreateView(ReunionsBaseMixin, CreateView):
 
     def get_success_url(self):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.acta.reunio_id}) + '#acta'
+
+
+class ReunioQuickTaskCreateView(ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        acta = getattr(reunio, 'acta', None)
+        form = TascaRapidaReunioForm(request.POST, usuari=request.user)
+        if form.is_valid():
+            tasca = form.save(commit=False)
+            tasca.creada_per = request.user
+            tasca.responsable = tasca.responsable or request.user
+            tasca.origen = Tasca.Origen.REUNIO
+            tasca.reunio_origen = reunio
+            tasca.save()
+            if acta and acta.punts.exists():
+                ultim_punt = acta.punts.order_by('-ordre', '-pk').first()
+                tasca.punt_acta_origen = ultim_punt
+                tasca.save(update_fields=['punt_acta_origen'])
+            TascaRelacioReunio.objects.get_or_create(
+                tasca=tasca,
+                reunio=reunio,
+                punt_acta=tasca.punt_acta_origen,
+                tipus_relacio=TascaRelacioReunio.TipusRelacio.ORIGEN,
+                defaults={'resum': 'Tasca creada ràpidament des de la redacció de l’acta.'},
+            )
+            messages.success(request, 'Tasca ràpida afegida sense sortir de l’acta.')
+        else:
+            messages.error(request, 'No s’ha pogut crear la tasca ràpida. Revisa títol i prioritat.')
+        return redirect('reunions:reunio_detail', pk=reunio.pk)
+
+
+class ReunioOrdreDiaExportView(ReunionsBaseMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        text = generar_text_ordre_dia(reunio)
+        filename = f'ordre-dia-reunio-{reunio.pk}.txt'
+        response = HttpResponse(text, content_type='text/plain; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+
+class ReunioActaExportView(ReunionsBaseMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        acta = get_object_or_404(Acta, reunio=reunio)
+        text = generar_text_acta(acta)
+        filename = f'acta-reunio-{reunio.pk}.txt'
+        response = HttpResponse(text, content_type='text/plain; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
 
 class PuntActaUpdateView(ReunionsBaseMixin, UpdateView):
@@ -380,3 +484,27 @@ class SeguimentPanelView(ReunionsBaseMixin, TemplateView):
             ).filter(total_obertes__gt=0).select_related('area')[:10],
         })
         return context
+
+
+def generar_text_ordre_dia(reunio):
+    lines = [f'Ordre del dia · {reunio.titol}', '']
+    for punt in reunio.punts_ordre_dia.order_by('ordre', 'pk'):
+        lines.append(f'{punt.ordre}. {punt.titol}')
+    return '\n'.join(lines).strip()
+
+
+def generar_text_acta(acta):
+    lines = [f'Acta · {acta.reunio.titol}', '']
+    for punt in acta.punts.order_by('ordre', 'pk'):
+        lines.append(f'{punt.ordre}. {punt.titol}')
+        if punt.contingut:
+            lines.append(punt.contingut.strip())
+        if punt.acords:
+            lines.append(f'Acords: {punt.acords.strip()}')
+        tasques = list(punt.tasques_generades.select_related('responsable').all())
+        if tasques:
+            lines.append('Tasques relacionades:')
+            for index, tasca in enumerate(tasques, start=1):
+                lines.append(f'{punt.ordre}.{index} - {tasca.titol} ({tasca.responsable})')
+        lines.append('')
+    return '\n'.join(lines).strip()
