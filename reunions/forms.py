@@ -108,6 +108,7 @@ class PuntOrdreDiaForm(StyledFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['ordre'].required = False
         self.fields['responsable'].queryset = Usuari.objects.order_by('nom_complet', 'username')
 
 
@@ -250,6 +251,24 @@ class TascaRelacioReunioForm(StyledFormMixin, forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class TascaRapidaReunioForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Tasca
+        fields = ['titol', 'responsable', 'data_limit', 'prioritat']
+        widgets = {
+            'data_limit': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, usuari=None, **kwargs):
+        self.usuari = usuari
+        super().__init__(*args, **kwargs)
+        ordered_users = Usuari.objects.order_by('nom_complet', 'username')
+        self.fields['responsable'].queryset = ordered_users
+        self.fields['responsable'].required = False
+        if self.usuari and not self.initial.get('responsable'):
+            self.initial['responsable'] = self.usuari
 
 
 def inicialitzar_punts_acta_des_de_ordre_dia(acta):
