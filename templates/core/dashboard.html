@@ -1,35 +1,39 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Visió ràpida de l'activitat i els següents passos.</p>{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Una vista útil del que tens pendent i del que ve a continuació.</p>{% endblock %}
 {% block content %}
 <section class="hero-panel hero-panel-compact mb-4">
     <div class="hero-grid">
         <div>
-            <span class="hero-badge">● Operativa</span>
-            <h2>Tot a punt per moure campanya.</h2>
-            <p class="text-muted mb-0">Menys soroll, més acció.</p>
+            <span class="hero-badge">● Seguiment personal</span>
+            <h2>Prioritza el que depèn de tu.</h2>
+            <p class="text-muted mb-0">Actes, reunions i tasques en una sola pantalla.</p>
         </div>
         <aside class="hero-side">
             <div>
-                <p class="eyebrow mb-2">Pròxims actes</p>
-                <div class="metric">{{ propers_actes|length }}</div>
-                <p>Seguiment immediat.</p>
+                <p class="eyebrow mb-2">Pròxims actes visibles</p>
+                <div class="metric">{{ propers_actes_total }}</div>
+                <p>Prioritzats per creats per tu i no importats.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <span class="info-chip">Agenda</span>
-                <span class="info-chip">Equip</span>
-                <span class="info-chip">Territori</span>
+                {% if can_access_reunions %}<span class="info-chip">Reunions</span>{% endif %}
+                {% if can_access_reunions %}<span class="info-chip">Tasques</span>{% endif %}
             </div>
         </aside>
     </div>
 </section>
 
 <section class="stats-grid mb-4">
-    <article class="stat-card"><span class="stat-label">Actes</span><strong>{{ total_actes }}</strong><small>{{ actes_publicats }} publicats</small></article>
-    <article class="stat-card"><span class="stat-label">Propers</span><strong>{{ propers_actes|length }}</strong><small>Seguiment ràpid</small></article>
-    <article class="stat-card"><span class="stat-label">Persones</span><strong>{{ total_persones }}</strong><small>Base social</small></article>
-    <article class="stat-card"><span class="stat-label">Usuaris</span><strong>{{ usuaris_actius }}</strong><small>Comptes actius</small></article>
+    <article class="stat-card"><span class="stat-label">Actes visibles</span><strong>{{ total_actes_visibles }}</strong><small>{{ actes_importats_visibles }} importats</small></article>
+    <article class="stat-card"><span class="stat-label">Actes creats per mi</span><strong>{{ actes_creats_per_mi }}</strong><small>Propietat directa</small></article>
+    <article class="stat-card"><span class="stat-label">Participacions</span><strong>{{ participacions_meves|length }}</strong><small>Pròxims compromisos</small></article>
+    {% if can_access_reunions %}
+    <article class="stat-card"><span class="stat-label">Tasques meves</span><strong>{{ meves_tasques|length }}</strong><small>{{ tasques_vencudes_meves }} vencudes</small></article>
+    {% else %}
+    <article class="stat-card"><span class="stat-label">Propers actes</span><strong>{{ propers_actes|length }}</strong><small>Planificació immediata</small></article>
+    {% endif %}
 </section>
 
 <div class="row g-4">
@@ -37,8 +41,8 @@
         <section class="card card-panel h-100 p-4">
             <div class="section-heading">
                 <div>
-                    <h3 class="h4 mb-1">Propers actes</h3>
-                    <p class="text-muted mb-0">El que ve ara.</p>
+                    <h3 class="h4 mb-1">Futurs actes prioritzats</h3>
+                    <p class="text-muted mb-0">Primer els creats per tu, després els no importats.</p>
                 </div>
                 <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-primary">Obrir agenda</a>
             </div>
@@ -50,9 +54,11 @@
                                 <div>
                                     <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
                                         <strong>{{ acte.titol }}</strong>
-                                        {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}{% if acte.tipus %}<span class="badge badge-type" style="--type-accent: {{ acte.tipus.color|default:'#6c7a89' }};">{{ acte.tipus.nom }}</span>{% endif %}{% if acte.external_source %}<span class="badge badge-external">Importat</span>{% endif %}
+                                        {% if acte.creador_id == request.user.id %}<span class="badge badge-important">Creat per mi</span>{% endif %}
+                                        {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}
+                                        {% if acte.external_source %}<span class="badge badge-external">Importat</span>{% endif %}
                                     </div>
-                                    <div class="text-muted small">{{ acte.ubicacio }}</div>
+                                    <div class="text-muted small">{{ acte.ubicacio|default:'Sense ubicació' }}</div>
                                 </div>
                                 <div class="text-md-end">
                                     <div>{{ acte.inici|date:'d/m/Y' }}</div>
@@ -63,28 +69,109 @@
                     {% endfor %}
                 </div>
             {% else %}
-                {% if perms.agenda.add_acte %}
-                    {% url 'agenda:acte_create' as create_acte_url %}
-                    {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Crea el primer acte per activar l’agenda.' action_url=create_acte_url action_label='Crear acte' %}
-                {% else %}
-                    {% include 'components/empty_state.html' with icon='📅' title='Encara no hi ha actes' message='Quan es publiqui el primer acte, el veuràs aquí.' %}
-                {% endif %}
+                {% include 'components/empty_state.html' with icon='📅' title='No hi ha actes propers' message='Quan hi hagi actes publicats, els veuràs aquí.' %}
             {% endif %}
         </section>
     </div>
     <div class="col-12 col-xl-4">
         <section class="card card-panel h-100 p-4">
-            <h3 class="h4 mb-3">Accions</h3>
+            <h3 class="h4 mb-3">El meu seguiment immediat</h3>
             <div class="d-grid gap-2 quick-actions">
-                {% if perms.agenda.add_acte %}<a href="{% url 'agenda:acte_create' %}" class="btn btn-primary">Nou acte</a>{% endif %}
-                {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}<a href="{% url 'persones:persona_create' %}" class="btn btn-outline-primary">Afegir persona</a>{% endif %}
-                {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}<a href="{% url 'reunions:reunio_create' %}" class="btn btn-outline-primary">Nova reunió</a>{% endif %}
+                <a href="{% url 'agenda:els_meus_actes' %}" class="btn btn-outline-primary">Els meus actes</a>
+                {% if can_access_reunions %}<a href="{% url 'reunions:reunio_list' %}" class="btn btn-outline-primary">Reunions</a>{% endif %}
+                {% if can_access_reunions %}<a href="{% url 'reunions:tasca_list' %}" class="btn btn-outline-primary">Tasques</a>{% endif %}
+                {% if can_access_reunions %}<a href="{% url 'reunions:panel_seguiment' %}" class="btn btn-outline-primary">Panell de seguiment</a>{% endif %}
                 <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">El meu perfil</a>
-                {% if request.user.rol == 'ADMINISTRACIO' %}
-                <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-outline-dark">Nou usuari</a>
-                {% endif %}
             </div>
         </section>
     </div>
 </div>
+
+{% if can_access_reunions %}
+<div class="row g-4 mt-1">
+    <div class="col-12 col-xl-6">
+        <section class="card card-panel p-4 h-100">
+            <div class="section-heading">
+                <div>
+                    <h3 class="h4 mb-1">Futures reunions vinculades a mi</h3>
+                    <p class="text-muted mb-0">Convocades, moderades o amb assistència teva.</p>
+                </div>
+            </div>
+            {% if futures_reunions %}
+                <div class="list-group list-group-flush">
+                    {% for reunio in futures_reunions %}
+                    <a href="{% url 'reunions:reunio_detail' reunio.pk %}" class="list-group-item list-group-item-action px-0 py-3 border-bottom">
+                        <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+                            <div>
+                                <strong>{{ reunio.titol }}</strong>
+                                <div class="text-muted small">{{ reunio.get_estat_display }} · {{ reunio.ubicacio|default:'Sense ubicació' }}</div>
+                            </div>
+                            <div class="text-md-end">
+                                <div>{{ reunio.inici|date:'d/m/Y' }}</div>
+                                <div class="text-muted small">{{ reunio.inici|date:'H:i' }}</div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% include 'components/empty_state.html' with icon='🗓️' title='No tens reunions properes' message='Quan et convoquin o en creïs, apareixeran aquí.' %}
+            {% endif %}
+        </section>
+    </div>
+    <div class="col-12 col-xl-6">
+        <section class="card card-panel p-4 h-100">
+            <div class="section-heading">
+                <div>
+                    <h3 class="h4 mb-1">Tasques assignades a mi</h3>
+                    <p class="text-muted mb-0">Ordenades per venciment i rellevància.</p>
+                </div>
+            </div>
+            {% if meves_tasques %}
+                <div class="list-group list-group-flush">
+                    {% for tasca in meves_tasques %}
+                    <a href="{% url 'reunions:tasca_detail' tasca.pk %}" class="list-group-item list-group-item-action px-0 py-3 border-bottom">
+                        <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+                            <div>
+                                <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+                                    <strong>{{ tasca.titol }}</strong>
+                                    {% if tasca.prioritat == 'URGENT' %}<span class="badge badge-important">Urgent</span>{% endif %}
+                                    {% if tasca.esta_vencuda %}<span class="badge badge-external">Vencuda</span>{% endif %}
+                                </div>
+                                <div class="text-muted small">{{ tasca.get_estat_display }}{% if tasca.area %} · {{ tasca.area.nom }}{% endif %}</div>
+                            </div>
+                            <div class="text-md-end">
+                                <div>{% if tasca.data_limit %}{{ tasca.data_limit|date:'d/m/Y' }}{% else %}Sense límit{% endif %}</div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% include 'components/empty_state.html' with icon='✅' title='No tens tasques pendents' message='Bon ritme: no hi ha tasques obertes al teu nom.' %}
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endif %}
+
+{% if request.user.rol == 'ADMINISTRACIO' %}
+<section class="card card-panel p-4 mt-4">
+    <div class="section-heading">
+        <div>
+            <h3 class="h4 mb-1">Visió global d'administració</h3>
+            <p class="text-muted mb-0">Indicadors clau per control operatiu general.</p>
+        </div>
+        <a href="{% url 'usuaris:admin_usuari_list' %}" class="btn btn-outline-dark">Gestionar usuaris</a>
+    </div>
+    <div class="stats-grid">
+        <article class="stat-card"><span class="stat-label">Usuaris actius</span><strong>{{ usuaris_actius }}</strong><small>{{ usuaris_pendents }} pendents</small></article>
+        <article class="stat-card"><span class="stat-label">Persones</span><strong>{{ total_persones }}</strong><small>{{ persones_sense_entitat }} sense entitat</small></article>
+        <article class="stat-card"><span class="stat-label">Actes</span><strong>{{ actes_publicats }}</strong><small>{{ actes_importats_total }} importats totals</small></article>
+        <article class="stat-card"><span class="stat-label">Reunions obertes</span><strong>{{ reunions_obertes }}</strong><small>Preparació o convocades</small></article>
+        <article class="stat-card"><span class="stat-label">Tasques obertes</span><strong>{{ tasques_obertes }}</strong><small>{{ tasques_bloquejades }} bloquejades</small></article>
+        <article class="stat-card"><span class="stat-label">Tasques vencudes</span><strong>{{ tasques_vencudes_globals }}</strong><small>Seguiment crític</small></article>
+    </div>
+</section>
+{% endif %}
 {% endblock %}
