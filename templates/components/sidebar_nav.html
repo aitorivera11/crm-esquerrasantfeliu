@@ -1,24 +1,58 @@
 <nav class="sidebar-nav">
-    <a href="{% url 'core:home' %}" class="nav-link-side {% if request.resolver_match.namespace == 'core' %}active{% endif %}">Dashboard</a>
+    <a href="{% url 'core:home' %}" class="nav-link-side {% if request.resolver_match.namespace == 'core' %}active{% endif %}">Inici</a>
+
     <div class="nav-group {% if request.resolver_match.namespace == 'agenda' %}open{% endif %}">
-        <a href="{% url 'agenda:acte_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'agenda' and request.resolver_match.url_name != 'els_meus_actes' %}active{% endif %}">Agenda</a>
+        <span class="nav-link-side nav-link-heading">Agenda</span>
         <div class="nav-submenu">
-            <a href="{% url 'agenda:els_meus_actes' %}" class="nav-link-sub {% if request.resolver_match.url_name == 'els_meus_actes' %}active{% endif %}">Els meus actes</a>
+            <a href="{% url 'agenda:els_meus_actes' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'agenda' and request.resolver_match.url_name == 'els_meus_actes' %}active{% endif %}">Els meus actes</a>
         </div>
     </div>
+
     {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' %}
-    <div class="nav-group {% if request.resolver_match.namespace == 'reunions' %}open{% endif %}">
-        <a href="{% url 'reunions:reunio_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name != 'tasca_list' and request.resolver_match.url_name != 'panel_seguiment' %}active{% endif %}">Reunions</a>
+    <div class="nav-group {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'reunio_list' %}open{% endif %}">
+        <span class="nav-link-side nav-link-heading">Reunions</span>
         <div class="nav-submenu">
-            <a href="{% url 'reunions:tasca_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'tasca_list' %}active{% endif %}">Tasques</a>
+            <a href="{% url 'reunions:reunio_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'reunio_list' %}active{% endif %}">Llistat de reunions</a>
+        </div>
+    </div>
+    <div class="nav-group {% if request.resolver_match.namespace == 'reunions' and (request.resolver_match.url_name == 'tasca_list' or request.resolver_match.url_name == 'panel_seguiment') %}open{% endif %}">
+        <span class="nav-link-side nav-link-heading">Tasques</span>
+        <div class="nav-submenu">
+            <a href="{% url 'reunions:tasca_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'tasca_list' %}active{% endif %}">Totes les tasques</a>
             <a href="{% url 'reunions:panel_seguiment' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'reunions' and request.resolver_match.url_name == 'panel_seguiment' %}active{% endif %}">Panell de seguiment</a>
         </div>
     </div>
-    <a href="{% url 'persones:persona_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'persones' %}active{% endif %}">Persones</a>
-    <a href="{% url 'entitats:entitat_list' %}" class="nav-link-side {% if request.resolver_match.namespace == 'entitats' %}active{% endif %}">Entitats</a>
+    <div class="nav-group {% if request.resolver_match.namespace == 'persones' or request.resolver_match.namespace == 'entitats' %}open{% endif %}">
+        <span class="nav-link-side nav-link-heading">Entorn</span>
+        <div class="nav-submenu">
+            <a href="{% url 'persones:persona_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'persones' %}active{% endif %}">Persones</a>
+            <a href="{% url 'entitats:entitat_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'entitats' %}active{% endif %}">Entitats</a>
+        </div>
+    </div>
     {% endif %}
-    <a href="{% url 'usuaris:perfil' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'perfil' %}active{% endif %}">El meu perfil</a>
-    <a href="{% url 'usuaris:canvi_password' %}" class="nav-link-side {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'canvi_password' %}active{% endif %}">Contrasenya</a>
+
+    <div class="nav-group {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name != 'admin_usuari_list' and request.resolver_match.url_name != 'admin_usuari_create' and request.resolver_match.url_name != 'admin_usuari_update' and request.resolver_match.url_name != 'admin_usuari_password' and request.resolver_match.url_name != 'admin_usuari_toggle_active' and request.resolver_match.url_name != 'admin_usuari_delete' %}open{% endif %}">
+        <span class="nav-link-side nav-link-heading">Usuari</span>
+        <div class="nav-submenu">
+            <a href="{% url 'usuaris:perfil' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'perfil' %}active{% endif %}">El meu perfil</a>
+            <a href="{% url 'usuaris:canvi_password' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name == 'canvi_password' %}active{% endif %}">Contrasenya</a>
+        </div>
+    </div>
+
+    {% if request.user.rol == 'ADMINISTRACIO' %}
+    <div class="nav-group {% if request.resolver_match.namespace == 'usuaris' and 'admin_usuari' in request.resolver_match.url_name %}open{% endif %}">
+        <span class="nav-link-side nav-link-heading">Administració</span>
+        <div class="nav-submenu">
+            <a href="{% url 'usuaris:admin_usuari_list' %}" class="nav-link-sub nav-link-side-split {% if request.resolver_match.namespace == 'usuaris' and 'admin_usuari' in request.resolver_match.url_name %}active{% endif %}">
+                <span>Usuaris</span>
+                {% if pending_user_registrations %}
+                    <span class="sidebar-badge">{{ pending_user_registrations }}</span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="sidebar-mobile-account d-md-none">
         <div class="sidebar-section">Compte</div>
         <div class="sidebar-mobile-account__name">{{ request.user.nom_complet|default:request.user.username }}</div>
@@ -28,13 +62,4 @@
             <button class="btn btn-sm btn-outline-light w-100">Sortir</button>
         </form>
     </div>
-    {% if request.user.rol == 'ADMINISTRACIO' %}
-        <div class="sidebar-section">Administració</div>
-        <a href="{% url 'usuaris:admin_usuari_list' %}" class="nav-link-side nav-link-side-split {% if request.resolver_match.namespace == 'usuaris' and 'admin_usuari' in request.resolver_match.url_name %}active{% endif %}">
-            <span>Usuaris</span>
-            {% if pending_user_registrations %}
-                <span class="sidebar-badge">{{ pending_user_registrations }}</span>
-            {% endif %}
-        </a>
-    {% endif %}
 </nav>

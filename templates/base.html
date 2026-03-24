@@ -14,7 +14,7 @@
 </head>
 <body>
 {% if request.user.is_authenticated %}
-<div class="app-shell" x-data="{menuOpen:false}">
+<div class="app-shell" x-data="{menuOpen:false, sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === '1'}" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''">
     <aside class="app-sidebar" :class="menuOpen ? 'is-open' : ''">
         <div class="sidebar-brand">
             <div class="brand-block">
@@ -41,6 +41,10 @@
         <header class="app-header">
             <div class="app-header-main d-flex align-items-start gap-3">
                 <button class="btn btn-outline-secondary d-lg-none" @click="menuOpen=true">☰</button>
+                <button class="btn btn-outline-secondary d-none d-lg-inline-flex"
+                        @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')"
+                        x-text="sidebarCollapsed ? 'Mostrar menú' : 'Amagar menú'">
+                </button>
                 <div>
                     <p class="eyebrow mb-1">CRM de campanya</p>
                     <h1 class="page-title mb-2">{% block page_title %}Panell de control{% endblock %}</h1>

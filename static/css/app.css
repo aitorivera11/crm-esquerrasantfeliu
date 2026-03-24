@@ -112,8 +112,16 @@ a:hover { color: var(--accent); }
     overflow-y: auto;
     z-index: 1040;
     border-right: 1px solid rgba(226, 191, 161, 0.18);
+    transition: transform .2s ease;
 }
 .app-main { margin-left: 296px; width: calc(100% - 296px); }
+.app-shell.sidebar-collapsed .app-sidebar {
+    transform: translateX(-100%);
+}
+.app-shell.sidebar-collapsed .app-main {
+    margin-left: 0;
+    width: 100%;
+}
 .app-header { padding: 1.5rem 2rem 0; display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; flex-wrap:wrap; }
 .app-header > * { min-width: 0; }
 .app-content { padding: 1.5rem 2rem 2rem; }
@@ -161,6 +169,14 @@ a:hover { color: var(--accent); }
 .nav-link-side {
     color: rgba(255,255,255,.8); text-decoration:none; padding:.9rem 1rem; border-radius:1rem; font-weight:700;
     display:flex; align-items:center; gap:.7rem; transition: all .18s ease;
+}
+.nav-link-heading {
+    color: rgba(255,255,255,.55);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    cursor: default;
+    pointer-events: none;
+    font-size: .9rem;
 }
 .nav-link-side:hover, .nav-link-side.active {
     background: linear-gradient(90deg, rgba(249,88,56,.16), rgba(255,255,255,.08));
@@ -336,6 +352,9 @@ textarea.form-control { min-height: 120px; }
 }
 
 @media (max-width: 991.98px) {
+    .app-shell.sidebar-collapsed .app-sidebar {
+        transform: translateX(-100%);
+    }
     .app-sidebar { transform: translateX(-100%); transition: transform .2s ease; max-width: min(296px, calc(100vw - 1rem)); }
     .app-sidebar.is-open { transform: translateX(0); }
     .app-main { margin-left: 0; width: 100%; min-width: 0; }
