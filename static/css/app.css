@@ -140,7 +140,7 @@ a:hover { color: var(--accent); }
     background: rgba(255,255,255,.05); border:1px solid rgba(226,191,161,.18);
 }
 .brand-logo { width: 46px; height: 46px; object-fit: contain; background: white; border-radius: .9rem; padding: .35rem; }
-.brand-logo-lg { width: 112px; height: 112px; padding: .75rem; border-radius: 1.4rem; box-shadow: 0 20px 40px rgba(0,0,0,.18); }
+.brand-logo-lg { width: 100%; height: 50px; padding: .75rem; border-radius: 1.4rem; box-shadow: 0 20px 40px rgba(0,0,0,.18); }
 .brand-copy strong { display:block; font-size: .95rem; }
 .brand-copy small { color: rgba(255,255,255,.72); }
 .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: .74rem; color: var(--muted); font-weight: 800; }
@@ -364,7 +364,7 @@ textarea.form-control { min-height: 120px; }
     .app-overlay { position: fixed; inset: 0; background: rgba(0, 13, 35, .45); display:block; z-index: 1030; }
     .header-user { border-radius: 1rem; width: 100%; justify-content: space-between; }
     .hero-grid, .login-brand { grid-template-columns: 1fr; }
-    .brand-logo-lg { width: 84px; height: 84px; }
+    .brand-logo-lg { width: 100%; height: 84px; }
 }
 
 

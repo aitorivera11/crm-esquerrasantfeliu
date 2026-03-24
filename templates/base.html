@@ -22,15 +22,10 @@
                     <img class="brand-logo brand-logo-lg" src="https://www.esquerra.cat/wp-content/uploads/erc-logo.png" alt="Logo Esquerra Republicana">
                     <div>
                         <p class="eyebrow mb-1">Campanya municipal</p>
-                        <span class="brand-link">Sant Feliu 2027<span>CRM de proximitat</span></span>
+                        <span class="brand-link">Orgullosament Sant Feliu 2027</span>
                     </div>
                 </a>
-                <div class="brand-logo-wrap">
-                    <div class="brand-copy">
-                        <strong>Esquerra Sant Feliu</strong>
-                        <small>Agenda, equip i territori connectats</small>
-                    </div>
-                </div>
+
             </div>
             <button class="btn btn-sm btn-outline-light d-lg-none" @click="menuOpen=false">Tancar</button>
         </div>
@@ -43,7 +38,7 @@
                 <button class="btn btn-outline-secondary d-lg-none" @click="menuOpen=true">☰</button>
                 <button class="btn btn-outline-secondary d-none d-lg-inline-flex"
                         @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')"
-                        x-text="sidebarCollapsed ? 'Mostrar menú' : 'Amagar menú'">
+                        x-text="sidebarCollapsed ? '☰' : '☰'">
                 </button>
                 <div>
                     <p class="eyebrow mb-1">CRM de campanya</p>

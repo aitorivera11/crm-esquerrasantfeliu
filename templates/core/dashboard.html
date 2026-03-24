@@ -3,46 +3,14 @@
 {% block page_title %}Dashboard{% endblock %}
 {% block page_intro %}<p class="page-subtitle mb-0">Una vista útil del que tens pendent i del que ve a continuació.</p>{% endblock %}
 {% block content %}
-<section class="hero-panel hero-panel-compact mb-4">
-    <div class="hero-grid">
-        <div>
-            <span class="hero-badge">● Seguiment personal</span>
-            <h2>Prioritza el que depèn de tu.</h2>
-            <p class="text-muted mb-0">Actes, reunions i tasques en una sola pantalla.</p>
-        </div>
-        <aside class="hero-side">
-            <div>
-                <p class="eyebrow mb-2">Pròxims actes visibles</p>
-                <div class="metric">{{ propers_actes_total }}</div>
-                <p>Prioritzats per creats per tu i no importats.</p>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-                <span class="info-chip">Agenda</span>
-                {% if can_access_reunions %}<span class="info-chip">Reunions</span>{% endif %}
-                {% if can_access_reunions %}<span class="info-chip">Tasques</span>{% endif %}
-            </div>
-        </aside>
-    </div>
-</section>
 
-<section class="stats-grid mb-4">
-    <article class="stat-card"><span class="stat-label">Actes visibles</span><strong>{{ total_actes_visibles }}</strong><small>{{ actes_importats_visibles }} importats</small></article>
-    <article class="stat-card"><span class="stat-label">Actes creats per mi</span><strong>{{ actes_creats_per_mi }}</strong><small>Propietat directa</small></article>
-    <article class="stat-card"><span class="stat-label">Participacions</span><strong>{{ participacions_meves|length }}</strong><small>Pròxims compromisos</small></article>
-    {% if can_access_reunions %}
-    <article class="stat-card"><span class="stat-label">Tasques meves</span><strong>{{ meves_tasques|length }}</strong><small>{{ tasques_vencudes_meves }} vencudes</small></article>
-    {% else %}
-    <article class="stat-card"><span class="stat-label">Propers actes</span><strong>{{ propers_actes|length }}</strong><small>Planificació immediata</small></article>
-    {% endif %}
-</section>
 
 <div class="row g-4">
     <div class="col-12 col-xl-8">
         <section class="card card-panel h-100 p-4">
             <div class="section-heading">
                 <div>
-                    <h3 class="h4 mb-1">Futurs actes prioritzats</h3>
-                    <p class="text-muted mb-0">Primer els creats per tu, després els no importats.</p>
+                    <h3 class="h4 mb-1">Agenda</h3>
                 </div>
                 <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-primary">Obrir agenda</a>
             </div>
