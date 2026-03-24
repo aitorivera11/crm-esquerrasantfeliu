@@ -264,6 +264,12 @@ textarea.form-control { min-height: 120px; }
 .list-group-item:last-child { border-bottom: 0 !important; }
 .quick-actions .btn { justify-content: center; }
 .section-heading { display:flex; justify-content:space-between; gap:1rem; align-items:flex-end; margin-bottom:1rem; }
+.inline-status-actions {
+    align-items: center;
+}
+.inline-status-actions .badge {
+    align-self: center;
+}
 .info-chip {
     display:inline-flex; align-items:center; gap:.45rem; padding:.4rem .7rem; border-radius:999px;
     background: var(--accent-soft); color: var(--deep); font-size:.85rem; font-weight:700;

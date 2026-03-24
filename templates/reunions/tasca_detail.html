@@ -12,7 +12,7 @@
                     <h2 class="h3 mb-1">{{ tasca.titol }}</h2>
                     <div class="text-muted">Responsable: {{ tasca.responsable }} · Creada per {{ tasca.creada_per }}{% if tasca.data_limit %} · Límit {{ tasca.data_limit|date:'d/m/Y' }}{% endif %}</div>
                 </div>
-                <div class="d-flex gap-2 flex-wrap"><span class="badge text-bg-light">{{ tasca.get_estat_display }}</span><span class="badge text-bg-dark">{{ tasca.get_prioritat_display }}</span><a class="btn btn-primary" href="{% url 'reunions:tasca_update' tasca.pk %}">Editar</a></div>
+                <div class="d-flex gap-2 flex-wrap inline-status-actions"><span class="badge text-bg-light">{{ tasca.get_estat_display }}</span><span class="badge text-bg-dark">{{ tasca.get_prioritat_display }}</span><a class="btn btn-primary" href="{% url 'reunions:tasca_update' tasca.pk %}">Editar</a></div>
             </div>
             <div class="meta-grid mb-4">
                 <div class="meta-card"><span>Àrea</span><strong>{{ tasca.area|default:'—' }}</strong></div>
