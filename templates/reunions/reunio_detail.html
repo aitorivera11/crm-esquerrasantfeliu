@@ -88,8 +88,13 @@
         </section>
 
         <section id="acta" class="card card-panel p-4">
-            <div class="section-heading"><div><h3 class="h4 mb-1">2) Execució de la reunió i acta</h3><p class="text-muted mb-0">Obre una pàgina exclusiva per redactar l’acta de forma contínua, amb autosave per punt.</p></div><a class="btn btn-workflow" href="{% url 'reunions:acta_workspace' reunio.pk %}">Obrir mode execució</a></div>
-            <form method="post" action="{% url 'reunions:acta_upsert' reunio.pk %}" class="workflow-form">{% csrf_token %}{% include 'components/form_fields.html' with form=acta_form %}<button class="btn btn-workflow mt-3">Desar acta</button></form>
+            <div class="section-heading">
+                <div>
+                    <h3 class="h4 mb-1">2) Redacció de l'acta</h3>
+                <p class="text-muted mb-0">Obre la pàgina per redactar l’acta.</p>
+                </div>
+                <a class="btn btn-workflow" href="{% url 'reunions:acta_workspace' reunio.pk %}">Obrir redacció</a>
+            </div>
             {% if acta %}
                 <hr class="my-4">
                 <h4 class="h5">Vista ràpida de punts d’acta</h4>
