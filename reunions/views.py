@@ -1,8 +1,9 @@
 from urllib.parse import quote
 
 from django.contrib import messages
+from django.db import transaction
+from django.db.models import Count, Max, Prefetch, Q
 from django.http import HttpResponse
-from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -198,17 +199,26 @@ class PuntOrdreDiaDeleteView(ReunionsBaseMixin, TemplateView):
 class PuntOrdreDiaMoveView(ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
-        punt = get_object_or_404(PuntOrdreDia, pk=kwargs['punt_pk'], reunio=reunio)
         direction = request.POST.get('direction')
-        neighbour_order = punt.ordre - 1 if direction == 'up' else punt.ordre + 1
-        neighbour = reunio.punts_ordre_dia.filter(ordre=neighbour_order).first()
-        if neighbour:
-            punt.ordre, neighbour.ordre = neighbour.ordre, punt.ordre
-            punt.save(update_fields=['ordre'])
-            neighbour.save(update_fields=['ordre'])
-            messages.success(request, 'Ordre del dia reordenat.')
-        else:
-            messages.info(request, 'Aquest punt ja és a la posició límit.')
+        with transaction.atomic():
+            punt = get_object_or_404(PuntOrdreDia.objects.select_for_update(), pk=kwargs['punt_pk'], reunio=reunio)
+            neighbour_order = punt.ordre - 1 if direction == 'up' else punt.ordre + 1
+            neighbour = reunio.punts_ordre_dia.select_for_update().filter(ordre=neighbour_order).first()
+            if neighbour:
+                ordre_original_punt = punt.ordre
+                ordre_original_vei = neighbour.ordre
+                ordre_temporal = (
+                    reunio.punts_ordre_dia.select_for_update().aggregate(max_ordre=Max('ordre'))['max_ordre'] or 0
+                ) + 1
+                punt.ordre = ordre_temporal
+                punt.save(update_fields=['ordre'])
+                neighbour.ordre = ordre_original_punt
+                neighbour.save(update_fields=['ordre'])
+                punt.ordre = ordre_original_vei
+                punt.save(update_fields=['ordre'])
+                messages.success(request, 'Ordre del dia reordenat.')
+            else:
+                messages.info(request, 'Aquest punt ja és a la posició límit.')
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 

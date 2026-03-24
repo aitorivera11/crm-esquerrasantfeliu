@@ -8,7 +8,7 @@ from django.utils import timezone
 from agenda.models import Acte, SegmentVisibilitat
 
 from .forms import ReunioForm
-from .models import Reunio
+from .models import PuntOrdreDia, Reunio
 
 
 class ReunioAgendaSyncTests(TestCase):
@@ -116,3 +116,38 @@ class ReunionsPermissionsTests(TestCase):
         response = self.client.get(reverse('reunions:reunio_list'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Reunions i assemblees')
+
+
+class PuntOrdreDiaMoveTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.coord = User.objects.create_user(
+            username='coord-move-ordre',
+            password='pass',
+            nom_complet='Coord Move',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.reunio = Reunio.objects.create(
+            titol='Reunió ordre del dia',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.PREPARACIO,
+            inici=timezone.now() + timedelta(days=1),
+            convocada_per=self.coord,
+            moderada_per=self.coord,
+        )
+        self.punt_1 = PuntOrdreDia.objects.create(reunio=self.reunio, ordre=1, titol='Punt 1')
+        self.punt_2 = PuntOrdreDia.objects.create(reunio=self.reunio, ordre=2, titol='Punt 2')
+        self.punt_3 = PuntOrdreDia.objects.create(reunio=self.reunio, ordre=3, titol='Punt 3')
+
+    def test_move_down_swaps_order_without_unique_constraint_error(self):
+        self.client.force_login(self.coord)
+        response = self.client.post(
+            reverse('reunions:punt_ordre_move', kwargs={'pk': self.reunio.pk, 'punt_pk': self.punt_2.pk}),
+            {'direction': 'down'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.punt_2.refresh_from_db()
+        self.punt_3.refresh_from_db()
+        self.assertEqual(self.punt_2.ordre, 3)
+        self.assertEqual(self.punt_3.ordre, 2)
