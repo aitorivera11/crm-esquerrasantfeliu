@@ -24,7 +24,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         if self.request.user.tipus:
             segments_filter |= Q(ambit=SegmentVisibilitat.Ambit.TIPUS, codi=self.request.user.tipus)
         user_segments = SegmentVisibilitat.objects.filter(segments_filter)
-        return queryset.filter(estat=Acte.Estat.PUBLICAT).filter(Q(visible_per__isnull=True) | Q(visible_per__in=user_segments)).distinct()
+        return queryset.filter(estat=Acte.Estat.PUBLICAT).filter(
+            Q(visible_per__isnull=True) | Q(visible_per__in=user_segments)
+        ).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -33,7 +35,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         user = self.request.user
 
         actes_visibles = self._visible_actes_queryset()
-        propers_actes = (
+        propers_actes_qs = (
             actes_visibles.filter(inici__gte=now, estat=Acte.Estat.PUBLICAT)
             .annotate(
                 prioritat_origen=Case(
@@ -43,8 +45,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                     output_field=IntegerField(),
                 )
             )
-            .order_by('prioritat_origen', '-es_important', 'inici')[:8]
+            .order_by('prioritat_origen', '-es_important', 'inici')
         )
+        propers_actes = propers_actes_qs[:8]
 
         participacions_meves = (
             ParticipacioActe.objects.filter(usuari=user, acte__inici__gte=now)
@@ -59,7 +62,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'actes_creats_per_mi': actes_visibles.filter(creador=user).count(),
             'actes_importats_visibles': actes_visibles.exclude(external_source='').count(),
             'total_actes_visibles': actes_visibles.count(),
-            'propers_actes_total': actes_visibles.filter(inici__gte=now, estat=Acte.Estat.PUBLICAT).count(),
+            'propers_actes_total': propers_actes_qs.count(),
         }
 
         if self._can_access_reunions():
@@ -70,18 +73,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 .order_by('inici')
                 .distinct()[:6]
             )
-            meves_tasques = (
+
+            meves_tasques_qs = (
                 Tasca.objects.filter(responsable=user)
                 .exclude(estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA])
                 .select_related('area', 'reunio_origen')
-                .order_by('data_limit', '-es_estrategica', '-creat_el')[:8]
+                .order_by('data_limit', '-es_estrategica', '-creat_el')
             )
+            meves_tasques = meves_tasques_qs[:8]
+
             dashboard_data.update(
                 {
                     'futures_reunions': futures_reunions,
                     'meves_tasques': meves_tasques,
-                    'tasques_vencudes_meves': meves_tasques.filter(data_limit__lt=today).count(),
-                    'tasques_urgents_meves': meves_tasques.filter(prioritat=Tasca.Prioritat.URGENT).count(),
+                    'tasques_vencudes_meves': meves_tasques_qs.filter(data_limit__lt=today).count(),
+                    'tasques_urgents_meves': meves_tasques_qs.filter(prioritat=Tasca.Prioritat.URGENT).count(),
                 }
             )
 
@@ -91,19 +97,28 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                     'total_persones': Persona.objects.count(),
                     'usuaris_actius': Usuari.objects.filter(is_active=True).count(),
                     'usuaris_pendents': Usuari.objects.filter(is_active=False).count(),
-                    'reunions_obertes': Reunio.objects.filter(estat__in=[Reunio.Estat.PREPARACIO, Reunio.Estat.CONVOCADA]).count(),
-                    'tasques_obertes': Tasca.objects.exclude(estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]).count(),
-                    'tasques_bloquejades': Tasca.objects.filter(estat=Tasca.Estat.BLOQUEJADA).count(),
-                    'tasques_vencudes_globals': Tasca.objects.exclude(estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]).filter(data_limit__lt=today).count(),
+                    'reunions_obertes': Reunio.objects.filter(
+                        estat__in=[Reunio.Estat.PREPARACIO, Reunio.Estat.CONVOCADA]
+                    ).count(),
+                    'tasques_obertes': Tasca.objects.exclude(
+                        estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]
+                    ).count(),
+                    'tasques_bloquejades': Tasca.objects.filter(
+                        estat=Tasca.Estat.BLOQUEJADA
+                    ).count(),
+                    'tasques_vencudes_globals': Tasca.objects.exclude(
+                        estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]
+                    ).filter(data_limit__lt=today).count(),
                     'actes_publicats': Acte.objects.filter(estat=Acte.Estat.PUBLICAT).count(),
                     'actes_importats_total': Acte.objects.exclude(external_source='').count(),
-                    'persones_sense_entitat': Persona.objects.annotate(total_entitats=Count('entitats')).filter(total_entitats=0).count(),
+                    'persones_sense_entitat': Persona.objects.annotate(
+                        total_entitats=Count('entitats')
+                    ).filter(total_entitats=0).count(),
                 }
             )
 
         context.update(dashboard_data)
         return context
-
 
 class AccessDeniedView(LoginRequiredMixin, TemplateView):
     template_name = 'core/access_denied.html'
