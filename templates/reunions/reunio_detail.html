@@ -12,7 +12,7 @@
                     <h2 class="h3 mb-1">{{ reunio.titol }}</h2>
                     <div class="text-muted">{{ reunio.inici|date:'d/m/Y H:i' }}{% if reunio.fi %} · fins {{ reunio.fi|date:'H:i' }}{% endif %}{% if reunio.ubicacio %} · {{ reunio.ubicacio }}{% endif %}</div>
                 </div>
-                <div class="d-flex gap-2 flex-wrap"><span class="badge text-bg-light">{{ reunio.get_estat_display }}</span>{% if reunio.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}{% if agenda_acte %}<a class="btn btn-outline-primary" href="{% url 'agenda:acte_detail' agenda_acte.pk %}">Veure acte a l’agenda</a>{% endif %}<a class="btn btn-primary" href="{% url 'reunions:reunio_update' reunio.pk %}">Editar</a></div>
+                <div class="d-flex gap-2 flex-wrap inline-status-actions"><span class="badge text-bg-light">{{ reunio.get_estat_display }}</span>{% if reunio.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}{% if agenda_acte %}<a class="btn btn-outline-primary" href="{% url 'agenda:acte_detail' agenda_acte.pk %}">Veure acte a l’agenda</a>{% endif %}<a class="btn btn-primary" href="{% url 'reunions:reunio_update' reunio.pk %}">Editar</a></div>
             </div>
             <div class="meta-grid mb-4">
                 <div class="meta-card"><span>Àrea</span><strong>{{ reunio.area|default:'—' }}</strong></div>
