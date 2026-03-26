@@ -124,7 +124,7 @@
         </section>
     </div>
     <div class="col-12 col-xl-4">
-        {% include 'components/share_actions_panel.html' with heading='Comparteix ordre del dia' description='Mòdul centralitzat per compartir l’ordre del dia amb un format únic.' chip='Ordre del dia' whatsapp_url=ordre_dia_whatsapp_url telegram_url=ordre_dia_telegram_url email_url=ordre_dia_email_url share_url=ordre_dia_share_url share_text=ordre_dia_text native_title='Ordre del dia' export_url=ordre_dia_export_url %}
+        {% include 'components/share_actions_panel.html' with heading='Comparteix ordre del dia' description='Mòdul centralitzat per compartir l’ordre del dia amb un format únic.' chip='Ordre del dia' whatsapp_url=ordre_dia_whatsapp_url email_url=ordre_dia_email_url share_url=ordre_dia_share_url share_text=ordre_dia_text native_title='Ordre del dia' export_url=ordre_dia_export_url %}
         <section class="card card-panel p-4 mb-4">
             <h3 class="h5">Tasques relacionades</h3>
             <p class="text-muted">Seguiment de tasques originades o tractades en aquesta reunió.</p>
@@ -151,7 +151,7 @@
             <div><strong>Entitats relacionades</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for entitat in reunio.entitats_relacionades.all %}<span class="info-chip">{{ entitat.nom }}</span>{% empty %}<span class="text-muted small">Cap.</span>{% endfor %}</div></div>
         </section>
         {% if acta %}
-            {% include 'components/share_actions_panel.html' with heading='Comparteix acta' description='Comparteix o exporta l’acta des d’un punt únic.' chip='Acta' whatsapp_url=acta_whatsapp_url telegram_url=acta_telegram_url email_url=acta_email_url share_url=acta_share_url share_text=acta_text native_title='Acta' export_url=acta_export_url %}
+            {% include 'components/share_actions_panel.html' with heading='Comparteix acta' description='Comparteix o exporta l’acta des d’un punt únic.' chip='Acta' whatsapp_url=acta_whatsapp_url email_url=acta_email_url share_url=acta_share_url share_text=acta_text native_title='Acta' export_url=acta_export_url %}
         {% endif %}
     </div>
 </div>

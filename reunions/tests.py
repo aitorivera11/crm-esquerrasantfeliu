@@ -9,7 +9,7 @@ from agenda.models import Acte, SegmentVisibilitat
 
 from .forms import ReunioForm
 from .models import Acta, PuntActa, PuntOrdreDia, Reunio, Tasca
-from .views import parse_task_commands
+from .views import generar_text_ordre_dia, parse_task_commands
 
 
 class ReunioAgendaSyncTests(TestCase):
@@ -201,3 +201,36 @@ class ActaTaskCommandTests(TestCase):
         self.assertEqual(task.punt_acta_origen_id, self.punt.pk)
         self.assertEqual(task.responsable_id, self.altre.pk)
         self.assertEqual(task.prioritat, Tasca.Prioritat.ALTA)
+
+
+class OrdreDiaShareTextTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.coord = User.objects.create_user(
+            username='coord-share-ordre',
+            password='pass',
+            nom_complet='Coord Share',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.reunio = Reunio.objects.create(
+            titol='Trobada Pla de Campanya',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.CONVOCADA,
+            inici=timezone.now().replace(second=0, microsecond=0) + timedelta(days=1),
+            fi=timezone.now().replace(second=0, microsecond=0) + timedelta(days=1, hours=2, minutes=30),
+            ubicacio='Local',
+            convocada_per=self.coord,
+            moderada_per=self.coord,
+        )
+        PuntOrdreDia.objects.create(reunio=self.reunio, ordre=1, titol='Formació ENGEGA')
+
+    def test_generar_text_ordre_dia_includes_schedule_location_and_link(self):
+        text = generar_text_ordre_dia(self.reunio, share_url='https://crm-esquerrasantfeliu.vercel.app/agenda/175/')
+
+        self.assertIn('Trobada Pla de Campanya', text)
+        self.assertIn('📅 ', text)
+        self.assertIn('⏱️ Fins a les ', text)
+        self.assertIn('📍 Local', text)
+        self.assertIn('Ordre del dia', text)
+        self.assertIn('1. Formació ENGEGA', text)
+        self.assertTrue(text.endswith('https://crm-esquerrasantfeliu.vercel.app/agenda/175/'))

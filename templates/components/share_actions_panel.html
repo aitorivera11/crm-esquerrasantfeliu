@@ -12,10 +12,10 @@
             <strong>WhatsApp</strong>
             <span>Comparteix el resum amb enllaç</span>
         </a>
-        <a class="share-action share-action-telegram" href="{{ telegram_url }}" target="_blank" rel="noopener">
-            <strong>Telegram</strong>
-            <span>Envia'l a grups o contactes</span>
-        </a>
+        <button type="button" class="share-action share-action-copy-text" data-copy-text="{{ copy_text|default:share_text }}" data-copy-feedback="Text copiat">
+            <strong>Copiar text</strong>
+            <span>Per enganxar-lo directament</span>
+        </button>
         <a class="share-action share-action-email" href="{{ email_url }}">
             <strong>Correu</strong>
             <span>Obre un email amb el text preparat</span>

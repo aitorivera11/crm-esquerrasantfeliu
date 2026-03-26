@@ -101,8 +101,9 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
         reunio = context['reunio']
         acta = getattr(reunio, 'acta', None)
         reunio_url = self.request.build_absolute_uri(reunio.get_absolute_url())
+        ordre_dia_share_url = self.request.build_absolute_uri(reunio.acte_agenda.get_absolute_url()) if reunio.acte_agenda else reunio_url
         ordre_export_url = self.request.build_absolute_uri(reverse('reunions:ordre_dia_export', kwargs={'pk': reunio.pk}))
-        ordre_dia_text = generar_text_ordre_dia(reunio)
+        ordre_dia_text = generar_text_ordre_dia(reunio, share_url=ordre_dia_share_url)
         acta_text = generar_text_acta(acta) if acta else ''
         agenda_acte = reunio.acte_agenda
         agenda_confirmats = []
@@ -126,16 +127,14 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
             ).exclude(relacions_reunio__reunio=reunio).select_related('responsable', 'reunio_origen').distinct()[:8],
             'ordre_dia_text': ordre_dia_text,
             'ordre_dia_text_url': quote(ordre_dia_text),
-            'ordre_dia_share_url': reunio_url,
+            'ordre_dia_share_url': ordre_dia_share_url,
             'ordre_dia_export_url': ordre_export_url,
-            'ordre_dia_telegram_url': f'https://t.me/share/url?url={quote(reunio_url)}&text={quote(ordre_dia_text)}',
             'ordre_dia_whatsapp_url': f'https://wa.me/?text={quote(ordre_dia_text)}',
             'ordre_dia_email_url': f'mailto:?subject=Ordre del dia · {quote(reunio.titol)}&body={quote(ordre_dia_text)}',
             'acta_text': acta_text,
             'acta_text_url': quote(acta_text) if acta_text else '',
             'acta_share_url': reunio_url,
             'acta_export_url': self.request.build_absolute_uri(reverse('reunions:acta_export', kwargs={'pk': reunio.pk})) if acta else '',
-            'acta_telegram_url': f'https://t.me/share/url?url={quote(reunio_url)}&text={quote(acta_text)}' if acta else '',
             'acta_whatsapp_url': f'https://wa.me/?text={quote(acta_text)}' if acta else '',
             'acta_email_url': f'mailto:?subject=Acta · {quote(reunio.titol)}&body={quote(acta_text)}' if acta else '',
             'acta': acta,
@@ -176,7 +175,6 @@ class ReunioActaWorkspaceView(ReunionsBaseMixin, DetailView):
             'acta_text': acta_text,
             'acta_share_url': reunio_url,
             'acta_export_url': self.request.build_absolute_uri(reverse('reunions:acta_export', kwargs={'pk': reunio.pk})),
-            'acta_telegram_url': f'https://t.me/share/url?url={quote(reunio_url)}&text={quote(acta_text)}',
             'acta_whatsapp_url': f'https://wa.me/?text={quote(acta_text)}',
             'acta_email_url': f'mailto:?subject=Acta · {quote(reunio.titol)}&body={quote(acta_text)}',
         })
@@ -664,10 +662,20 @@ class SeguimentPanelView(ReunionsBaseMixin, TemplateView):
         return context
 
 
-def generar_text_ordre_dia(reunio):
-    lines = [f'Ordre del dia · {reunio.titol}', '']
+def generar_text_ordre_dia(reunio, share_url=''):
+    lines = [
+        reunio.titol,
+        f"📅 {timezone.localtime(reunio.inici).strftime('%d/%m/%Y %H:%M')} h",
+    ]
+    if reunio.fi:
+        lines.append(f"⏱️ Fins a les {timezone.localtime(reunio.fi).strftime('%H:%M')} h")
+    if reunio.ubicacio:
+        lines.append(f"📍 {reunio.ubicacio}")
+    lines.extend(['', 'Ordre del dia', ''])
     for punt in reunio.punts_ordre_dia.order_by('ordre', 'pk'):
         lines.append(f'{punt.ordre}. {punt.titol}')
+    if share_url:
+        lines.extend(['', share_url])
     return '\n'.join(lines).strip()
 
 

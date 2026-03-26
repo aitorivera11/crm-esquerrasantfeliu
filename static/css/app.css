@@ -903,7 +903,7 @@ textarea.form-control { min-height: 120px; }
 .share-action strong { font-size: .98rem; }
 .share-action span { color: var(--muted); font-size: .88rem; }
 .share-action-whatsapp { background: rgba(37, 211, 102, 0.08); border-color: rgba(37, 211, 102, 0.2); }
-.share-action-telegram { background: rgba(39, 166, 229, 0.08); border-color: rgba(39, 166, 229, 0.2); }
+.share-action-copy-text { background: rgba(39, 166, 229, 0.08); border-color: rgba(39, 166, 229, 0.2); }
 .share-action-email { background: rgba(249, 88, 56, 0.06); border-color: rgba(249, 88, 56, 0.18); }
 .share-action-copy { appearance: none; width: 100%; }
 .calendar-export {
