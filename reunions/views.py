@@ -1,3 +1,5 @@
+from datetime import datetime
+import re
 from urllib.parse import quote
 
 from django.contrib import messages
@@ -151,7 +153,11 @@ class ReunioActaWorkspaceView(ReunionsBaseMixin, DetailView):
     context_object_name = 'reunio'
 
     def get_queryset(self):
-        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related('punts_ordre_dia', 'acta__punts')
+        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related(
+            'punts_ordre_dia',
+            'acta__punts',
+            'acta__punts__tasques_generades__responsable',
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -165,6 +171,7 @@ class ReunioActaWorkspaceView(ReunionsBaseMixin, DetailView):
         reunio_url = self.request.build_absolute_uri(reunio.get_absolute_url())
         context.update({
             'acta': acta,
+            'task_responsables': Usuari.objects.filter(is_active=True).only('id', 'nom_complet', 'username').order_by('nom_complet', 'username')[:80],
             'acta_text_url': quote(acta_text),
             'acta_text': acta_text,
             'acta_share_url': reunio_url,
@@ -425,6 +432,113 @@ class PuntActaQuickUpdateView(ReunionsBaseMixin, TemplateView):
         return JsonResponse({'ok': True, 'updated': timezone.localtime(punt.actualitzat_el).strftime('%H:%M:%S')})
 
 
+class PuntActaTaskQuickCreateView(ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        punt = get_object_or_404(PuntActa.objects.select_related('acta__reunio'), pk=kwargs['pk'])
+        titol = (request.POST.get('titol') or '').strip()
+        if not titol:
+            return JsonResponse({'ok': False, 'error': 'Cal indicar un títol.'}, status=400)
+
+        responsable = request.user
+        responsable_id = request.POST.get('responsable_id')
+        if responsable_id:
+            responsable = Usuari.objects.filter(pk=responsable_id).first() or request.user
+
+        prioritat = request.POST.get('prioritat')
+        if prioritat not in Tasca.Prioritat.values:
+            prioritat = Tasca.Prioritat.MITJANA
+
+        data_limit = None
+        data_limit_raw = (request.POST.get('data_limit') or '').strip()
+        if data_limit_raw:
+            try:
+                data_limit = datetime.strptime(data_limit_raw, '%Y-%m-%d').date()
+            except ValueError:
+                return JsonResponse({'ok': False, 'error': 'Data límit no vàlida.'}, status=400)
+
+        descripcio = (request.POST.get('descripcio') or '').strip()
+        tasca = Tasca.objects.create(
+            titol=titol,
+            descripcio=descripcio,
+            creada_per=request.user,
+            responsable=responsable,
+            prioritat=prioritat,
+            data_limit=data_limit,
+            origen=Tasca.Origen.PUNT_ACTA,
+            reunio_origen=punt.acta.reunio,
+            punt_acta_origen=punt,
+        )
+        TascaRelacioReunio.objects.get_or_create(
+            tasca=tasca,
+            reunio=punt.acta.reunio,
+            punt_acta=punt,
+            tipus_relacio=TascaRelacioReunio.TipusRelacio.ORIGEN,
+            defaults={'resum': 'Tasca creada des del modal ràpid de la redacció de l’acta.'},
+        )
+        return JsonResponse({
+            'ok': True,
+            'task': {
+                'id': tasca.pk,
+                'title': tasca.titol,
+                'status': tasca.get_estat_display(),
+                'priority': tasca.get_prioritat_display(),
+                'responsable': str(tasca.responsable),
+                'url': reverse('reunions:tasca_detail', kwargs={'pk': tasca.pk}),
+            },
+        })
+
+
+class PuntActaTaskCommandCreateView(ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        punt = get_object_or_404(PuntActa.objects.select_related('acta__reunio'), pk=kwargs['pk'])
+        content = request.POST.get('content') or ''
+        parsed_lines = parse_task_commands(content)
+        if not parsed_lines:
+            return JsonResponse({'ok': False, 'error': 'No s’han detectat comandes @tasca.'}, status=400)
+
+        users_by_username = {
+            user.username.lower(): user
+            for user in Usuari.objects.filter(is_active=True).only('id', 'username', 'nom_complet').order_by('nom_complet', 'username')
+        }
+        created_tasks = []
+        errors = []
+        for command in parsed_lines:
+            if not command['title']:
+                errors.append(f'Comanda sense títol: {command["raw"]}')
+                continue
+            responsable = request.user
+            if command['username']:
+                responsable = users_by_username.get(command['username'].lower(), request.user)
+            tasca = Tasca.objects.create(
+                titol=command['title'],
+                creada_per=request.user,
+                responsable=responsable,
+                prioritat=command['priority'] or Tasca.Prioritat.MITJANA,
+                data_limit=command['due_date'],
+                origen=Tasca.Origen.PUNT_ACTA,
+                reunio_origen=punt.acta.reunio,
+                punt_acta_origen=punt,
+                descripcio=f'Creat automàticament des de comanda a l’acta: {command["raw"]}',
+            )
+            TascaRelacioReunio.objects.get_or_create(
+                tasca=tasca,
+                reunio=punt.acta.reunio,
+                punt_acta=punt,
+                tipus_relacio=TascaRelacioReunio.TipusRelacio.ORIGEN,
+                defaults={'resum': 'Tasca creada automàticament des d’una comanda @tasca.'},
+            )
+            created_tasks.append({
+                'id': tasca.pk,
+                'title': tasca.titol,
+                'status': tasca.get_estat_display(),
+                'priority': tasca.get_prioritat_display(),
+                'responsable': str(tasca.responsable),
+                'url': reverse('reunions:tasca_detail', kwargs={'pk': tasca.pk}),
+            })
+
+        return JsonResponse({'ok': True, 'tasks': created_tasks, 'errors': errors})
+
+
 class TascaListView(ReunionsBaseMixin, ListView):
     model = Tasca
     template_name = 'reunions/tasca_list.html'
@@ -572,3 +686,43 @@ def generar_text_acta(acta):
                 lines.append(f'{punt.ordre}.{index} - {tasca.titol} ({tasca.responsable})')
         lines.append('')
     return '\n'.join(lines).strip()
+
+
+TASK_COMMAND_RE = re.compile(r'^\s*@tasca\b(?P<body>.+)$', flags=re.IGNORECASE)
+
+
+def parse_task_commands(content):
+    commands = []
+    for line in (content or '').splitlines():
+        match = TASK_COMMAND_RE.match(line.strip())
+        if not match:
+            continue
+        body = match.group('body').strip()
+        parts = [part.strip() for part in body.split('|')]
+        title = parts[0] if parts else ''
+        username = ''
+        due_date = None
+        priority = None
+        for part in parts[1:]:
+            if not part:
+                continue
+            if part.startswith('@') and len(part) > 1:
+                username = part[1:]
+                continue
+            upper = part.upper()
+            if upper in Tasca.Prioritat.values:
+                priority = upper
+                continue
+            try:
+                due_date = datetime.strptime(part, '%Y-%m-%d').date()
+                continue
+            except ValueError:
+                pass
+        commands.append({
+            'raw': line.strip(),
+            'title': title,
+            'username': username,
+            'due_date': due_date,
+            'priority': priority,
+        })
+    return commands

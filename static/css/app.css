@@ -302,6 +302,26 @@ textarea.form-control { min-height: 120px; }
 [data-acta-point] textarea.form-control {
     min-height: 96px;
 }
+.acta-command-hint code {
+    background: rgba(0,13,35,.06);
+    border-radius: .45rem;
+    padding: .15rem .35rem;
+}
+.task-chip-link {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    padding: .65rem .75rem;
+    border-radius: .75rem;
+    text-decoration: none;
+    border: 1px solid rgba(0,13,35,.08);
+    background: #fff;
+    color: inherit;
+}
+.task-chip-link:hover {
+    border-color: rgba(249,88,56,.4);
+    box-shadow: 0 6px 16px rgba(0,13,35,.06);
+}
 .form-control, .form-select {
     border-radius: 1rem;
     border-color: rgba(226, 191, 161, .9);
