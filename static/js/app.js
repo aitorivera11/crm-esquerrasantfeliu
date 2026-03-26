@@ -291,4 +291,97 @@ document.addEventListener('DOMContentLoaded', () => {
       runSave();
     });
   });
+
+  const renderTaskChip = (task) => {
+    const link = document.createElement('a');
+    link.href = task.url;
+    link.className = 'task-chip-link';
+    link.innerHTML = `<strong>${task.title}</strong><span class="small text-muted">${task.status} · ${task.responsable}</span>`;
+    return link;
+  };
+
+  document.querySelectorAll('[data-point-quick-task-form]').forEach((form) => {
+    const feedback = form.querySelector('[data-point-quick-task-feedback]');
+    const taskListSelector = form.dataset.taskList;
+    const taskList = taskListSelector ? document.querySelector(taskListSelector) : null;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (feedback) feedback.textContent = 'Creant tasca...';
+      try {
+        const response = await fetch(form.dataset.url, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCsrfToken() },
+          body: new FormData(form),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error || 'No s’ha pogut crear la tasca');
+        }
+        if (taskList) {
+          taskList.querySelector('[data-empty-point-tasks]')?.remove();
+          taskList.prepend(renderTaskChip(payload.task));
+        }
+        form.reset();
+        if (feedback) feedback.textContent = `Tasca creada: ${payload.task.title}`;
+      } catch (error) {
+        if (feedback) feedback.textContent = error.message || 'Error en crear la tasca.';
+      }
+    });
+  });
+
+  const collectCommands = (pointNode) => {
+    const fields = pointNode.querySelectorAll('[data-command-url]');
+    const commands = [];
+    let commandUrl = '';
+    fields.forEach((field) => {
+      commandUrl = commandUrl || field.dataset.commandUrl;
+      field.value.split('\n').forEach((line) => {
+        if (line.trim().toLowerCase().startsWith('@tasca')) {
+          commands.push(line.trim());
+        }
+      });
+    });
+    return { commands, commandUrl };
+  };
+
+  document.querySelectorAll('[data-create-task-from-command]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const pointNode = button.closest('[data-acta-point]');
+      const feedback = pointNode?.querySelector('[data-command-feedback]');
+      if (!pointNode) return;
+      const { commands, commandUrl } = collectCommands(pointNode);
+      if (!commands.length || !commandUrl) {
+        if (feedback) feedback.textContent = 'No s’han trobat comandes @tasca en aquest punt.';
+        return;
+      }
+      if (feedback) feedback.textContent = 'Creant tasques des de comandes...';
+      try {
+        const formData = new URLSearchParams({ content: commands.join('\n') });
+        const response = await fetch(commandUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          body: formData.toString(),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error || 'No s’han pogut processar les comandes.');
+        }
+        const targetSelector = button.dataset.targetPointList;
+        const taskList = targetSelector ? document.querySelector(targetSelector) : null;
+        if (taskList) {
+          taskList.querySelector('[data-empty-point-tasks]')?.remove();
+          (payload.tasks || []).forEach((task) => taskList.prepend(renderTaskChip(task)));
+        }
+        const createdCount = (payload.tasks || []).length;
+        const errorsCount = (payload.errors || []).length;
+        if (feedback) feedback.textContent = `Creates ${createdCount} tasques${errorsCount ? ` · ${errorsCount} comandes amb errors` : ''}.`;
+      } catch (error) {
+        if (feedback) feedback.textContent = error.message || 'Error en processar comandes.';
+      }
+    });
+  });
 });

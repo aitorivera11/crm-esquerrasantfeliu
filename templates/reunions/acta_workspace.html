@@ -32,14 +32,92 @@
                     <article class="list-group-item px-0 py-3 border-bottom" data-acta-point>
                         <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start mb-2">
                             <div><span class="badge badge-deep">#{{ punt.ordre }}</span> <strong>{{ punt.titol }}</strong></div>
-                            <a class="btn btn-sm btn-outline-primary" href="{% url 'reunions:punt_acta_update' punt.pk %}">Editar complet</a>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-dark"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#tasks-modal-{{ punt.pk }}"
+                                >Tasques del punt</button>
+                                <a class="btn btn-sm btn-outline-primary" href="{% url 'reunions:punt_acta_update' punt.pk %}">Editar complet</a>
+                            </div>
                         </div>
                         <label class="form-label" for="punt-contingut-{{ punt.pk }}">Contingut</label>
-                        <textarea id="punt-contingut-{{ punt.pk }}" class="form-control mb-2" rows="4" data-quick-save data-field="contingut" data-url="{% url 'reunions:punt_acta_quick_update' punt.pk %}">{{ punt.contingut }}</textarea>
+                        <textarea id="punt-contingut-{{ punt.pk }}" class="form-control mb-2" rows="4" data-quick-save data-field="contingut" data-url="{% url 'reunions:punt_acta_quick_update' punt.pk %}" data-command-url="{% url 'reunions:punt_acta_task_command_create' punt.pk %}" data-point-task-list="#point-task-list-{{ punt.pk }}">{{ punt.contingut }}</textarea>
                         <label class="form-label" for="punt-acords-{{ punt.pk }}">Acords</label>
-                        <textarea id="punt-acords-{{ punt.pk }}" class="form-control" rows="3" data-quick-save data-field="acords" data-url="{% url 'reunions:punt_acta_quick_update' punt.pk %}">{{ punt.acords }}</textarea>
+                        <textarea id="punt-acords-{{ punt.pk }}" class="form-control" rows="3" data-quick-save data-field="acords" data-url="{% url 'reunions:punt_acta_quick_update' punt.pk %}" data-command-url="{% url 'reunions:punt_acta_task_command_create' punt.pk %}" data-point-task-list="#point-task-list-{{ punt.pk }}">{{ punt.acords }}</textarea>
+                        <div class="acta-command-hint mt-2">
+                            <div class="small text-muted">Comanda ràpida: <code>@tasca Títol | @usuari | 2026-04-10 | URGENT</code></div>
+                            <button type="button" class="btn btn-sm btn-outline-dark mt-2" data-create-task-from-command data-target-point-list="#point-task-list-{{ punt.pk }}">Crear tasques des de comandes</button>
+                            <span class="small text-muted ms-2" data-command-feedback></span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="small fw-semibold mb-2">Tasques vinculades a aquest punt</div>
+                            <div id="point-task-list-{{ punt.pk }}" class="d-flex flex-column gap-2">
+                                {% for tasca in punt.tasques_generades.all %}
+                                    <a href="{{ tasca.get_absolute_url }}" class="task-chip-link">
+                                        <strong>{{ tasca.titol }}</strong>
+                                        <span class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.responsable }}</span>
+                                    </a>
+                                {% empty %}
+                                    <div class="small text-muted" data-empty-point-tasks>Encara no hi ha tasques vinculades.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
                         <div class="small text-muted mt-2">Última actualització: <span data-point-feedback>—</span></div>
                     </article>
+
+                    <div class="modal fade" id="tasks-modal-{{ punt.pk }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Tasques per al punt #{{ punt.ordre }} · {{ punt.titol }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tancar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-muted">Crea una tasca sense sortir de l’acta i fes seguiment de les que ja s’han tractat.</p>
+                                    <form class="workflow-form" data-point-quick-task-form data-task-list="#point-task-list-{{ punt.pk }}" data-url="{% url 'reunions:punt_acta_task_quick_create' punt.pk %}">
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label">Títol</label>
+                                                <input class="form-control" type="text" name="titol" placeholder="Ex: Trucar al Gerard per assessorar estètica de Primavera" required>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Descripció curta (opcional)</label>
+                                                <textarea class="form-control" name="descripcio" rows="2" placeholder="Context ràpid de la tasca…"></textarea>
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label">Responsable</label>
+                                                <select class="form-select" name="responsable_id">
+                                                    <option value="">Assigna’m a mi</option>
+                                                    {% for usuari in task_responsables %}
+                                                        <option value="{{ usuari.pk }}">{{ usuari }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label">Data límit</label>
+                                                <input type="date" class="form-control" name="data_limit">
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label">Prioritat</label>
+                                                <select class="form-select" name="prioritat">
+                                                    <option value="MITJANA">Mitjana</option>
+                                                    <option value="BAIXA">Baixa</option>
+                                                    <option value="ALTA">Alta</option>
+                                                    <option value="URGENT">Urgent</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <span class="small text-muted" data-point-quick-task-feedback></span>
+                                            <button class="btn btn-workflow">Crear tasca</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 {% empty %}
                     <p class="text-muted mb-0">No hi ha punts d’acta. Afegeix-ne des de la pantalla de gestió.</p>
                 {% endfor %}

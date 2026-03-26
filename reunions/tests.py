@@ -8,7 +8,8 @@ from django.utils import timezone
 from agenda.models import Acte, SegmentVisibilitat
 
 from .forms import ReunioForm
-from .models import PuntOrdreDia, Reunio
+from .models import Acta, PuntActa, PuntOrdreDia, Reunio, Tasca
+from .views import parse_task_commands
 
 
 class ReunioAgendaSyncTests(TestCase):
@@ -151,3 +152,52 @@ class PuntOrdreDiaMoveTests(TestCase):
         self.punt_3.refresh_from_db()
         self.assertEqual(self.punt_2.ordre, 3)
         self.assertEqual(self.punt_3.ordre, 2)
+
+
+class ActaTaskCommandTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.coord = User.objects.create_user(
+            username='coord-acta',
+            password='pass',
+            nom_complet='Coord Acta',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.altre = User.objects.create_user(
+            username='jenny',
+            password='pass',
+            nom_complet='Jenny',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.reunio = Reunio.objects.create(
+            titol='Reunió comissions',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.CELEBRADA,
+            inici=timezone.now() - timedelta(days=1),
+            convocada_per=self.coord,
+            moderada_per=self.coord,
+        )
+        self.acta = Acta.objects.create(reunio=self.reunio, redactada_per=self.coord)
+        self.punt = PuntActa.objects.create(acta=self.acta, ordre=1, titol='Comissions')
+
+    def test_parse_task_commands_supports_username_date_and_priority(self):
+        commands = parse_task_commands('@tasca Demanar estand Sant Jordi | @jenny | 2030-04-05 | URGENT')
+        self.assertEqual(len(commands), 1)
+        self.assertEqual(commands[0]['title'], 'Demanar estand Sant Jordi')
+        self.assertEqual(commands[0]['username'], 'jenny')
+        self.assertEqual(str(commands[0]['due_date']), '2030-04-05')
+        self.assertEqual(commands[0]['priority'], Tasca.Prioritat.URGENT)
+
+    def test_command_endpoint_creates_tasks_linked_to_point(self):
+        self.client.force_login(self.coord)
+        response = self.client.post(
+            reverse('reunions:punt_acta_task_command_create', kwargs={'pk': self.punt.pk}),
+            {'content': '@tasca Trucar al Gerard | @jenny | 2030-05-01 | ALTA'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Tasca.objects.count(), 1)
+        task = Tasca.objects.first()
+        self.assertEqual(task.reunio_origen_id, self.reunio.pk)
+        self.assertEqual(task.punt_acta_origen_id, self.punt.pk)
+        self.assertEqual(task.responsable_id, self.altre.pk)
+        self.assertEqual(task.prioritat, Tasca.Prioritat.ALTA)
