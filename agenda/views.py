@@ -324,7 +324,6 @@ class EventSharingMixin:
             'share_url': absolute_url,
             'share_text': share_text,
             'whatsapp_url': f'https://wa.me/?text={quote(share_text)}',
-            'telegram_url': f'https://t.me/share/url?url={quote(absolute_url)}&text={quote(acte.titol)}',
             'email_url': f'mailto:?subject={quote(acte.titol)}&body={quote(share_text)}',
             'google_calendar_url': google_url,
             'ics_url': self.request.build_absolute_uri(reverse('agenda:acte_ics', kwargs={'pk': acte.pk})),
