@@ -5,6 +5,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}CRM Campanya Sant Feliu{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}CRM Campanya Sant Feliu per coordinar actes, reunions i seguiment de campanya.{% endblock %}">
+    <meta property="og:locale" content="ca_ES">
+    <meta property="og:site_name" content="CRM Esquerra Sant Feliu">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}CRM Campanya Sant Feliu{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}CRM Campanya Sant Feliu per coordinar actes, reunions i seguiment de campanya.{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}https://www.esquerra.cat/wp-content/uploads/erc-logo.png{% endblock %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}CRM Campanya Sant Feliu{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}CRM Campanya Sant Feliu per coordinar actes, reunions i seguiment de campanya.{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}https://www.esquerra.cat/wp-content/uploads/erc-logo.png{% endblock %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
