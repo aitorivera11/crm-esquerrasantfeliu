@@ -3,6 +3,7 @@ import io
 import os
 from urllib.parse import quote
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.management import call_command
 from django.db.models import Count, Prefetch, Q
@@ -500,6 +501,18 @@ class MarcarAssistenciaView(LoginRequiredMixin, PermissionRequiredMixin, View):
             dades={'assistencia_real': estat, 'acte_id': acte.pk},
         )
         return redirect('agenda:participants_list', pk=pk)
+
+
+class SyncImportedEventsView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'agenda.change_acte'
+    raise_exception = True
+    http_method_names = ['post']
+
+    def post(self, request):
+        output = io.StringIO()
+        call_command('import_city_events', '--cleanup', stdout=output)
+        messages.success(request, "Sincronització completada. Els actes importats s'han actualitzat com a publicats.")
+        return redirect('agenda:acte_list')
 
 
 @method_decorator(csrf_exempt, name="dispatch")

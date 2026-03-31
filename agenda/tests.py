@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -8,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import localtime
 
+from agenda.management.commands.import_city_events import CityEventsImporter, SOURCE_NAME
 from reunions.models import Reunio
 from .forms import ActeForm
 from .models import Acte, ParticipacioActe, SegmentVisibilitat
@@ -345,6 +347,40 @@ class AgendaImportedAndImportantUxTests(TestCase):
         self.assertContains(response, '>Potser<', html=False)
         self.assertContains(response, '>No<', html=False)
 
+    def test_list_shows_admin_sync_button_for_users_with_change_permission(self):
+        self.client.force_login(self.user)
+        self.user.user_permissions.add(Permission.objects.get(codename='change_acte'))
+
+        response = self.client.get(reverse('agenda:acte_list'))
+
+        self.assertContains(response, 'Sincronitzar importats')
+
+    def test_sync_imported_events_endpoint_requires_permissions(self):
+        User = get_user_model()
+        basic_user = User.objects.create_user(
+            username='basic-sync-user',
+            password='test-pass-123',
+            nom_complet='Basic Sync User',
+            rol=User.Rol.PARTICIPANT,
+        )
+        self.client.force_login(basic_user)
+
+        response = self.client.post(reverse('agenda:sync_imported_events'))
+
+        self.assertIn(response.status_code, {403, 405})
+
+    @patch('agenda.views.call_command')
+    def test_sync_imported_events_runs_import_command(self, mocked_call_command):
+        self.client.force_login(self.user)
+        self.user.user_permissions.add(Permission.objects.get(codename='change_acte'))
+
+        response = self.client.post(reverse('agenda:sync_imported_events'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('agenda:acte_list'))
+        mocked_call_command.assert_called_once()
+        self.assertEqual(mocked_call_command.call_args.args, ('import_city_events', '--cleanup'))
+
 
 class AgendaMeetingSyncTests(TestCase):
     def setUp(self):
@@ -412,3 +448,52 @@ class AgendaMeetingSyncTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Gestionar reunió')
 
+
+class ImportCityEventsCleanupPolicyTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username='import-cleanup-user',
+            password='test-pass-123',
+            nom_complet='Import Cleanup User',
+            rol=User.Rol.COORDINACIO,
+        )
+        now = timezone.now().replace(second=0, microsecond=0)
+        self.past_imported = Acte.objects.create(
+            titol='Importat passat',
+            inici=now - timedelta(days=10),
+            ubicacio='Plaça',
+            creador=self.user,
+            estat=Acte.Estat.PUBLICAT,
+            external_source=SOURCE_NAME,
+            external_id='past-1',
+        )
+        self.future_imported_stale = Acte.objects.create(
+            titol='Importat futur desaparegut',
+            inici=now + timedelta(days=10),
+            ubicacio='Casal',
+            creador=self.user,
+            estat=Acte.Estat.PUBLICAT,
+            external_source=SOURCE_NAME,
+            external_id='future-stale-1',
+        )
+
+    @patch.object(CityEventsImporter, 'fetch_all_events', return_value=[])
+    @patch.object(CityEventsImporter, 'normalize_records', return_value=[])
+    @patch.object(CityEventsImporter, 'get_owner_user')
+    @patch.object(CityEventsImporter, 'get_external_type', return_value=None)
+    def test_cleanup_deletes_only_future_missing_imported_events(
+        self,
+        mocked_external_type,
+        mocked_owner_user,
+        mocked_normalize,
+        mocked_fetch,
+    ):
+        mocked_owner_user.return_value = self.user
+        importer = CityEventsImporter(days_ahead=60, stdout=None)
+
+        stats = importer.run(cleanup=True)
+
+        self.assertEqual(stats['cleanup'], 1)
+        self.assertTrue(Acte.objects.filter(pk=self.past_imported.pk).exists())
+        self.assertFalse(Acte.objects.filter(pk=self.future_imported_stale.pk).exists())

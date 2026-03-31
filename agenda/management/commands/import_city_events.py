@@ -32,7 +32,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--days-ahead", type=int, default=DAYS_AHEAD)
-        parser.add_argument("--cleanup", action="store_true", help="Despublica els actes importats que ja no venen de l'API.")
+        parser.add_argument("--cleanup", action="store_true", help="Elimina els actes importats que ja no venen de l'API.")
 
     def handle(self, *args, **options):
         importer = CityEventsImporter(days_ahead=options["days_ahead"], stdout=self.stdout)
@@ -82,7 +82,13 @@ class CityEventsImporter:
 
             removed = 0
             if cleanup:
-                removed = Acte.objects.filter(external_source=SOURCE_NAME).exclude(external_id__in=seen_ids).update(estat=Acte.Estat.ESBORRANY)
+                # L'API pública només retorna actes des d'avui endavant.
+                # No eliminem històric passat encara que no aparegui a la resposta.
+                removed, _ = (
+                    Acte.objects.filter(external_source=SOURCE_NAME, inici__gte=timezone.now())
+                    .exclude(external_id__in=seen_ids)
+                    .delete()
+                )
 
         return {"created": created, "updated": updated, "fetched": len(events), "cleanup": removed}
 
