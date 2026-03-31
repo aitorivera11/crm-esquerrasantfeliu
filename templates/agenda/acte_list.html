@@ -15,6 +15,12 @@
             {% if past_count %}<span class="info-chip">{{ past_count }} passats</span>{% endif %}
             {% if draft_count and can_manage_actes %}<span class="info-chip">{{ draft_count }} esborranys</span>{% endif %}
             {% if imported_count %}<span class="info-chip">{{ imported_count }} importats</span>{% endif %}
+            {% if can_manage_actes %}
+                <form method="post" action="{% url 'agenda:sync_imported_events' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary">Sincronitzar importats</button>
+                </form>
+            {% endif %}
             {% if can_manage_actes %}<a class="btn btn-primary" href="{% url 'agenda:acte_create' %}">Nou acte</a>{% endif %}
         </div>
     </div>

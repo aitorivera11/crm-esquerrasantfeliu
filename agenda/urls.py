@@ -11,6 +11,7 @@ from .views import (
     MarcarAssistenciaView,
     ParticiparActeView,
     ParticipantsListView,
+    SyncImportedEventsView,
 )
 
 urlpatterns = [
@@ -18,6 +19,7 @@ urlpatterns = [
     path('meus/', ElsMeusActesView.as_view(), name='els_meus_actes'),
     path('nou/', ActeCreateView.as_view(), name='acte_create'),
     path('cron/import-city-events/', ImportCityEventsCronView.as_view(), name='import_city_events_cron'),
+    path('import-city-events/sync/', SyncImportedEventsView.as_view(), name='sync_imported_events'),
     path('<int:pk>/', ActeDetailView.as_view(), name='acte_detail'),
     path('<int:pk>/calendar.ics', ActeIcsView.as_view(), name='acte_ics'),
     path('<int:pk>/editar/', ActeUpdateView.as_view(), name='acte_update'),
