@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}{{ acte.titol }}{% endblock %}
+{% block meta_description %}{{ acte.titol }} · {{ acte.inici|date:'d/m/Y H:i' }} h{% if acte.ubicacio %} · {{ acte.ubicacio }}{% endif %}{% if acte.descripcio %} · {{ acte.descripcio|striptags|truncatechars:140 }}{% endif %}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ acte.titol }}{% endblock %}
+{% block og_description %}{{ acte.inici|date:'d/m/Y H:i' }} h{% if acte.fi %} · fins a les {{ acte.fi|date:'H:i' }} h{% endif %}{% if acte.ubicacio %} · {{ acte.ubicacio }}{% endif %}{% if acte.descripcio %} · {{ acte.descripcio|striptags|truncatechars:140 }}{% endif %}{% endblock %}
+{% block og_url %}{{ share_url }}{% endblock %}
+{% block twitter_title %}{{ acte.titol }}{% endblock %}
+{% block twitter_description %}{{ acte.inici|date:'d/m/Y H:i' }} h{% if acte.fi %} · fins a les {{ acte.fi|date:'H:i' }} h{% endif %}{% if acte.ubicacio %} · {{ acte.ubicacio }}{% endif %}{% endblock %}
 {% block page_title %}Detall de l'acte{% endblock %}
 {% block page_intro %}<p class="page-subtitle mb-0">Consulta la informació útil de l’acte i, si tens permisos, la configuració interna i el seguiment d’assistència.</p>{% endblock %}
 {% block content %}
