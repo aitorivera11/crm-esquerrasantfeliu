@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Max
 from django.utils.formats import localize_input
 
 from agenda.models import Acte, ActeTipus, SegmentVisibilitat
@@ -323,22 +324,35 @@ class TascaRapidaReunioForm(StyledFormMixin, forms.ModelForm):
 
 
 def inicialitzar_punts_acta_des_de_ordre_dia(acta):
-    if acta.punts.exists():
+    return sincronitzar_punts_acta_amb_ordre_dia(acta, nomes_si_buit=True)
+
+
+def sincronitzar_punts_acta_amb_ordre_dia(acta, *, nomes_si_buit=False):
+    if nomes_si_buit and acta.punts.exists():
         return 0
-    creades = []
+
+    creats = 0
+    ordre_maxim = acta.punts.aggregate(max_ordre=Max('ordre'))['max_ordre'] or 0
+    punts_existents = set(
+        acta.punts.filter(ve_de_ordre_dia=True, punt_ordre_origen__isnull=False).values_list('punt_ordre_origen_id', flat=True)
+    )
+
     for punt in acta.reunio.punts_ordre_dia.order_by('ordre', 'pk'):
-        creades.append(PuntActa(
+        if punt.pk in punts_existents:
+            continue
+        ordre_maxim += 1
+        PuntActa.objects.create(
             acta=acta,
-            ordre=punt.ordre,
+            ordre=ordre_maxim,
             titol=punt.titol,
             ve_de_ordre_dia=True,
             punt_ordre_origen=punt,
             acords='',
             contingut=punt.descripcio,
-        ))
-    if creades:
-        PuntActa.objects.bulk_create(creades)
-    return len(creades)
+        )
+        creats += 1
+
+    return creats
 
 
 @transaction.atomic

@@ -24,6 +24,7 @@ from .forms import (
     TascaRapidaReunioForm,
     TascaRelacioReunioForm,
     inicialitzar_punts_acta_des_de_ordre_dia,
+    sincronitzar_punts_acta_amb_ordre_dia,
 )
 from .models import Acta, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
 
@@ -165,7 +166,7 @@ class ReunioActaWorkspaceView(ReunionsBaseMixin, DetailView):
             reunio=reunio,
             defaults={'redactada_per': self.request.user},
         )
-        inicialitzar_punts_acta_des_de_ordre_dia(acta)
+        sincronitzar_punts_acta_amb_ordre_dia(acta)
         acta_text = generar_text_acta(acta)
         reunio_url = self.request.build_absolute_uri(reunio.get_absolute_url())
         context.update({
@@ -218,8 +219,19 @@ class PuntOrdreDiaCreateView(ReunionsBaseMixin, CreateView):
     def form_valid(self, form):
         form.instance.reunio = self.reunio
         form.instance.ordre = self.reunio.punts_ordre_dia.count() + 1
-        messages.success(self.request, 'Punt de l’ordre del dia afegit.')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+
+        acta = getattr(self.reunio, 'acta', None)
+        if acta:
+            sincronitzats = sincronitzar_punts_acta_amb_ordre_dia(acta)
+            if sincronitzats:
+                messages.success(self.request, f'Punt de l’ordre del dia afegit i acta actualitzada amb {sincronitzats} punt(s).')
+            else:
+                messages.success(self.request, 'Punt de l’ordre del dia afegit.')
+        else:
+            messages.success(self.request, 'Punt de l’ordre del dia afegit.')
+
+        return response
 
     def get_success_url(self):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.reunio.pk}) + '#ordre-dia'
@@ -289,7 +301,15 @@ class PuntOrdreDiaCreateFromTaskView(ReunionsBaseMixin, TemplateView):
             tipus_relacio=TascaRelacioReunio.TipusRelacio.PROPOSTA_ORDRE_DIA,
             defaults={'resum': 'Punt de l’ordre del dia generat des de la tasca proposada.'},
         )
-        messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
+        acta = getattr(reunio, 'acta', None)
+        if acta:
+            sincronitzats = sincronitzar_punts_acta_amb_ordre_dia(acta)
+            if sincronitzats:
+                messages.success(request, f'Punt creat a partir de la tasca i acta actualitzada amb {sincronitzats} punt(s).')
+            else:
+                messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
+        else:
+            messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 

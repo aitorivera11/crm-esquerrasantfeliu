@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from agenda.models import Acte, SegmentVisibilitat
 
-from .forms import ReunioForm
+from .forms import ReunioForm, sincronitzar_punts_acta_amb_ordre_dia
 from .models import Acta, PuntActa, PuntOrdreDia, Reunio, Tasca
 from .views import generar_text_ordre_dia, parse_task_commands
 
@@ -234,3 +234,57 @@ class OrdreDiaShareTextTests(TestCase):
         self.assertIn('Ordre del dia', text)
         self.assertIn('1. Formació ENGEGA', text)
         self.assertTrue(text.endswith('https://crm-esquerrasantfeliu.vercel.app/agenda/175/'))
+
+
+class ActaOrdreDiaSyncTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.coord = User.objects.create_user(
+            username='coord-sync-acta',
+            password='pass',
+            nom_complet='Coord Sync',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.reunio = Reunio.objects.create(
+            titol='Reunió amb ordre canviant',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.CELEBRADA,
+            inici=timezone.now() + timedelta(days=1),
+            convocada_per=self.coord,
+            moderada_per=self.coord,
+        )
+        self.acta = Acta.objects.create(reunio=self.reunio, redactada_per=self.coord)
+        self.client.force_login(self.coord)
+
+    def test_sincronitzar_no_duplica_i_afegeix_només_punts_faltants(self):
+        punt1 = PuntOrdreDia.objects.create(reunio=self.reunio, ordre=1, titol='Seguiment')
+        creats_inicials = sincronitzar_punts_acta_amb_ordre_dia(self.acta)
+        self.assertEqual(creats_inicials, 1)
+        self.assertEqual(self.acta.punts.count(), 1)
+
+        PuntOrdreDia.objects.create(reunio=self.reunio, ordre=2, titol='Torn obert')
+        creats_posteriors = sincronitzar_punts_acta_amb_ordre_dia(self.acta)
+
+        self.assertEqual(creats_posteriors, 1)
+        self.assertEqual(self.acta.punts.count(), 2)
+        self.assertTrue(self.acta.punts.filter(punt_ordre_origen=punt1).exists())
+
+    def test_crear_punt_des_de_tasca_actualitza_acta_si_ja_existeix(self):
+        tasca = Tasca.objects.create(
+            titol='Punt per tractar',
+            creada_per=self.coord,
+            responsable=self.coord,
+            origen=Tasca.Origen.INDEPENDENT,
+            proposar_seguent_ordre_dia=True,
+        )
+
+        response = self.client.post(
+            reverse('reunions:punt_ordre_from_tasca', kwargs={'pk': self.reunio.pk, 'tasca_pk': tasca.pk}),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.reunio.punts_ordre_dia.count(), 1)
+        self.assertEqual(self.acta.punts.count(), 1)
+        punt_acta = self.acta.punts.first()
+        self.assertTrue(punt_acta.ve_de_ordre_dia)
+        self.assertIsNotNone(punt_acta.punt_ordre_origen_id)
