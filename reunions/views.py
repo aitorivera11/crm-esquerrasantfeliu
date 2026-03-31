@@ -301,7 +301,15 @@ class PuntOrdreDiaCreateFromTaskView(ReunionsBaseMixin, TemplateView):
             tipus_relacio=TascaRelacioReunio.TipusRelacio.PROPOSTA_ORDRE_DIA,
             defaults={'resum': 'Punt de l’ordre del dia generat des de la tasca proposada.'},
         )
-        messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
+        acta = getattr(reunio, 'acta', None)
+        if acta:
+            sincronitzats = sincronitzar_punts_acta_amb_ordre_dia(acta)
+            if sincronitzats:
+                messages.success(request, f'Punt creat a partir de la tasca i acta actualitzada amb {sincronitzats} punt(s).')
+            else:
+                messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
+        else:
+            messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 
