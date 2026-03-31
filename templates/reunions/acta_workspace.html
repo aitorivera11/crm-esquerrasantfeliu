@@ -14,6 +14,7 @@
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     <a class="btn btn-outline-secondary" href="{% url 'reunions:reunio_detail' reunio.pk %}">Tornar a gestió</a>
+                    <a class="btn btn-outline-secondary" href="{% url 'reunions:punt_acta_create' acta.pk %}">Afegir punt fora de l’ordre del dia</a>
                     <a class="btn btn-outline-primary" href="{% url 'reunions:acta_update' acta.pk %}">Editar metadades</a>
                 </div>
             </div>

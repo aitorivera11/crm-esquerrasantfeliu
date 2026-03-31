@@ -93,7 +93,12 @@
                     <h3 class="h4 mb-1">2) Redacció de l'acta</h3>
                 <p class="text-muted mb-0">Obre la pàgina per redactar l’acta.</p>
                 </div>
-                <a class="btn btn-workflow" href="{% url 'reunions:acta_workspace' reunio.pk %}">Obrir redacció</a>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-workflow" href="{% url 'reunions:acta_workspace' reunio.pk %}">Obrir redacció</a>
+                    {% if acta %}
+                        <a class="btn btn-outline-secondary" href="{% url 'reunions:punt_acta_create' acta.pk %}">Afegir punt fora de l’ordre del dia</a>
+                    {% endif %}
+                </div>
             </div>
             {% if acta %}
                 <hr class="my-4">
