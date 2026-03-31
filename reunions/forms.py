@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils.formats import localize_input
 
 from agenda.models import Acte, ActeTipus, SegmentVisibilitat
 from core.forms import SearchableSelectMultiple
@@ -13,6 +14,13 @@ from .models import Acta, AreaCampanya, PuntActa, PuntOrdreDia, Reunio, Seguimen
 
 
 class ReunioForm(StyledFormMixin, forms.ModelForm):
+    datetime_input_formats = [
+        '%Y-%m-%dT%H:%M',
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%d/%m/%Y %H:%M',
+    ]
+
     class Meta:
         model = Reunio
         fields = [
@@ -21,8 +29,8 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
             'entitats_relacionades', 'etiquetes', 'es_estrategica', 'es_interna', 'acte_agenda',
         ]
         widgets = {
-            'inici': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-            'fi': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
+            'fi': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
             'descripcio': forms.Textarea(attrs={'rows': 4}),
             'objectiu': forms.Textarea(attrs={'rows': 3}),
             'assistents': SearchableSelectMultiple(search_placeholder='Cerca assistents…'),
@@ -43,6 +51,14 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
         self.fields['acte_agenda'].required = False
         self.fields['acte_agenda'].label = 'Acte vinculat a l’agenda'
         self.fields['acte_agenda'].help_text = 'Si el deixes buit, es crearà o s’actualitzarà automàticament un acte de l’agenda per aquesta reunió.'
+        self.fields['inici'].input_formats = self.datetime_input_formats
+        self.fields['fi'].input_formats = self.datetime_input_formats
+
+        for field_name in ('inici', 'fi'):
+            field = self.fields[field_name]
+            value = self.initial.get(field_name)
+            if value:
+                field.initial = localize_input(value, field.widget.format or '%Y-%m-%dT%H:%M')
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -120,13 +136,20 @@ class ActaForm(StyledFormMixin, forms.ModelForm):
             'resum_general': forms.Textarea(attrs={'rows': 5}),
             'acords_presos': forms.Textarea(attrs={'rows': 4}),
             'observacions': forms.Textarea(attrs={'rows': 4}),
-            'data_tancament': forms.DateInput(attrs={'type': 'date'}),
+            'data_tancament': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, reunio=None, **kwargs):
         self.reunio = reunio
         super().__init__(*args, **kwargs)
         self.fields['redactada_per'].queryset = Usuari.objects.order_by('nom_complet', 'username')
+        self.fields['data_tancament'].input_formats = ['%Y-%m-%d', '%d/%m/%Y']
+        value = self.initial.get('data_tancament')
+        if value:
+            self.fields['data_tancament'].initial = localize_input(
+                value,
+                self.fields['data_tancament'].widget.format or '%Y-%m-%d',
+            )
 
 
 class PuntActaForm(StyledFormMixin, forms.ModelForm):
@@ -160,7 +183,7 @@ class TascaForm(StyledFormMixin, forms.ModelForm):
             'observacions_seguiment': forms.Textarea(attrs={'rows': 3}),
             'resultat_tancament': forms.Textarea(attrs={'rows': 3}),
             'motiu_proposta_ordre_dia': forms.Textarea(attrs={'rows': 3}),
-            'data_limit': forms.DateInput(attrs={'type': 'date'}),
+            'data_limit': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'collaboradors': SearchableSelectMultiple(search_placeholder='Cerca persones col·laboradores…'),
             'persones_relacionades': SearchableSelectMultiple(search_placeholder='Cerca persones…'),
             'entitats_relacionades': SearchableSelectMultiple(search_placeholder='Cerca entitats…'),
@@ -178,6 +201,13 @@ class TascaForm(StyledFormMixin, forms.ModelForm):
         self.fields['punt_acta_origen'].queryset = PuntActa.objects.select_related('acta__reunio').order_by('-acta__reunio__inici', 'ordre')
         self.fields['persones_relacionades'].queryset = Persona.objects.order_by('nom')
         self.fields['entitats_relacionades'].queryset = Entitat.objects.order_by('nom')
+        self.fields['data_limit'].input_formats = ['%Y-%m-%d', '%d/%m/%Y']
+        value = self.initial.get('data_limit')
+        if value:
+            self.fields['data_limit'].initial = localize_input(
+                value,
+                self.fields['data_limit'].widget.format or '%Y-%m-%d',
+            )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -217,18 +247,32 @@ class SeguimentTascaForm(StyledFormMixin, forms.ModelForm):
 
 
 class TascaRelacioReunioForm(StyledFormMixin, forms.ModelForm):
+    datetime_input_formats = [
+        '%Y-%m-%dT%H:%M',
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%d/%m/%Y %H:%M',
+    ]
+
     class Meta:
         model = TascaRelacioReunio
         fields = ['reunio', 'punt_ordre_dia', 'punt_acta', 'tipus_relacio', 'resum', 'tractada_el']
         widgets = {
             'resum': forms.Textarea(attrs={'rows': 3}),
-            'tractada_el': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'tractada_el': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
         }
 
     def __init__(self, *args, tasca=None, **kwargs):
         self.tasca = tasca
         super().__init__(*args, **kwargs)
         self.fields['reunio'].queryset = Reunio.objects.order_by('-inici')
+        self.fields['tractada_el'].input_formats = self.datetime_input_formats
+        value = self.initial.get('tractada_el')
+        if value:
+            self.fields['tractada_el'].initial = localize_input(
+                value,
+                self.fields['tractada_el'].widget.format or '%Y-%m-%dT%H:%M',
+            )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -258,7 +302,7 @@ class TascaRapidaReunioForm(StyledFormMixin, forms.ModelForm):
         model = Tasca
         fields = ['titol', 'responsable', 'data_limit', 'prioritat']
         widgets = {
-            'data_limit': forms.DateInput(attrs={'type': 'date'}),
+            'data_limit': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, usuari=None, **kwargs):
@@ -267,6 +311,13 @@ class TascaRapidaReunioForm(StyledFormMixin, forms.ModelForm):
         ordered_users = Usuari.objects.order_by('nom_complet', 'username')
         self.fields['responsable'].queryset = ordered_users
         self.fields['responsable'].required = False
+        self.fields['data_limit'].input_formats = ['%Y-%m-%d', '%d/%m/%Y']
+        value = self.initial.get('data_limit')
+        if value:
+            self.fields['data_limit'].initial = localize_input(
+                value,
+                self.fields['data_limit'].widget.format or '%Y-%m-%d',
+            )
         if self.usuari and not self.initial.get('responsable'):
             self.initial['responsable'] = self.usuari
 
