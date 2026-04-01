@@ -1,130 +1,84 @@
 # Auditoría técnica del proyecto
 
-Fecha de auditoría: 2026-03-23
+Fecha de auditoría: 2026-04-01
 
 ## Resumen ejecutivo
 
-La base del proyecto es sólida y la separación por dominios (`agenda`, `reunions`, `persones`, `entitats`, `usuaris`) está bien planteada. El módulo de `agenda` es el más maduro en permisos, cobertura de tests y consistencia de UX. Aun así, se han detectado varias incoherencias relevantes, especialmente en permisos, consistencia visual/editorial y algunas oportunidades claras de optimización.
+Se ha realizado una nueva revisión funcional y de seguridad del código Django del repositorio. La base general es consistente, y se observa una mejora clara respecto a auditorías anteriores en dos áreas clave: permisos de escritura en `reunions` y portabilidad de la configuración de base de datos para entornos SQLite.
+
+Aun así, persisten riesgos relevantes, especialmente en un endpoint de importación expuesto por HTTP GET con efectos de escritura y autenticación opcional según configuración. También se detectan riesgos de endurecimiento de seguridad en `settings.py` y deuda de testing en módulos sin cobertura.
 
 ## Hallazgos prioritarios
 
-### 1. Incoherencia de permisos entre módulos
+### 1) Endpoint de cron con efecto de escritura vía GET y secreto opcional (ALTO)
 
-- `agenda` protege creación/edición mediante permisos explícitos.
-- `reunions` permite la mayoría de operaciones con solo `LoginRequiredMixin`.
-- Los grupos automáticos definidos en `usuaris/signals.py` no contemplan permisos específicos para reuniones o tareas.
+**Dónde:** `agenda/views.py` (`ImportCityEventsCronView`) + `agenda/urls.py`.
 
-**Riesgo:** usuarios autenticados con perfil básico pueden acceder a acciones de edición que no encajan con la política aplicada al resto de módulos.
+**Qué ocurre:**
 
-**Recomendación:** definir permisos funcionales para reuniones/tareas y aplicarlos a vistas de escritura, igual que ya se hace en agenda.
+- La vista acepta `GET` y ejecuta `call_command('import_city_events', '--cleanup', ...)`, es decir, muta datos.
+- El control de acceso depende de `CRON_SECRET`, pero si `CRON_SECRET` está vacío, la condición de rechazo no se activa y el endpoint queda operativo sin autenticación efectiva.
+- El secreto puede recibirse también por querystring (`?key=`), aumentando exposición accidental en logs/intermediarios.
 
-### 2. Navegación y acciones visibles para usuarios sin permiso real
+**Riesgo:** ejecución no autorizada de importaciones, consumo de recursos y alteración del estado de agenda.
 
-- El menú lateral muestra `Persones` a cualquier usuario autenticado.
-- La vista de `persones` solo está permitida a administración y coordinación.
-- El dashboard muestra `Afegir persona` aunque el usuario no tenga acceso al módulo.
+**Recomendación:**
 
-**Riesgo:** experiencia incoherente y sensación de producto “roto” al llevar al usuario a un acceso denegado.
+1. Exigir siempre autenticación fuerte (secret obligatorio o firma HMAC con expiración).
+2. Cambiar a `POST` (o al menos rechazar GET para operaciones mutables).
+3. Eliminar el paso de credenciales por querystring y aceptar solo cabecera.
+4. Añadir test específico que falle si `CRON_SECRET` está ausente.
 
-**Recomendación:** renderizar navegación y CTAs según permisos o roles efectivos.
+### 2) Configuración de seguridad de producción insuficientemente endurecida (ALTO)
 
-### 3. Bug lógico en la sincronización reunión ↔ acto de agenda
+**Dónde:** `config/settings.py`.
 
-En `ReunioForm.sync_acte_agenda()`:
+**Qué ocurre:** no se observa activación condicional de controles estándar de hardening en producción (`SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, HSTS, etc.).
 
-- si la reunión es interna, se restringe la visibilidad a coordinación;
-- si deja de ser interna y el acto ya existía, la limpieza solo se ejecuta si el acto se estaba creando en ese momento.
+**Riesgo:** degradación de seguridad en despliegues reales si no se compensa externamente.
 
-**Riesgo:** reuniones que han dejado de ser internas pueden seguir restringidas por arrastre.
-
-**Recomendación:** recalcular siempre `visible_per` y `assistencia_permesa_per` cuando cambie `es_interna`.
+**Recomendación:** añadir bloque de seguridad cuando `DEBUG=False`, con valores por entorno y documentación mínima en README.
 
 ## Hallazgos de nivel medio
 
-### 4. Filtrado y cómputo en Python en lugar de base de datos
+### 3) Cobertura de tests incompleta por dominios
 
-Se han detectado patrones como:
+**Dónde:** existen tests en `agenda`, `reunions`, `entitats`, `usuaris`, pero no en `persones` ni `core`.
 
-- cálculo de tareas vencidas iterando en Python;
-- conversión de `QuerySet` a lista en `TascaListView` cuando se filtra por vencidas;
-- panel de seguimiento que vuelve a calcular en memoria información derivada.
+**Riesgo:** regresiones silenciosas en permisos, navegación o flujos de vistas base.
 
-**Riesgo:** peor escalabilidad y pérdida de optimizaciones futuras (paginación, ordenación, chaining de queryset).
+**Recomendación:** incorporar una suite mínima en `persones/tests.py` y `core/tests.py` (acceso por rol, respuesta 200/403, navegación esperada).
 
-**Recomendación:** llevar estos filtros a SQL siempre que sea viable.
+### 4) Warning de estáticos durante test suite
 
-### 5. Campo potencialmente infrautilizado: `assistencia_permesa_per`
+**Dónde:** ejecución de `python manage.py test`.
 
-El modelo `Acte` distingue entre:
+**Qué ocurre:** aparece warning por ausencia de `staticfiles_build/static/`.
 
-- `visible_per`
-- `assistencia_permesa_per`
+**Riesgo:** ruido en CI y potencial confusión de errores reales frente a advertencias de entorno.
 
-Pero la lógica visible en vistas usa principalmente `visible_per`.
+**Recomendación:** crear directorio en setup de CI o condicionar configuración de estáticos para test.
 
-**Riesgo:** deuda funcional o campo “muerto” que añade complejidad sin valor real.
+## Aspectos verificados como mejora respecto a la auditoría previa
 
-**Recomendación:** decidir si ese campo debe participar en reglas de negocio reales o si conviene simplificar el modelo.
-
-### 6. Configuración de base de datos poco portable para test/local
-
-Con la configuración por defecto, `manage.py test` falla sobre SQLite si no se fuerza `DB_SSL_REQUIRE=False`, porque se inyecta `sslmode`.
-
-**Riesgo:** fricción en entornos locales y CI sencillos.
-
-**Recomendación:** condicionar `ssl_require` al backend real de base de datos.
-
-## Incoherencias de interfaz
-
-### 7. Terminología mezclada
-
-Se mezclan expresiones como:
-
-- `Panel de seguiment`
-- `Panell de reunions`
-- `Filtra`
-- `Aplicar filtres`
-
-**Riesgo:** falta de coherencia editorial y visual.
-
-**Recomendación:** fijar una guía mínima de copy UI.
-
-### 8. URLs hardcodeadas en estados vacíos
-
-El componente `empty_state` recibe rutas directas como `'/agenda/nou/'` o `'/reunions/nova/'` en varias plantillas.
-
-**Riesgo:** menor mantenibilidad ante refactors de rutas.
-
-**Recomendación:** usar siempre `{% url %}` cuando sea posible.
-
-## Fortalezas detectadas
-
-- `agenda` tiene una cobertura de tests mucho más profunda que el resto.
-- La estructura del proyecto es clara y extensible.
-- La integración reunión ↔ agenda es una buena base de producto.
-- La UI base tiene una dirección visual consistente, aunque necesita pulido editorial.
+1. **Permisos en `reunions` mejor definidos:** uso de `PermissionRequiredMixin` para operaciones de escritura de reuniones, actas, puntos y tareas.
+2. **Configuración de DB más portable:** el cálculo de `ssl_require` ya contempla SQLite por defecto, evitando el fallo anterior en tests locales.
+3. **Navegación más coherente por permisos:** el sidebar ya condiciona enlaces sensibles por rol/permisos.
 
 ## Priorización sugerida
 
-### Prioridad 1
+### Prioridad 1 (inmediata)
 
-1. Aplicar permisos reales a `reunions` y `tasques`.
-2. Ocultar enlaces/acciones no permitidas por rol.
-3. Corregir la resincronización de visibilidad al cambiar `es_interna`.
+1. Cerrar el riesgo del endpoint `import-city-events` (auth obligatoria + método POST + tests).
+2. Endurecer `settings.py` para producción (`SECURE_*`, HSTS, cookies seguras).
 
 ### Prioridad 2
 
-4. Optimizar filtros/cómputos en Python.
-5. Mejorar la portabilidad de la configuración de DB para test/local.
+3. Añadir cobertura de tests para `core` y `persones`.
+4. Limpiar warning de estáticos en pipeline de tests.
 
-### Prioridad 3
+## Comprobaciones ejecutadas en esta auditoría
 
-6. Unificar terminología de interfaz.
-7. Sustituir URLs hardcodeadas por rutas nombradas.
-8. Ampliar tests de `reunions`, especialmente permisos y flujos de edición.
+- `python manage.py check` → OK
+- `python manage.py test` → OK (44 tests), con warning de estáticos
 
-## Comprobaciones realizadas durante la auditoría
-
-- `DB_SSL_REQUIRE=False python manage.py check`
-- `DB_SSL_REQUIRE=False python manage.py test`
-- `python manage.py test` → falla con SQLite por la configuración SSL por defecto
