@@ -101,17 +101,16 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
         acte.persones_relacionades.set(reunio.persones_relacionades.all())
         acte.entitats_relacionades.set(reunio.entitats_relacionades.all())
 
+        visibility_segments = []
         if reunio.es_interna:
             coordinacio_segment, _ = SegmentVisibilitat.objects.get_or_create(
                 ambit=SegmentVisibilitat.Ambit.ROL,
                 codi=Usuari.Rol.COORDINACIO,
                 defaults={'etiqueta': 'Coordinació'},
             )
-            acte.visible_per.set([coordinacio_segment])
-            acte.assistencia_permesa_per.set([coordinacio_segment])
-        else:
-            acte.visible_per.clear()
-            acte.assistencia_permesa_per.clear()
+            visibility_segments = [coordinacio_segment]
+        acte.visible_per.set(visibility_segments)
+        acte.assistencia_permesa_per.set(visibility_segments)
 
         confirmats_ids = reunio.acte_agenda.participants.filter(intencio='HI_ANIRE').values_list('usuari_id', flat=True) if reunio.acte_agenda_id else []
         reunio.assistents.add(*list(confirmats_ids))

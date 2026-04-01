@@ -34,9 +34,11 @@
     <div class="nav-group {% if request.resolver_match.namespace == 'persones' or request.resolver_match.namespace == 'entitats' %}open{% endif %}">
         <span class="nav-link-side nav-link-heading">Entorn</span>
         <div class="nav-submenu">
+            {% if perms.persones.view_persona %}
             <a href="{% url 'persones:persona_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'persones' %}active{% endif %}">
                 Persones
             </a>
+            {% endif %}
             <a href="{% url 'entitats:entitat_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'entitats' %}active{% endif %}">
                 Entitats
             </a>

@@ -3,6 +3,7 @@ import re
 from urllib.parse import quote
 
 from django.contrib import messages
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
 from django.db.models import Count, Max, Prefetch, Q
 from django.http import HttpResponse, JsonResponse
@@ -37,6 +38,17 @@ class ReunionsBaseMixin(ReunionsPermissionMixin):
     def get_success_url(self):
         return self.object.get_absolute_url()
 
+
+class ReunionsWritePermissionMixin(PermissionRequiredMixin):
+    raise_exception = True
+
+
+class ReunioWritePermissionMixin(ReunionsWritePermissionMixin):
+    permission_required = 'reunions.change_reunio'
+
+
+class TascaWritePermissionMixin(ReunionsWritePermissionMixin):
+    permission_required = 'reunions.change_tasca'
 
 def tasques_obertes_queryset(queryset=None):
     base_queryset = queryset if queryset is not None else Tasca.objects.all()
@@ -182,7 +194,7 @@ class ReunioActaWorkspaceView(ReunionsBaseMixin, DetailView):
         return context
 
 
-class ReunioCreateView(ReunionsBaseMixin, CreateView):
+class ReunioCreateView(ReunioWritePermissionMixin, ReunionsBaseMixin, CreateView):
     model = Reunio
     form_class = ReunioForm
     template_name = 'reunions/reunio_form.html'
@@ -198,7 +210,7 @@ class ReunioCreateView(ReunionsBaseMixin, CreateView):
         return super().form_valid(form)
 
 
-class ReunioUpdateView(ReunionsBaseMixin, UpdateView):
+class ReunioUpdateView(ReunioWritePermissionMixin, ReunionsBaseMixin, UpdateView):
     model = Reunio
     form_class = ReunioForm
     template_name = 'reunions/reunio_form.html'
@@ -208,7 +220,8 @@ class ReunioUpdateView(ReunionsBaseMixin, UpdateView):
         return super().form_valid(form)
 
 
-class PuntOrdreDiaCreateView(ReunionsBaseMixin, CreateView):
+class PuntOrdreDiaCreateView(ReunionsWritePermissionMixin, ReunionsBaseMixin, CreateView):
+    permission_required = 'reunions.add_puntordredia'
     model = PuntOrdreDia
     form_class = PuntOrdreDiaForm
 
@@ -237,7 +250,8 @@ class PuntOrdreDiaCreateView(ReunionsBaseMixin, CreateView):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.reunio.pk}) + '#ordre-dia'
 
 
-class PuntOrdreDiaUpdateView(ReunionsBaseMixin, UpdateView):
+class PuntOrdreDiaUpdateView(ReunionsWritePermissionMixin, ReunionsBaseMixin, UpdateView):
+    permission_required = 'reunions.change_puntordredia'
     model = PuntOrdreDia
     form_class = PuntOrdreDiaForm
     template_name = 'reunions/punt_ordre_form.html'
@@ -247,7 +261,9 @@ class PuntOrdreDiaUpdateView(ReunionsBaseMixin, UpdateView):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.object.reunio_id}) + '#ordre-dia'
 
 
-class PuntOrdreDiaDeleteView(ReunionsBaseMixin, TemplateView):
+class PuntOrdreDiaDeleteView(ReunionsWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    permission_required = 'reunions.delete_puntordredia'
+
     def post(self, request, *args, **kwargs):
         punt = get_object_or_404(PuntOrdreDia, pk=kwargs['punt_pk'])
         reunio_id = punt.reunio_id
@@ -256,7 +272,9 @@ class PuntOrdreDiaDeleteView(ReunionsBaseMixin, TemplateView):
         return redirect('reunions:reunio_detail', pk=reunio_id)
 
 
-class PuntOrdreDiaMoveView(ReunionsBaseMixin, TemplateView):
+class PuntOrdreDiaMoveView(ReunionsWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    permission_required = 'reunions.change_puntordredia'
+
     def post(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
         direction = request.POST.get('direction')
@@ -282,7 +300,9 @@ class PuntOrdreDiaMoveView(ReunionsBaseMixin, TemplateView):
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 
-class PuntOrdreDiaCreateFromTaskView(ReunionsBaseMixin, TemplateView):
+class PuntOrdreDiaCreateFromTaskView(ReunionsWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    permission_required = ('reunions.add_puntordredia', 'reunions.change_tasca')
+
     def post(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
         tasca = get_object_or_404(Tasca, pk=kwargs['tasca_pk'])
@@ -313,7 +333,8 @@ class PuntOrdreDiaCreateFromTaskView(ReunionsBaseMixin, TemplateView):
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 
-class ActaUpdateView(ReunionsBaseMixin, UpdateView):
+class ActaUpdateView(ReunionsWritePermissionMixin, ReunionsBaseMixin, UpdateView):
+    permission_required = 'reunions.change_acta'
     model = Acta
     form_class = ActaForm
     template_name = 'reunions/acta_form.html'
@@ -331,7 +352,9 @@ class ActaUpdateView(ReunionsBaseMixin, UpdateView):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.object.reunio_id}) + '#acta'
 
 
-class ActaCreateOrUpdateView(ReunionsBaseMixin, TemplateView):
+class ActaCreateOrUpdateView(ReunionsWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    permission_required = ('reunions.add_acta', 'reunions.change_acta')
+
     def post(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
         acta = getattr(reunio, 'acta', None)
@@ -350,7 +373,8 @@ class ActaCreateOrUpdateView(ReunionsBaseMixin, TemplateView):
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 
-class PuntActaCreateView(ReunionsBaseMixin, CreateView):
+class PuntActaCreateView(ReunionsWritePermissionMixin, ReunionsBaseMixin, CreateView):
+    permission_required = 'reunions.add_puntacta'
     model = PuntActa
     form_class = PuntActaForm
 
@@ -374,7 +398,7 @@ class PuntActaCreateView(ReunionsBaseMixin, CreateView):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.acta.reunio_id}) + '#acta'
 
 
-class ReunioQuickTaskCreateView(ReunionsBaseMixin, TemplateView):
+class ReunioQuickTaskCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
         acta = getattr(reunio, 'acta', None)
@@ -424,7 +448,8 @@ class ReunioActaExportView(ReunionsBaseMixin, TemplateView):
         return response
 
 
-class PuntActaUpdateView(ReunionsBaseMixin, UpdateView):
+class PuntActaUpdateView(ReunionsWritePermissionMixin, ReunionsBaseMixin, UpdateView):
+    permission_required = 'reunions.change_puntacta'
     model = PuntActa
     form_class = PuntActaForm
     template_name = 'reunions/punt_acta_form.html'
@@ -439,7 +464,9 @@ class PuntActaUpdateView(ReunionsBaseMixin, UpdateView):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.object.acta.reunio_id}) + '#acta'
 
 
-class PuntActaQuickUpdateView(ReunionsBaseMixin, TemplateView):
+class PuntActaQuickUpdateView(ReunionsWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    permission_required = 'reunions.change_puntacta'
+
     def post(self, request, *args, **kwargs):
         punt = get_object_or_404(PuntActa, pk=kwargs['pk'])
         field = request.POST.get('field', '').strip()
@@ -450,7 +477,7 @@ class PuntActaQuickUpdateView(ReunionsBaseMixin, TemplateView):
         return JsonResponse({'ok': True, 'updated': timezone.localtime(punt.actualitzat_el).strftime('%H:%M:%S')})
 
 
-class PuntActaTaskQuickCreateView(ReunionsBaseMixin, TemplateView):
+class PuntActaTaskQuickCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         punt = get_object_or_404(PuntActa.objects.select_related('acta__reunio'), pk=kwargs['pk'])
         titol = (request.POST.get('titol') or '').strip()
@@ -506,7 +533,7 @@ class PuntActaTaskQuickCreateView(ReunionsBaseMixin, TemplateView):
         })
 
 
-class PuntActaTaskCommandCreateView(ReunionsBaseMixin, TemplateView):
+class PuntActaTaskCommandCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         punt = get_object_or_404(PuntActa.objects.select_related('acta__reunio'), pk=kwargs['pk'])
         content = request.POST.get('content') or ''
@@ -613,7 +640,7 @@ class TascaDetailView(ReunionsBaseMixin, DetailView):
         return context
 
 
-class TascaCreateView(ReunionsBaseMixin, CreateView):
+class TascaCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, CreateView):
     model = Tasca
     form_class = TascaForm
     template_name = 'reunions/tasca_form.html'
@@ -629,7 +656,7 @@ class TascaCreateView(ReunionsBaseMixin, CreateView):
         return super().form_valid(form)
 
 
-class TascaUpdateView(ReunionsBaseMixin, UpdateView):
+class TascaUpdateView(TascaWritePermissionMixin, ReunionsBaseMixin, UpdateView):
     model = Tasca
     form_class = TascaForm
     template_name = 'reunions/tasca_form.html'
@@ -639,7 +666,7 @@ class TascaUpdateView(ReunionsBaseMixin, UpdateView):
         return super().form_valid(form)
 
 
-class SeguimentTascaCreateView(ReunionsBaseMixin, TemplateView):
+class SeguimentTascaCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
         form = SeguimentTascaForm(request.POST, tasca=tasca, autor=request.user)
@@ -651,7 +678,7 @@ class SeguimentTascaCreateView(ReunionsBaseMixin, TemplateView):
         return redirect('reunions:tasca_detail', pk=tasca.pk)
 
 
-class TascaRelacioReunioCreateView(ReunionsBaseMixin, TemplateView):
+class TascaRelacioReunioCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
         form = TascaRelacioReunioForm(request.POST, tasca=tasca)
