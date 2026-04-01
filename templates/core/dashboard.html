@@ -49,6 +49,7 @@
                 {% if can_access_reunions %}<a href="{% url 'reunions:reunio_list' %}" class="btn btn-outline-primary">Reunions</a>{% endif %}
                 {% if can_access_reunions %}<a href="{% url 'reunions:tasca_list' %}" class="btn btn-outline-primary">Tasques</a>{% endif %}
                 {% if can_access_reunions %}<a href="{% url 'reunions:panel_seguiment' %}" class="btn btn-outline-primary">Panell de seguiment</a>{% endif %}
+                {% if perms.persones.view_persona %}<a href="{% url 'persones:persona_list' %}" class="btn btn-outline-primary">Persones</a>{% endif %}
                 <a href="{% url 'usuaris:perfil' %}" class="btn btn-outline-secondary">El meu perfil</a>
             </div>
         </section>

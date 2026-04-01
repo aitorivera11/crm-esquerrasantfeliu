@@ -118,6 +118,19 @@ class ReunionsPermissionsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Reunions i assemblees')
 
+    def test_participant_cannot_access_reunio_create_view(self):
+        self.client.force_login(self.participant)
+        response = self.client.get(reverse('reunions:reunio_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Accés denegat')
+
+    def test_participant_cannot_access_tasca_create_view(self):
+        self.client.force_login(self.participant)
+        response = self.client.get(reverse('reunions:tasca_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Accés denegat')
+
+
 
 class PuntOrdreDiaMoveTests(TestCase):
     def setUp(self):
