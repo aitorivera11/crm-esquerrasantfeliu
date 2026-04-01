@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import sys
 
 import dj_database_url
 
@@ -99,6 +100,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles_build" / "static"
+STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 STORAGES = {
     "default": {
@@ -115,3 +117,13 @@ AUTH_USER_MODEL = 'usuaris.Usuari'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'agenda:acte_list'
 LOGOUT_REDIRECT_URL = 'login'
+
+if not DEBUG and 'test' not in sys.argv:
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'true').lower() == 'true'
+    SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'true').lower() == 'true'
+    CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'true').lower() == 'true'
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'true').lower() == 'true'
+    SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'true').lower() == 'true'
+    SECURE_CONTENT_TYPE_NOSNIFF = os.getenv('SECURE_CONTENT_TYPE_NOSNIFF', 'true').lower() == 'true'
+    SECURE_REFERRER_POLICY = os.getenv('SECURE_REFERRER_POLICY', 'strict-origin-when-cross-origin')
