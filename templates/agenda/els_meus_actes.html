@@ -4,9 +4,19 @@
 {% block page_intro %}<p class="page-subtitle mb-0">El teu resum personal queda ara penjat dins d’Agenda per no dispersar la navegació.</p>{% endblock %}
 {% block content %}
 <section class="card card-panel mb-4 p-4">
-    <h2 class="h4 mb-1">Seguiment personal</h2>
-    <p class="text-muted mb-0">Consulta les teves respostes, diferencia millor els actes passats i revisa ràpidament el tipus de convocatòria.</p>
+    <h2 class="h4 mb-1">Actes on assistiré</h2>
+    <p class="text-muted mb-0">Mostrem només els actes futurs on has confirmat “Hi aniré”. Els assistits queden ocults per defecte.</p>
 </section>
+<form method="get" class="mb-4">
+    <label class="agenda-toggle" for="show-attended">
+        <input type="checkbox" id="show-attended" name="show_attended" value="1" {% if show_attended %}checked{% endif %} onchange="this.form.submit()">
+        <span class="agenda-toggle__control" aria-hidden="true"></span>
+        <span class="agenda-toggle__content">
+            <strong>Mostrar actes assistits</strong>
+            <small>Hi ha {{ attended_count }} actes passats amb assistència confirmada.</small>
+        </span>
+    </label>
+</form>
 <div class="row g-4">
 {% for participacio in participacions %}
     <div class="col-12 col-lg-6">
@@ -32,4 +42,22 @@
     <div class="col-12">{% include 'components/empty_state.html' with icon='🗓️' title='Encara no t’has apuntat a cap acte' message='Quan responguis a un acte el veuràs resumit aquí.' action_url=agenda_list_url action_label='Veure agenda' %}</div>
 {% endfor %}
 </div>
+
+{% if show_attended %}
+<section class="card card-panel p-4 mt-4">
+    <h3 class="h5 mb-3">Actes als quals he assistit</h3>
+    <div class="row g-3">
+        {% for participacio in attended_participacions %}
+            <div class="col-12 col-lg-6">
+                <article class="card card-panel h-100 p-3">
+                    <a class="text-decoration-none" href="{% url 'agenda:acte_detail' participacio.acte.pk %}"><strong>{{ participacio.acte.titol }}</strong></a>
+                    <p class="text-muted mb-0 mt-2">{{ participacio.acte.inici|date:'d/m/Y H:i' }} · {{ participacio.acte.ubicacio }}</p>
+                </article>
+            </div>
+        {% empty %}
+            <p class="text-muted mb-0">Encara no hi ha cap acte assistit registrat.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 {% endblock %}
