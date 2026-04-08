@@ -12,11 +12,14 @@ from usuaris.models import Usuari
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'core/dashboard.html'
 
+    def _is_true(self, value):
+        return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
+
     def _can_access_reunions(self):
         return self.request.user.rol in {Usuari.Rol.ADMINISTRACIO, Usuari.Rol.COORDINACIO}
 
     def _visible_actes_queryset(self):
-        queryset = Acte.objects.select_related('tipus', 'creador').distinct()
+        queryset = Acte.objects.select_related('tipus', 'creador', 'reunio_relacionada').distinct()
         if self.request.user.has_perm('agenda.change_acte'):
             return queryset
 
@@ -33,10 +36,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         now = timezone.now()
         today = timezone.localdate()
         user = self.request.user
+        show_imported = self._is_true(self.request.GET.get('show_imported'))
 
         actes_visibles = self._visible_actes_queryset()
+        propers_actes_base = actes_visibles.filter(inici__gte=now, estat=Acte.Estat.PUBLICAT)
         propers_actes_qs = (
-            actes_visibles.filter(inici__gte=now, estat=Acte.Estat.PUBLICAT)
+            propers_actes_base
             .annotate(
                 prioritat_origen=Case(
                     When(creador=user, then=Value(0)),
@@ -47,6 +52,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             )
             .order_by('prioritat_origen', '-es_important', 'inici')
         )
+        if not show_imported:
+            propers_actes_qs = propers_actes_qs.filter(external_source='')
         propers_actes = propers_actes_qs[:8]
 
         participacions_meves = (
@@ -58,22 +65,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         dashboard_data = {
             'can_access_reunions': self._can_access_reunions(),
             'propers_actes': propers_actes,
+            'show_imported': show_imported,
             'participacions_meves': participacions_meves,
             'actes_creats_per_mi': actes_visibles.filter(creador=user).count(),
             'actes_importats_visibles': actes_visibles.exclude(external_source='').count(),
             'total_actes_visibles': actes_visibles.count(),
             'propers_actes_total': propers_actes_qs.count(),
+            'propers_actes_creats_total': propers_actes_base.filter(external_source='').count(),
         }
 
         if self._can_access_reunions():
-            futures_reunions = (
-                Reunio.objects.filter(inici__gte=now)
-                .filter(Q(assistents=user) | Q(convocada_per=user) | Q(moderada_per=user))
-                .select_related('area', 'convocada_per', 'moderada_per')
-                .order_by('inici')
-                .distinct()[:6]
-            )
-
             meves_tasques_qs = (
                 Tasca.objects.filter(responsable=user)
                 .exclude(estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA])
@@ -84,7 +85,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
             dashboard_data.update(
                 {
-                    'futures_reunions': futures_reunions,
                     'meves_tasques': meves_tasques,
                     'tasques_vencudes_meves': meves_tasques_qs.filter(data_limit__lt=today).count(),
                     'tasques_urgents_meves': meves_tasques_qs.filter(prioritat=Tasca.Prioritat.URGENT).count(),

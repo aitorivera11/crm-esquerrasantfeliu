@@ -263,6 +263,17 @@ textarea.form-control { min-height: 120px; }
 .list-group-item { background: transparent; }
 .list-group-item:last-child { border-bottom: 0 !important; }
 .quick-actions .btn { justify-content: center; }
+.quick-actions-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.compact-list-group .list-group-item:last-child {
+    border-bottom: 0 !important;
+}
+.compact-list-group summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+}
 .section-heading { display:flex; justify-content:space-between; gap:1rem; align-items:flex-end; margin-bottom:1rem; }
 .inline-status-actions {
     align-items: center;

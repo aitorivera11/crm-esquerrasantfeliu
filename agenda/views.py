@@ -473,12 +473,40 @@ class ElsMeusActesView(LoginRequiredMixin, ListView):
     template_name = 'agenda/els_meus_actes.html'
     context_object_name = 'participacions'
 
+    def _is_true(self, value):
+        return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
+
     def get_queryset(self):
         return (
-            ParticipacioActe.objects.filter(usuari=self.request.user)
+            ParticipacioActe.objects.filter(
+                usuari=self.request.user,
+                intencio=ParticipacioActe.Intencio.HI_ANIRE,
+                acte__inici__gte=timezone.now(),
+            )
+            .select_related('acte', 'acte__tipus')
+            .order_by('acte__inici')
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        show_attended = self._is_true(self.request.GET.get('show_attended'))
+        attended_queryset = (
+            ParticipacioActe.objects.filter(
+                usuari=self.request.user,
+                acte__inici__lt=timezone.now(),
+                assistencia_real=ParticipacioActe.AssistenciaReal.ASSISTEIX,
+            )
             .select_related('acte', 'acte__tipus')
             .order_by('-acte__inici')
         )
+        context.update(
+            {
+                'show_attended': show_attended,
+                'attended_count': attended_queryset.count(),
+                'attended_participacions': attended_queryset if show_attended else [],
+            }
+        )
+        return context
 
 
 class MarcarAssistenciaView(LoginRequiredMixin, PermissionRequiredMixin, View):
