@@ -1,4 +1,4 @@
-Django>=5.1,<5.2
+Django>=5.2,<6.0
 psycopg[binary]>=3.2
 whitenoise>=6.8
 dj-database-url>=2.2
