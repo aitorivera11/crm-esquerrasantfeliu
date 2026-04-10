@@ -8,7 +8,7 @@
 {% block twitter_title %}{{ acte.titol }}{% endblock %}
 {% block twitter_description %}{{ acte.inici|date:'d/m/Y H:i' }} h{% if acte.fi %} · fins a les {{ acte.fi|date:'H:i' }} h{% endif %}{% if acte.ubicacio %} · {{ acte.ubicacio }}{% endif %}{% endblock %}
 {% block page_title %}Detall de l'acte{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Consulta la informació útil de l’acte i, si tens permisos, la configuració interna i el seguiment d’assistència.</p>{% endblock %}
+{% block page_intro %}{% endblock %}
 {% block content %}
 <div class="row g-4">
     <div class="col-12 col-xl-8">
@@ -103,53 +103,19 @@
                 {% endif %}
             </section>
 
-            <section class="card card-panel p-4 social-panel">
-                <div class="d-flex justify-content-between gap-3 align-items-start flex-wrap">
-                    <div>
-                        <h3 class="h5 mb-1">Comparteix i exporta</h3>
-                        <p class="text-muted mb-0">Envia l’acte per canals ràpids o afegeix-lo al teu calendari.</p>
-                    </div>
-                    <span class="info-chip">Social</span>
-                </div>
+            {% include 'components/share_actions_panel.html' with heading='Comparteix i exporta' chip='Social' whatsapp_url=whatsapp_url email_url=email_url share_url=share_url share_text=share_text native_title=acte.titol %}
 
-                <div class="share-grid mt-4">
-                    <a class="share-action share-action-whatsapp" href="{{ whatsapp_url }}" target="_blank" rel="noopener">
-                        <strong>WhatsApp</strong>
-                        <span>Comparteix el resum amb enllaç</span>
-                    </a>
-                    <button type="button" class="share-action share-action-copy-text" data-copy-text="{{ share_text }}" data-copy-feedback="Text copiat">
-                        <strong>Copiar text</strong>
-                        <span>Per enganxar-lo directament</span>
-                    </button>
-                    <a class="share-action share-action-email" href="{{ email_url }}">
-                        <strong>Correu</strong>
-                        <span>Obre un email amb l’acte preparat</span>
-                    </a>
-                    <button type="button" class="share-action share-action-copy" data-copy-text="{{ share_url }}" data-copy-feedback="Enllaç copiat">
-                        <strong>Copiar enllaç</strong>
-                        <span>Per enganxar-lo on vulguis</span>
-                    </button>
+            <section class="card card-panel p-4">
+                <h3 class="h6 mb-2">Calendari</h3>
+                <div class="calendar-actions d-grid gap-2">
+                    <a class="btn btn-primary" href="{{ google_calendar_url }}" target="_blank" rel="noopener">Google Calendar</a>
+                    <a class="btn btn-outline-secondary" href="{{ ics_url }}">Descarregar .ics</a>
                 </div>
+            </section>
 
-                <div class="share-native mt-3">
-                    <button type="button" class="btn btn-outline-primary w-100" data-native-share data-share-title="{{ acte.titol }}" data-share-text="{{ share_text }}" data-share-url="{{ share_url }}">Compartir amb el mòbil o navegador</button>
-                </div>
-
-                <div class="calendar-export mt-4">
-                    <div>
-                        <h4 class="h6 mb-1">Porta’l al calendari</h4>
-                        <p class="text-muted mb-0">Compatible amb Google Calendar i altres aplicacions.</p>
-                    </div>
-                    <div class="calendar-actions mt-3">
-                        <a class="btn btn-primary" href="{{ google_calendar_url }}" target="_blank" rel="noopener">Google Calendar</a>
-                        <a class="btn btn-outline-secondary" href="{{ ics_url }}">Descarregar .ics</a>
-                    </div>
-                </div>
-
-                <div class="share-preview mt-4">
-                    <span class="share-preview-label">Missatge suggerit</span>
-                    <pre>{{ share_text }}</pre>
-                </div>
+            <section class="card card-panel p-3">
+                <span class="share-preview-label">Missatge</span>
+                <pre class="mb-0">{{ share_text }}</pre>
             </section>
         </div>
     </div>

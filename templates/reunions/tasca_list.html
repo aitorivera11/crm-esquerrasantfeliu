@@ -1,14 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}Tasques{% endblock %}
 {% block page_title %}Tasques{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Seguiment pràctic de tasques nascudes de reunions o creades de forma independent.</p>{% endblock %}
+{% block page_intro %}{% endblock %}
 {% block content %}
 <section class="card card-panel mb-4 p-4">
     <div class="d-flex justify-content-between gap-3 align-items-center flex-wrap">
-        <div>
-            <h2 class="h4 mb-1">Seguiment de tasques</h2>
-            <p class="text-muted mb-0">Prioritza, detecta bloquejos i prepara què ha d’entrar al següent ordre del dia.</p>
-        </div>
+        <h2 class="h4 mb-0">Seguiment de tasques</h2>
         <div class="d-flex gap-2 flex-wrap">
             <span class="info-chip">{{ pendents_count }} pendents</span>
             <span class="info-chip">{{ bloquejades_count }} bloquejades</span>
@@ -18,17 +15,38 @@
         </div>
     </div>
 </section>
+
 <section class="card card-panel mb-4 p-4">
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-12 col-xl-4"><label class="form-label">Cerca</label><input class="form-control" type="search" name="q" value="{{ current_filters.q }}"></div>
-        <div class="col-12 col-md-3 col-xl-2"><label class="form-label">Estat</label><select class="form-select" name="estat"><option value="">Tots</option>{% for value, label in estat_options %}<option value="{{ value }}" {% if current_filters.estat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="col-12 col-md-3 col-xl-2"><label class="form-label">Prioritat</label><select class="form-select" name="prioritat"><option value="">Totes</option>{% for value, label in prioritat_options %}<option value="{{ value }}" {% if current_filters.prioritat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="col-12 col-md-3 col-xl-2"><label class="form-label">Origen</label><select class="form-select" name="origen"><option value="">Tots</option>{% for value, label in origen_options %}<option value="{{ value }}" {% if current_filters.origen == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="col-6 col-md-1"><label class="form-label">Vencudes</label><input type="checkbox" name="vencudes" value="1" {% if current_filters.vencudes == '1' %}checked{% endif %}></div>
-        <div class="col-6 col-md-1"><label class="form-label">Bloq.</label><input type="checkbox" name="bloquejades" value="1" {% if current_filters.bloquejades == '1' %}checked{% endif %}></div>
-        <div class="col-12"><button class="btn btn-outline-primary">Aplicar filtres</button></div>
+        <div class="col-12 col-xl-4">
+            <label class="form-label">Cerca</label>
+            <input class="form-control" type="search" name="q" value="{{ current_filters.q }}">
+        </div>
+        <div class="col-12 col-md-4 col-xl-2">
+            <label class="form-label">Estat</label>
+            <select class="form-select" name="estat"><option value="">Tots</option>{% for value, label in estat_options %}<option value="{{ value }}" {% if current_filters.estat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </div>
+        <div class="col-12 col-md-4 col-xl-2">
+            <label class="form-label">Prioritat</label>
+            <select class="form-select" name="prioritat"><option value="">Totes</option>{% for value, label in prioritat_options %}<option value="{{ value }}" {% if current_filters.prioritat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </div>
+        <div class="col-12 col-md-4 col-xl-2">
+            <label class="form-label">Origen</label>
+            <select class="form-select" name="origen"><option value="">Tots</option>{% for value, label in origen_options %}<option value="{{ value }}" {% if current_filters.origen == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </div>
+        <div class="col-6 col-md-4 col-xl-1">
+            {% include 'components/inline_checkbox_filter.html' with id='filter-vencudes' name='vencudes' checked=current_filters.vencudes|default:'' label='Vencudes' %}
+        </div>
+        <div class="col-6 col-md-4 col-xl-1">
+            {% include 'components/inline_checkbox_filter.html' with id='filter-bloquejades' name='bloquejades' checked=current_filters.bloquejades|default:'' label='Bloq.' %}
+        </div>
+        <div class="col-12 col-md-4 col-xl-2 d-grid d-xl-flex gap-2">
+            <button class="btn btn-primary w-100">Filtrar</button>
+            <a class="btn btn-outline-secondary w-100" href="{% url 'reunions:tasca_list' %}">Netejar</a>
+        </div>
     </form>
 </section>
+
 <section class="row g-3">
     {% for tasca in tasques %}
     <div class="col-12 col-xl-6">
@@ -39,13 +57,13 @@
                     <h3 class="h4 mb-1"><a class="text-decoration-none" href="{{ tasca.get_absolute_url }}">{{ tasca.titol }}</a></h3>
                     <div class="text-muted">Responsable: {{ tasca.responsable }}{% if tasca.data_limit %} · Límit {{ tasca.data_limit|date:'d/m/Y' }}{% endif %}</div>
                 </div>
-                    <div class="d-flex gap-2 flex-wrap inline-status-actions">
-                        <span class="badge text-bg-light">{{ tasca.get_estat_display }}</span>
-                        <span class="badge priority-chip priority-{{ tasca.prioritat|lower }}">{{ tasca.get_prioritat_display }}</span>
-                        {% if tasca.estat == 'BLOQUEJADA' %}<span class="badge block-age-chip">Bloquejada des de {{ tasca.actualitzat_el|date:'d/m' }}</span>{% endif %}
-                        {% if tasca.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}
-                    </div>
+                <div class="d-flex gap-2 flex-wrap inline-status-actions">
+                    <span class="badge text-bg-light">{{ tasca.get_estat_display }}</span>
+                    <span class="badge priority-chip priority-{{ tasca.prioritat|lower }}">{{ tasca.get_prioritat_display }}</span>
+                    {% if tasca.estat == 'BLOQUEJADA' %}<span class="badge block-age-chip">Bloquejada des de {{ tasca.actualitzat_el|date:'d/m' }}</span>{% endif %}
+                    {% if tasca.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}
                 </div>
+            </div>
             <p>{{ tasca.descripcio|truncatechars:220 }}</p>
             <div class="d-flex gap-2 flex-wrap">{% for etiqueta in tasca.etiquetes.all %}<span class="info-chip">{{ etiqueta.nom }}</span>{% endfor %}</div>
             <div class="d-flex gap-2 mt-3 flex-wrap">
@@ -53,7 +71,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <button class="btn btn-sm {% if tasca.proposar_seguent_ordre_dia %}btn-primary{% else %}btn-outline-dark{% endif %}">
-                        {% if tasca.proposar_seguent_ordre_dia %}Treure de proper ordre del dia{% else %}Portar al proper ordre del dia{% endif %}
+                        {% if tasca.proposar_seguent_ordre_dia %}Treure del següent O.D.{% else %}Portar al següent O.D.{% endif %}
                     </button>
                 </form>
             </div>
