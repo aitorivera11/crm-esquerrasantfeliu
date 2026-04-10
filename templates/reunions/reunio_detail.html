@@ -62,6 +62,13 @@
                 {% endfor %}
             </div>
             <hr class="my-4">
+            <h4 class="h5">Plantilles d’ordre del dia</h4>
+            <p class="text-muted">Afegeix una estructura base en un clic.</p>
+            <div class="d-flex gap-2 flex-wrap mb-4">
+                <form method="post" action="{% url 'reunions:ordre_dia_template_apply' reunio.pk %}">{% csrf_token %}<input type="hidden" name="template" value="seguiment_setmanal"><button class="btn btn-sm btn-outline-dark">Seguiment setmanal</button></form>
+                <form method="post" action="{% url 'reunions:ordre_dia_template_apply' reunio.pk %}">{% csrf_token %}<input type="hidden" name="template" value="coordinacio_operativa"><button class="btn btn-sm btn-outline-dark">Coordinació operativa</button></form>
+                <form method="post" action="{% url 'reunions:ordre_dia_template_apply' reunio.pk %}">{% csrf_token %}<input type="hidden" name="template" value="tancament_post_acte"><button class="btn btn-sm btn-outline-dark">Tancament post-acte</button></form>
+            </div>
             <h4 class="h5">Afegir punt ràpid</h4>
             <form method="post" action="{% url 'reunions:punt_ordre_create' reunio.pk %}" class="workflow-form">{% csrf_token %}
                 <div class="row g-3">
@@ -101,6 +108,26 @@
                 </div>
             </div>
             {% if acta %}
+                <hr class="my-4">
+                <h4 class="h5">Cierre post-acto mínimo</h4>
+                <form method="post" action="{% url 'reunions:acta_upsert' reunio.pk %}" class="workflow-form">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="{{ acta_form.resultat_post_acte.id_for_label }}">Resultado</label>
+                            {{ acta_form.resultat_post_acte }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ acta_form.incidencies_post_acte.id_for_label }}">Incidencias</label>
+                            {{ acta_form.incidencies_post_acte }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ acta_form.tasques_derivades_post_acte.id_for_label }}">Tareas derivadas</label>
+                            {{ acta_form.tasques_derivades_post_acte }}
+                        </div>
+                    </div>
+                    <button class="btn btn-workflow mt-3">Guardar cierre mínimo</button>
+                </form>
                 <hr class="my-4">
                 <h4 class="h5">Vista ràpida de punts d’acta</h4>
                 <div class="list-group list-group-flush">

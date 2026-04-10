@@ -18,6 +18,7 @@ from .views import (
     ReunioCreateView,
     ReunioActaWorkspaceView,
     ReunioDetailView,
+    ReunioTemplateOrdreDiaApplyView,
     ReunioQuickTaskCreateView,
     ReunioListView,
     ReunioUpdateView,
@@ -28,6 +29,7 @@ from .views import (
     TascaDeleteView,
     TascaListView,
     TascaRelacioReunioCreateView,
+    TascaToggleOrdreDiaView,
     TascaUpdateView,
 )
 
@@ -43,6 +45,7 @@ urlpatterns = [
     path('<int:pk>/ordre-dia/<int:punt_pk>/eliminar/', PuntOrdreDiaDeleteView.as_view(), name='punt_ordre_delete'),
     path('<int:pk>/ordre-dia/<int:punt_pk>/moure/', PuntOrdreDiaMoveView.as_view(), name='punt_ordre_move'),
     path('<int:pk>/ordre-dia/des-de-tasca/<int:tasca_pk>/', PuntOrdreDiaCreateFromTaskView.as_view(), name='punt_ordre_from_tasca'),
+    path('<int:pk>/ordre-dia/plantilla/', ReunioTemplateOrdreDiaApplyView.as_view(), name='ordre_dia_template_apply'),
     path('<int:pk>/acta/', ActaCreateOrUpdateView.as_view(), name='acta_upsert'),
     path('<int:pk>/acta/execucio/', ReunioActaWorkspaceView.as_view(), name='acta_workspace'),
     path('<int:pk>/acta/exportar/', ReunioActaExportView.as_view(), name='acta_export'),
@@ -60,4 +63,5 @@ urlpatterns = [
     path('tasques/<int:pk>/eliminar/', TascaDeleteView.as_view(), name='tasca_delete'),
     path('tasques/<int:pk>/seguiments/afegir/', SeguimentTascaCreateView.as_view(), name='seguiment_create'),
     path('tasques/<int:pk>/relacions/afegir/', TascaRelacioReunioCreateView.as_view(), name='tasca_relacio_create'),
+    path('tasques/<int:pk>/toggle-ordre-dia/', TascaToggleOrdreDiaView.as_view(), name='tasca_toggle_ordre_dia'),
 ]

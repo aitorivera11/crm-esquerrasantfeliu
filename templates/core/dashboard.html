@@ -4,6 +4,23 @@
 {% block page_intro %}<p class="page-subtitle mb-0">Una vista útil del que tens pendent i del que ve a continuació.</p>{% endblock %}
 {% block content %}
 
+{% if can_access_reunions and alertes_operatives %}
+<section class="card card-panel p-4 mb-4 operational-alerts">
+    <div class="d-flex justify-content-between gap-3 flex-wrap align-items-center">
+        <div>
+            <h3 class="h5 mb-1">Alertes operatives</h3>
+            <p class="text-muted mb-0">Punts crítics a resoldre avui.</p>
+        </div>
+        <a href="{% url 'reunions:tasca_list' %}" class="btn btn-outline-dark">Obrir seguiment</a>
+    </div>
+    <div class="alerts-strip mt-3">
+        <span class="alert-chip alert-chip-danger">Vencides: {{ alertes_operatives.tasques_vencudes }}</span>
+        <span class="alert-chip alert-chip-warning">Bloquejades +7 dies: {{ alertes_operatives.bloquejades_antigues }}</span>
+        <span class="alert-chip alert-chip-dark">Reunions sense acta tancada: {{ alertes_operatives.reunions_sense_acta_tancada }}</span>
+    </div>
+</section>
+{% endif %}
+
 
 <div class="row g-4">
     <div class="col-12 col-xl-8">

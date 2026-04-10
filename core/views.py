@@ -5,7 +5,7 @@ from django.views.generic import TemplateView
 
 from agenda.models import Acte, ParticipacioActe, SegmentVisibilitat
 from persones.models import Persona
-from reunions.models import Reunio, Tasca
+from reunions.models import Acta, Reunio, Tasca
 from usuaris.models import Usuari
 
 
@@ -90,6 +90,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                     'tasques_urgents_meves': meves_tasques_qs.filter(prioritat=Tasca.Prioritat.URGENT).count(),
                 }
             )
+
+            bloquejades_antigues = Tasca.objects.filter(
+                estat=Tasca.Estat.BLOQUEJADA,
+                actualitzat_el__lt=now - timezone.timedelta(days=7),
+            ).count()
+            reunions_sense_acta_tancada = Reunio.objects.filter(
+                estat__in=[Reunio.Estat.CELEBRADA, Reunio.Estat.TANCADA],
+            ).filter(Q(acta__isnull=True) | Q(acta__estat=Acta.Estat.ESBORRANY)).count()
+            dashboard_data['alertes_operatives'] = {
+                'tasques_vencudes': Tasca.objects.exclude(
+                    estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]
+                ).filter(data_limit__lt=today).count(),
+                'bloquejades_antigues': bloquejades_antigues,
+                'reunions_sense_acta_tancada': reunions_sense_acta_tancada,
+            }
 
         if user.rol == Usuari.Rol.ADMINISTRACIO:
             dashboard_data.update(

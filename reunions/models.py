@@ -170,6 +170,9 @@ class Acta(TimeStampedModel):
     resum_general = models.TextField(blank=True)
     acords_presos = models.TextField(blank=True)
     observacions = models.TextField(blank=True)
+    resultat_post_acte = models.TextField(blank=True)
+    incidencies_post_acte = models.TextField(blank=True)
+    tasques_derivades_post_acte = models.TextField(blank=True)
     data_tancament = models.DateField(null=True, blank=True)
     redactada_per = models.ForeignKey(
         settings.AUTH_USER_MODEL,

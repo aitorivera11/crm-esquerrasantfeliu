@@ -333,6 +333,35 @@ textarea.form-control { min-height: 120px; }
     border-color: rgba(249,88,56,.4);
     box-shadow: 0 6px 16px rgba(0,13,35,.06);
 }
+.operational-alerts {
+    border-color: rgba(0, 13, 35, .18);
+    background: linear-gradient(180deg, #fff9f5, #fff);
+}
+.alerts-strip {
+    display: flex;
+    gap: .7rem;
+    flex-wrap: wrap;
+}
+.alert-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: .48rem .8rem;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: .86rem;
+}
+.alert-chip-danger { background: rgba(249, 88, 56, .15); color: #9f2f1b; }
+.alert-chip-warning { background: rgba(216, 144, 0, .18); color: #7c5600; }
+.alert-chip-dark { background: rgba(0, 13, 35, .1); color: #000d23; }
+.priority-chip { border: 1px solid transparent; }
+.priority-baixa { background: #eef7f3; color: #116149; border-color: rgba(17,97,73,.25); }
+.priority-mitjana { background: #eef3ff; color: #1f3e86; border-color: rgba(31,62,134,.22); }
+.priority-alta { background: #fff3de; color: #9c5d00; border-color: rgba(156,93,0,.26); }
+.priority-urgent { background: #ffe7e2; color: #ad2f1b; border-color: rgba(173,47,27,.3); }
+.block-age-chip {
+    background: rgba(0, 13, 35, .12);
+    color: #000d23;
+}
 .form-control, .form-select {
     border-radius: 1rem;
     border-color: rgba(226, 191, 161, .9);

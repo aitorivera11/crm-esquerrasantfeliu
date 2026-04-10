@@ -21,8 +21,10 @@ from .forms import (
     PuntActaForm,
     PuntOrdreDiaForm,
     ReunioForm,
+    ReunioRapidaForm,
     SeguimentTascaForm,
     TascaForm,
+    TascaRapidaForm,
     TascaRapidaReunioForm,
     TascaRelacioReunioForm,
     inicialitzar_punts_acta_des_de_ordre_dia,
@@ -200,6 +202,11 @@ class ReunioCreateView(ReunioWritePermissionMixin, ReunionsBaseMixin, CreateView
     form_class = ReunioForm
     template_name = 'reunions/reunio_form.html'
 
+    def get_form_class(self):
+        if self.request.GET.get('mode') == 'quick':
+            return ReunioRapidaForm
+        return ReunioForm
+
     def get_initial(self):
         initial = super().get_initial()
         initial['convocada_per'] = self.request.user
@@ -215,6 +222,11 @@ class ReunioUpdateView(ReunioWritePermissionMixin, ReunionsBaseMixin, UpdateView
     model = Reunio
     form_class = ReunioForm
     template_name = 'reunions/reunio_form.html'
+
+    def get_form_class(self):
+        if self.request.GET.get('mode') == 'quick':
+            return ReunioRapidaForm
+        return ReunioForm
 
     def form_valid(self, form):
         messages.success(self.request, 'Reunió actualitzada.')
@@ -331,6 +343,48 @@ class PuntOrdreDiaCreateFromTaskView(ReunionsWritePermissionMixin, ReunionsBaseM
                 messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
         else:
             messages.success(request, 'Punt creat a partir de la tasca marcada per al següent ordre del dia.')
+        return redirect('reunions:reunio_detail', pk=reunio.pk)
+
+
+class ReunioTemplateOrdreDiaApplyView(ReunionsWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    permission_required = 'reunions.add_puntordredia'
+
+    TEMPLATES = {
+        'seguiment_setmanal': [
+            'Repàs de compromisos pendents',
+            'Bloquejos i decisions necessàries',
+            'Properes fites (7 dies)',
+        ],
+        'coordinacio_operativa': [
+            'Estat operatiu per àrees',
+            'Riscos i incidències obertes',
+            'Assignacions i terminis',
+            'Comunicació externa/immediata',
+        ],
+        'tancament_post_acte': [
+            'Resultat del que s’ha executat',
+            'Incidències detectades',
+            'Tasques derivades i responsables',
+        ],
+    }
+
+    def post(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        template_key = request.POST.get('template')
+        selected_template = self.TEMPLATES.get(template_key)
+        if not selected_template:
+            messages.error(request, 'Plantilla d’ordre del dia no vàlida.')
+            return redirect('reunions:reunio_detail', pk=reunio.pk)
+
+        base_order = reunio.punts_ordre_dia.aggregate(max_order=Max('ordre')).get('max_order') or 0
+        for index, title in enumerate(selected_template, start=1):
+            PuntOrdreDia.objects.create(
+                reunio=reunio,
+                ordre=base_order + index,
+                titol=title,
+                estat=PuntOrdreDia.Estat.PENDENT,
+            )
+        messages.success(request, f'Plantilla aplicada: {len(selected_template)} punts afegits.')
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 
@@ -661,6 +715,11 @@ class TascaCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, CreateView):
     form_class = TascaForm
     template_name = 'reunions/tasca_form.html'
 
+    def get_form_class(self):
+        if self.request.GET.get('mode') == 'quick':
+            return TascaRapidaForm
+        return TascaForm
+
     def get_initial(self):
         initial = super().get_initial()
         initial['creada_per'] = self.request.user
@@ -676,6 +735,11 @@ class TascaUpdateView(TascaWritePermissionMixin, ReunionsBaseMixin, UpdateView):
     model = Tasca
     form_class = TascaForm
     template_name = 'reunions/tasca_form.html'
+
+    def get_form_class(self):
+        if self.request.GET.get('mode') == 'quick':
+            return TascaRapidaForm
+        return TascaForm
 
     def form_valid(self, form):
         messages.success(self.request, 'Tasca actualitzada.')
@@ -721,6 +785,20 @@ class TascaRelacioReunioCreateView(TascaWritePermissionMixin, ReunionsBaseMixin,
         else:
             messages.error(request, 'No s’ha pogut registrar la relació amb la reunió.')
         return redirect('reunions:tasca_detail', pk=tasca.pk)
+
+
+class TascaToggleOrdreDiaView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
+        tasca.proposar_seguent_ordre_dia = not tasca.proposar_seguent_ordre_dia
+        if not tasca.proposar_seguent_ordre_dia:
+            tasca.motiu_proposta_ordre_dia = ''
+        else:
+            tasca.motiu_proposta_ordre_dia = tasca.motiu_proposta_ordre_dia or 'Marcat des del llistat de tasques.'
+        tasca.save(update_fields=['proposar_seguent_ordre_dia', 'motiu_proposta_ordre_dia', 'actualitzat_el'])
+        messages.success(request, 'S’ha actualitzat la proposta per al proper ordre del dia.')
+        next_url = request.POST.get('next') or reverse('reunions:tasca_list')
+        return redirect(next_url)
 
 
 class SeguimentPanelView(ReunionsBaseMixin, TemplateView):
