@@ -6,7 +6,7 @@
     <div class="section-heading align-items-start">
         <div>
             <h2 class="h4 mb-1">Llistat d'usuaris</h2>
-            <p class="text-muted mb-0">Cerca, filtra i mantén l'equip de campanya sota control.</p>
+            
         </div>
         <a href="{% url 'usuaris:admin_usuari_create' %}" class="btn btn-primary">Nou usuari</a>
     </div>
@@ -47,7 +47,7 @@
             </select>
         </div>
         <div class="col-lg-2 d-flex gap-2">
-            <button class="btn btn-outline-primary w-100">Filtrar</button>
+            <button class="btn btn-primary w-100">Filtrar</button>
             <a href="{% url 'usuaris:admin_usuari_list' %}" class="btn btn-outline-secondary">Netejar</a>
         </div>
     </form>

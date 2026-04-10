@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ reunio.titol }}{% endblock %}
 {% block page_title %}Fitxa de reunió{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Ordre del dia, acta i tasques vinculades en una sola fitxa operativa.</p>{% endblock %}
+{% block page_intro %}{% endblock %}
 {% block content %}
 <div class="row g-4">
     <div class="col-12 col-xl-8">
@@ -25,11 +25,11 @@
         </section>
 
         <section id="ordre-dia" class="card card-panel p-4 mb-4">
-            <div class="section-heading"><div><h3 class="h4 mb-1">1) Gestió de la reunió (ordre del dia)</h3><p class="text-muted mb-0">Organitza els punts i l’ordre. La redacció de l’acta es fa al mode d’execució.</p></div></div>
+            <div class="section-heading"><div><h3 class="h4 mb-1">Ordre del dia</h3></div></div>
             {% if tasques_proposades_ordre %}
             <div class="workflow-alert mb-3">
                 <strong>Tasques marcades per al següent ordre del dia</strong>
-                <div class="small text-muted mb-2">Detectades automàticament. Pots convertir-les en punt amb un clic.</div>
+                
                 <div class="d-grid gap-2">
                     {% for tasca in tasques_proposades_ordre %}
                         <div class="d-flex justify-content-between gap-2 flex-wrap align-items-center">
@@ -63,7 +63,7 @@
             </div>
             <hr class="my-4">
             <h4 class="h5">Plantilles d’ordre del dia</h4>
-            <p class="text-muted">Afegeix una estructura base en un clic.</p>
+            
             <div class="d-flex gap-2 flex-wrap mb-4">
                 <form method="post" action="{% url 'reunions:ordre_dia_template_apply' reunio.pk %}">{% csrf_token %}<input type="hidden" name="template" value="seguiment_setmanal"><button class="btn btn-sm btn-outline-dark">Seguiment setmanal</button></form>
                 <form method="post" action="{% url 'reunions:ordre_dia_template_apply' reunio.pk %}">{% csrf_token %}<input type="hidden" name="template" value="coordinacio_operativa"><button class="btn btn-sm btn-outline-dark">Coordinació operativa</button></form>
@@ -86,7 +86,7 @@
                     </div>
                 </div>
                 <details class="mt-3">
-                    <summary class="text-muted">Afegir més detall (opcional)</summary>
+                    <summary class="text-muted">Més camps</summary>
                     <div class="mt-3">{{ punt_form.descripcio }}</div>
                     <div class="mt-3 d-flex gap-3 flex-wrap"><div class="form-check">{{ punt_form.requereix_acord }} <label class="form-check-label" for="{{ punt_form.requereix_acord.id_for_label }}">Requereix acord</label></div><div>{{ punt_form.estat }}</div></div>
                 </details>
@@ -97,8 +97,7 @@
         <section id="acta" class="card card-panel p-4">
             <div class="section-heading">
                 <div>
-                    <h3 class="h4 mb-1">2) Redacció de l'acta</h3>
-                <p class="text-muted mb-0">Obre la pàgina per redactar l’acta.</p>
+                    <h3 class="h4 mb-1">Acta</h3>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     <a class="btn btn-workflow" href="{% url 'reunions:acta_workspace' reunio.pk %}">Obrir redacció</a>
@@ -109,24 +108,24 @@
             </div>
             {% if acta %}
                 <hr class="my-4">
-                <h4 class="h5">Cierre post-acto mínimo</h4>
+                <h4 class="h5">Tancament post-acte</h4>
                 <form method="post" action="{% url 'reunions:acta_upsert' reunio.pk %}" class="workflow-form">
                     {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label" for="{{ acta_form.resultat_post_acte.id_for_label }}">Resultado</label>
+                            <label class="form-label" for="{{ acta_form.resultat_post_acte.id_for_label }}">Resultat</label>
                             {{ acta_form.resultat_post_acte }}
                         </div>
                         <div class="col-12">
-                            <label class="form-label" for="{{ acta_form.incidencies_post_acte.id_for_label }}">Incidencias</label>
+                            <label class="form-label" for="{{ acta_form.incidencies_post_acte.id_for_label }}">Incidències</label>
                             {{ acta_form.incidencies_post_acte }}
                         </div>
                         <div class="col-12">
-                            <label class="form-label" for="{{ acta_form.tasques_derivades_post_acte.id_for_label }}">Tareas derivadas</label>
+                            <label class="form-label" for="{{ acta_form.tasques_derivades_post_acte.id_for_label }}">Tasques derivades</label>
                             {{ acta_form.tasques_derivades_post_acte }}
                         </div>
                     </div>
-                    <button class="btn btn-workflow mt-3">Guardar cierre mínimo</button>
+                    <button class="btn btn-workflow mt-3">Desar tancament</button>
                 </form>
                 <hr class="my-4">
                 <h4 class="h5">Vista ràpida de punts d’acta</h4>
@@ -141,8 +140,7 @@
                     {% empty %}<p class="text-muted mb-0">Encara no hi ha punts d’acta.</p>{% endfor %}
                 </div>
                 <hr class="my-4">
-                <h4 class="h5">Crear tasca ràpida mentre redactes</h4>
-                <p class="text-muted">Registra una tasca mínima ara i completa-la després sense perdre el fil.</p>
+                <h4 class="h5">Tasca ràpida</h4>
                 <form method="post" action="{% url 'reunions:tasca_rapida_create' reunio.pk %}" class="workflow-form">{% csrf_token %}
                     <div class="row g-3">
                         <div class="col-12">{{ tasca_rapida_form.titol.label_tag }}{{ tasca_rapida_form.titol }}</div>
@@ -156,10 +154,10 @@
         </section>
     </div>
     <div class="col-12 col-xl-4">
-        {% include 'components/share_actions_panel.html' with heading='Comparteix ordre del dia' description='Mòdul centralitzat per compartir l’ordre del dia amb un format únic.' chip='Ordre del dia' whatsapp_url=ordre_dia_whatsapp_url email_url=ordre_dia_email_url share_url=ordre_dia_share_url share_text=ordre_dia_text native_title='Ordre del dia' export_url=ordre_dia_export_url %}
+        {% include 'components/share_actions_panel.html' with heading='Comparteix ordre del dia' chip='Ordre del dia' whatsapp_url=ordre_dia_whatsapp_url email_url=ordre_dia_email_url share_url=ordre_dia_share_url share_text=ordre_dia_text native_title='Ordre del dia' export_url=ordre_dia_export_url %}
         <section class="card card-panel p-4 mb-4">
             <h3 class="h5">Tasques relacionades</h3>
-            <p class="text-muted">Seguiment de tasques originades o tractades en aquesta reunió.</p>
+            
             <div class="list-group list-group-flush">
                 {% for tasca in tasques_relacionades %}
                     <a class="list-group-item px-0 py-3 border-bottom text-decoration-none" href="{{ tasca.get_absolute_url }}"><strong>{{ tasca.titol }}</strong><div class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.responsable }}</div></a>
@@ -170,20 +168,20 @@
         <section class="card card-panel p-4">
             <h3 class="h5">Agenda i assistència</h3>
             {% if agenda_acte %}
-                <p class="text-muted">Aquesta reunió està vinculada a un acte de l’agenda. Les autoconfirmacions actualitzen automàticament els assistents de la reunió.</p>
+                
                 <div class="mb-3"><strong>Acte vinculat</strong><div class="mt-2"><a href="{% url 'agenda:acte_detail' agenda_acte.pk %}">{{ agenda_acte.titol }}</a><div class="small text-muted">{{ agenda_acte.inici|date:'d/m/Y H:i' }}{% if agenda_acte.fi %} · fins {{ agenda_acte.fi|date:'H:i' }}{% endif %}</div></div></div>
                 <div class="mb-3"><strong>Confirmats des de l’agenda</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for participant in agenda_confirmats %}<span class="info-chip">{{ participant.usuari }}</span>{% empty %}<span class="text-muted small">Encara no hi ha confirmacions.</span>{% endfor %}</div></div>
                 <div class="mb-3"><strong>Potser</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for participant in agenda_potser %}<span class="info-chip">{{ participant.usuari }}</span>{% empty %}<span class="text-muted small">Cap resposta en espera.</span>{% endfor %}</div></div>
                 <div class="mb-3"><strong>No hi van</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for participant in agenda_no %}<span class="info-chip">{{ participant.usuari }}</span>{% empty %}<span class="text-muted small">Cap resposta negativa.</span>{% endfor %}</div></div>
             {% else %}
-                <p class="text-muted mb-3">Aquesta reunió encara no té cap acte de l’agenda vinculat.</p>
+                <p class="text-muted mb-3">No hi ha acte vinculat.</p>
             {% endif %}
             <div class="mb-3"><strong>Assistents reunió</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for usuari in reunio.assistents.all %}<span class="info-chip">{{ usuari }}</span>{% empty %}<span class="text-muted small">Sense assistents marcats.</span>{% endfor %}</div></div>
             <div class="mb-3"><strong>Persones relacionades</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for persona in reunio.persones_relacionades.all %}<span class="info-chip">{{ persona.nom }}</span>{% empty %}<span class="text-muted small">Cap.</span>{% endfor %}</div></div>
             <div><strong>Entitats relacionades</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for entitat in reunio.entitats_relacionades.all %}<span class="info-chip">{{ entitat.nom }}</span>{% empty %}<span class="text-muted small">Cap.</span>{% endfor %}</div></div>
         </section>
         {% if acta %}
-            {% include 'components/share_actions_panel.html' with heading='Comparteix acta' description='Comparteix o exporta l’acta des d’un punt únic.' chip='Acta' whatsapp_url=acta_whatsapp_url email_url=acta_email_url share_url=acta_share_url share_text=acta_text native_title='Acta' export_url=acta_export_url %}
+            {% include 'components/share_actions_panel.html' with heading='Comparteix acta' chip='Acta' whatsapp_url=acta_whatsapp_url email_url=acta_email_url share_url=acta_share_url share_text=acta_text native_title='Acta' export_url=acta_export_url %}
         {% endif %}
     </div>
 </div>

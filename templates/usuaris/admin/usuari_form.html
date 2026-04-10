@@ -1,12 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}Usuari{% endblock %}
 {% block page_title %}{% if object %}Editar usuari{% else %}Nou usuari{% endif %}{% endblock %}
+{% block page_intro %}{% endblock %}
 {% block content %}
 <section class="card card-panel form-wide panel-section">
-    <div class="mb-3">
-        <h2 class="h4 mb-1">{% if object %}Editar usuari{% else %}Crear usuari{% endif %}</h2>
-        <p class="text-muted mb-0">Gestiona dades bàsiques, rol, tipus intern i estat d'accés.</p>
-    </div>
+    <h2 class="h4 mb-3">{% if object %}Editar usuari{% else %}Crear usuari{% endif %}</h2>
     <form method="post" class="responsive-form">
         {% csrf_token %}
         {% include 'components/form_fields.html' with form=form %}

@@ -33,8 +33,7 @@
                 <a href="{% url 'core:home' %}" class="brand-hero-link">
                     <img class="brand-logo brand-logo-lg" src="https://www.esquerra.cat/wp-content/uploads/erc-logo.png" alt="Logo Esquerra Republicana">
                     <div>
-                        <p class="eyebrow mb-1">Campanya municipal</p>
-                        <span class="brand-link">Orgullosament Sant Feliu 2027</span>
+                        <span class="brand-link">CRM Sant Feliu 2027</span>
                     </div>
                 </a>
 
@@ -53,9 +52,8 @@
                         x-text="sidebarCollapsed ? '☰' : '☰'">
                 </button>
                 <div>
-                    <p class="eyebrow mb-1">CRM de campanya</p>
-                    <h1 class="page-title mb-2">{% block page_title %}Panell de control{% endblock %}</h1>
-                    {% block page_intro %}<p class="page-subtitle mb-0">Coordinació clara i ràpida.</p>{% endblock %}
+                    <h1 class="page-title mb-1">{% block page_title %}Panell de control{% endblock %}</h1>
+                    {% block page_intro %}{% endblock %}
                 </div>
             </div>
             <div class="header-user card-shadow-sm d-none d-md-flex">
@@ -63,7 +61,7 @@
                     <strong>{{ request.user.nom_complet|default:request.user.username }}</strong>
                     <div class="text-muted small">{{ request.user.get_rol_display }}</div>
                 </div>
-                <a class="btn btn-sm btn-light" href="{% url 'usuaris:perfil' %}">Perfil</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'usuaris:perfil' %}">Perfil</a>
                 <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Sortir</button></form>
             </div>
         </header>

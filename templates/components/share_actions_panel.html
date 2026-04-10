@@ -1,33 +1,30 @@
 <section class="card card-panel p-4 social-panel">
     <div class="d-flex justify-content-between gap-3 align-items-start flex-wrap">
-        <div>
-            <h3 class="h5 mb-1">{{ heading|default:'Comparteix i exporta' }}</h3>
-            <p class="text-muted mb-0">{{ description|default:'Comparteix per canals ràpids i exporta quan calgui.' }}</p>
-        </div>
+        <h3 class="h5 mb-0">{{ heading|default:'Comparteix i exporta' }}</h3>
         {% if chip %}<span class="info-chip">{{ chip }}</span>{% endif %}
     </div>
 
-    <div class="share-grid mt-4">
+    <div class="share-grid mt-3">
         <a class="share-action share-action-whatsapp" href="{{ whatsapp_url }}" target="_blank" rel="noopener">
             <strong>WhatsApp</strong>
-            <span>Comparteix el resum amb enllaç</span>
+            <span>Enviar</span>
         </a>
         <button type="button" class="share-action share-action-copy-text" data-copy-text="{{ copy_text|default:share_text }}" data-copy-feedback="Text copiat">
             <strong>Copiar text</strong>
-            <span>Per enganxar-lo directament</span>
+            <span>Porta-retalls</span>
         </button>
         <a class="share-action share-action-email" href="{{ email_url }}">
             <strong>Correu</strong>
-            <span>Obre un email amb el text preparat</span>
+            <span>Obrir correu</span>
         </a>
         <button type="button" class="share-action share-action-copy" data-copy-text="{{ share_url }}" data-copy-feedback="Enllaç copiat">
             <strong>Copiar enllaç</strong>
-            <span>Per enganxar-lo on vulguis</span>
+            <span>Porta-retalls</span>
         </button>
     </div>
 
     <div class="share-native mt-3">
-        <button type="button" class="btn btn-outline-primary w-100" data-native-share data-share-title="{{ native_title }}" data-share-text="{{ share_text }}" data-share-url="{{ share_url }}">Compartir amb el mòbil o navegador</button>
+        <button type="button" class="btn btn-outline-primary w-100" data-native-share data-share-title="{{ native_title }}" data-share-text="{{ share_text }}" data-share-url="{{ share_url }}">Compartir des del dispositiu</button>
     </div>
 
     {% if export_url %}

@@ -8,7 +8,7 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                 <div>
                     <h2 class="h4 mb-1">Dades personals</h2>
-                    <p class="text-muted mb-0">Actualitza la informació bàsica del teu compte.</p>
+                    
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     <span class="badge text-bg-light">{{ request.user.get_rol_display }}</span>
@@ -27,7 +27,7 @@
     <div class="col-12 col-lg-4">
         <section class="card card-panel panel-section h-100 panel-section-compact">
             <h2 class="h5">Seguretat del compte</h2>
-            <p class="text-muted">Mantingues el compte protegit amb una contrasenya actualitzada.</p>
+            
             <a class="btn btn-outline-primary" href="{% url 'usuaris:canvi_password' %}">Canviar la contrasenya</a>
         </section>
     </div>
