@@ -1,13 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Agenda{% endblock %}
 {% block page_title %}Agenda{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Actes, disponibilitat, visibilitat i seguiment en una sola vista.</p>{% endblock %}
+{% block page_intro %}{% endblock %}
 {% block content %}
 <section class="card card-panel agenda-toolbar mb-4 p-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
             <h2 class="h4 mb-1">Agenda</h2>
-            <p class="text-muted mb-0">Consulta ràpidament els propers actes i crea’n de nous quan calgui.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap align-items-center">
             <span class="info-chip">{{ upcoming_count }} propers</span>
@@ -31,15 +30,14 @@
         <summary class="filters-summary">
             <div>
                 <strong>Filtres d’agenda</strong>
-                <span class="text-muted d-block small">Cerca per text, data, estat i visibilitat per trobar l’acte en menys temps.</span>
             </div>
             <span class="info-chip filter-toggle-label" data-collapsed-label="Mostrar filtres" data-expanded-label="Ocultar filtres">{% if filters_open %}Ocultar filtres{% else %}Mostrar filtres{% endif %}</span>
         </summary>
         <form method="get" class="mt-4 agenda-filter-form">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-xl-4">
-                    <label class="form-label" for="filter-q">Cerca ràpida</label>
-                    <input id="filter-q" type="search" name="q" value="{{ current_filters.q }}" class="form-control" placeholder="Títol, descripció, lloc o punt de trobada">
+                    <label class="form-label" for="filter-q">Cerca</label>
+                    <input id="filter-q" type="search" name="q" value="{{ current_filters.q }}" class="form-control" placeholder="Títol, lloc o punt de trobada">
                 </div>
                 <div class="col-12 col-md-6 col-xl-2">
                     <label class="form-label" for="filter-day">Dia concret</label>
@@ -96,7 +94,6 @@
                         <span class="agenda-toggle__control" aria-hidden="true"></span>
                         <span class="agenda-toggle__content">
                             <strong>Mostrar actes importats</strong>
-                            <small>Afegeix a la vista els actes externs per tenir una agenda més completa.</small>
                         </span>
                     </label>
                 </div>
@@ -106,7 +103,6 @@
                         <span class="agenda-toggle__control" aria-hidden="true"></span>
                         <span class="agenda-toggle__content">
                             <strong>Mostrar actes passats</strong>
-                            <small>Útil per recuperar actes antics o ampliar el rang més enllà d’avui.</small>
                         </span>
                     </label>
                 </div>
