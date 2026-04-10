@@ -3,10 +3,11 @@ import re
 from urllib.parse import quote
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
 from django.db.models import Count, Max, Prefetch, Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -81,7 +82,7 @@ class ReunioListView(ReunionsBaseMixin, ListView):
         estat = self.request.GET.get('estat')
         if estat in Reunio.Estat.values:
             qs = qs.filter(estat=estat)
-        return qs
+        return qs.order_by('-inici', '-pk')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -529,6 +530,8 @@ class PuntActaTaskQuickCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, 
                 'priority': tasca.get_prioritat_display(),
                 'responsable': str(tasca.responsable),
                 'url': reverse('reunions:tasca_detail', kwargs={'pk': tasca.pk}),
+                'delete_url': reverse('reunions:tasca_delete', kwargs={'pk': tasca.pk}),
+                'can_delete': can_delete_task(request.user, tasca),
             },
         })
 
@@ -545,11 +548,20 @@ class PuntActaTaskCommandCreateView(TascaWritePermissionMixin, ReunionsBaseMixin
             user.username.lower(): user
             for user in Usuari.objects.filter(is_active=True).only('id', 'username', 'nom_complet').order_by('nom_complet', 'username')
         }
+        existing_signatures = {
+            extract_task_command_signature(task.descripcio)
+            for task in Tasca.objects.filter(punt_acta_origen=punt).only('descripcio')
+        }
         created_tasks = []
+        skipped_tasks = []
         errors = []
         for command in parsed_lines:
             if not command['title']:
                 errors.append(f'Comanda sense títol: {command["raw"]}')
+                continue
+            signature = build_task_command_signature(command['raw'])
+            if signature in existing_signatures:
+                skipped_tasks.append(command['raw'])
                 continue
             responsable = request.user
             if command['username']:
@@ -563,8 +575,9 @@ class PuntActaTaskCommandCreateView(TascaWritePermissionMixin, ReunionsBaseMixin
                 origen=Tasca.Origen.PUNT_ACTA,
                 reunio_origen=punt.acta.reunio,
                 punt_acta_origen=punt,
-                descripcio=f'Creat automàticament des de comanda a l’acta: {command["raw"]}',
+                descripcio=f'Creat automàticament des de comanda a l’acta: {command["raw"]}\n[@task-command:{signature}]',
             )
+            existing_signatures.add(signature)
             TascaRelacioReunio.objects.get_or_create(
                 tasca=tasca,
                 reunio=punt.acta.reunio,
@@ -579,9 +592,11 @@ class PuntActaTaskCommandCreateView(TascaWritePermissionMixin, ReunionsBaseMixin
                 'priority': tasca.get_prioritat_display(),
                 'responsable': str(tasca.responsable),
                 'url': reverse('reunions:tasca_detail', kwargs={'pk': tasca.pk}),
+                'delete_url': reverse('reunions:tasca_delete', kwargs={'pk': tasca.pk}),
+                'can_delete': can_delete_task(request.user, tasca),
             })
 
-        return JsonResponse({'ok': True, 'tasks': created_tasks, 'errors': errors})
+        return JsonResponse({'ok': True, 'tasks': created_tasks, 'skipped': skipped_tasks, 'errors': errors})
 
 
 class TascaListView(ReunionsBaseMixin, ListView):
@@ -636,6 +651,7 @@ class TascaDetailView(ReunionsBaseMixin, DetailView):
         context.update({
             'seguiment_form': SeguimentTascaForm(tasca=tasca, autor=self.request.user),
             'relacio_form': TascaRelacioReunioForm(tasca=tasca),
+            'can_delete_tasca': can_delete_task(self.request.user, tasca),
         })
         return context
 
@@ -664,6 +680,23 @@ class TascaUpdateView(TascaWritePermissionMixin, ReunionsBaseMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Tasca actualitzada.')
         return super().form_valid(form)
+
+
+class TascaDeleteView(LoginRequiredMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        tasca = get_object_or_404(Tasca.objects.select_related('creada_per', 'punt_acta_origen__acta__reunio'), pk=kwargs['pk'])
+        if not can_delete_task(request.user, tasca):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'ok': False, 'error': 'No tens permisos per eliminar aquesta tasca.'}, status=403)
+            return HttpResponseForbidden('No tens permisos per eliminar aquesta tasca.')
+
+        tasca.delete()
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'ok': True})
+
+        messages.success(request, 'Tasca eliminada.')
+        next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('reunions:tasca_list')
+        return redirect(next_url)
 
 
 class SeguimentTascaCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
@@ -744,6 +777,7 @@ def generar_text_acta(acta):
 
 
 TASK_COMMAND_RE = re.compile(r'^\s*@tasca\b(?P<body>.+)$', flags=re.IGNORECASE)
+TASK_COMMAND_SIGNATURE_RE = re.compile(r'\[@task-command:(?P<signature>[a-z0-9]+)\]')
 
 
 def parse_task_commands(content):
@@ -781,3 +815,23 @@ def parse_task_commands(content):
             'priority': priority,
         })
     return commands
+
+
+def build_task_command_signature(raw_command):
+    normalized = re.sub(r'\s+', ' ', (raw_command or '').strip().lower())
+    return re.sub(r'[^a-z0-9]', '', normalized)
+
+
+def extract_task_command_signature(description):
+    match = TASK_COMMAND_SIGNATURE_RE.search(description or '')
+    return match.group('signature') if match else ''
+
+
+def can_delete_task(user, tasca):
+    return (
+        user.is_authenticated
+        and (
+            getattr(user, 'rol', None) == Usuari.Rol.ADMINISTRACIO
+            or tasca.creada_per_id == user.id
+        )
+    )

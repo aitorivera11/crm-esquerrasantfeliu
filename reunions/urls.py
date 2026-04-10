@@ -25,6 +25,7 @@ from .views import (
     SeguimentTascaCreateView,
     TascaCreateView,
     TascaDetailView,
+    TascaDeleteView,
     TascaListView,
     TascaRelacioReunioCreateView,
     TascaUpdateView,
@@ -56,6 +57,7 @@ urlpatterns = [
     path('tasques/nova/', TascaCreateView.as_view(), name='tasca_create'),
     path('tasques/<int:pk>/', TascaDetailView.as_view(), name='tasca_detail'),
     path('tasques/<int:pk>/editar/', TascaUpdateView.as_view(), name='tasca_update'),
+    path('tasques/<int:pk>/eliminar/', TascaDeleteView.as_view(), name='tasca_delete'),
     path('tasques/<int:pk>/seguiments/afegir/', SeguimentTascaCreateView.as_view(), name='seguiment_create'),
     path('tasques/<int:pk>/relacions/afegir/', TascaRelacioReunioCreateView.as_view(), name='tasca_relacio_create'),
 ]
