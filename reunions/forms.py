@@ -131,11 +131,24 @@ class PuntOrdreDiaForm(StyledFormMixin, forms.ModelForm):
 class ActaForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Acta
-        fields = ['resum_general', 'acords_presos', 'observacions', 'data_tancament', 'redactada_per', 'estat']
+        fields = [
+            'resum_general',
+            'acords_presos',
+            'observacions',
+            'resultat_post_acte',
+            'incidencies_post_acte',
+            'tasques_derivades_post_acte',
+            'data_tancament',
+            'redactada_per',
+            'estat',
+        ]
         widgets = {
             'resum_general': forms.Textarea(attrs={'rows': 5}),
             'acords_presos': forms.Textarea(attrs={'rows': 4}),
             'observacions': forms.Textarea(attrs={'rows': 4}),
+            'resultat_post_acte': forms.Textarea(attrs={'rows': 3}),
+            'incidencies_post_acte': forms.Textarea(attrs={'rows': 3}),
+            'tasques_derivades_post_acte': forms.Textarea(attrs={'rows': 3}),
             'data_tancament': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
         }
 
@@ -318,8 +331,39 @@ class TascaRapidaReunioForm(StyledFormMixin, forms.ModelForm):
                 value,
                 self.fields['data_limit'].widget.format or '%Y-%m-%d',
             )
-        if self.usuari and not self.initial.get('responsable'):
-            self.initial['responsable'] = self.usuari
+
+
+class ReunioRapidaForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Reunio
+        fields = ['titol', 'tipus', 'inici', 'fi', 'ubicacio', 'convocada_per', 'moderada_per']
+        widgets = {
+            'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
+            'fi': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ordered_users = Usuari.objects.order_by('nom_complet', 'username')
+        self.fields['convocada_per'].queryset = ordered_users
+        self.fields['moderada_per'].queryset = ordered_users
+        self.fields['fi'].required = False
+        self.fields['inici'].input_formats = ReunioForm.datetime_input_formats
+        self.fields['fi'].input_formats = ReunioForm.datetime_input_formats
+
+
+class TascaRapidaForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Tasca
+        fields = ['titol', 'estat', 'prioritat', 'data_limit', 'responsable', 'creada_per']
+        widgets = {'data_limit': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ordered_users = Usuari.objects.order_by('nom_complet', 'username')
+        self.fields['responsable'].queryset = ordered_users
+        self.fields['creada_per'].queryset = ordered_users
+        self.fields['data_limit'].input_formats = ['%Y-%m-%d', '%d/%m/%Y']
 
 
 def inicialitzar_punts_acta_des_de_ordre_dia(acta):

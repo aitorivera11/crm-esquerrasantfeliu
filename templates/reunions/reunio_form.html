@@ -3,6 +3,16 @@
 {% block page_title %}{% if object %}Editar reunió{% else %}Nova reunió{% endif %}{% endblock %}
 {% block content %}
 <section class="card card-panel p-4 form-wide">
+    <div class="d-flex justify-content-between gap-2 flex-wrap align-items-center mb-3">
+        <div>
+            <strong>Mode de formulari</strong>
+            <div class="small text-muted">Tria ràpid per registrar en segons o complet per documentar-ho tot.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm {% if request.GET.mode == 'quick' %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?mode=quick">Ràpid</a>
+            <a class="btn btn-sm {% if request.GET.mode == 'quick' %}btn-outline-secondary{% else %}btn-primary{% endif %}" href="?">Complet</a>
+        </div>
+    </div>
     <form method="post">
         {% csrf_token %}
         {% include 'components/form_fields.html' with form=form %}
