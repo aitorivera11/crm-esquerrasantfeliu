@@ -10,7 +10,9 @@ from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from django.urls import reverse
 
@@ -541,16 +543,14 @@ class SyncImportedEventsView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return redirect('agenda:acte_list')
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ImportCityEventsCronView(View):
-    http_method_names = ['post']
+    http_method_names = ['get']
 
-    def post(self, request):
+    def get(self, request):
         secret = os.getenv('CRON_SECRET', '')
-        if not secret:
-            return JsonResponse({'ok': False, 'error': 'Cron secret is not configured'}, status=503)
-
-        provided = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
-        if provided != secret:
+        provided = request.headers.get('Authorization', '').removeprefix('Bearer ').strip() or request.GET.get('key', '')
+        if secret and provided != secret:
             return JsonResponse({'ok': False, 'error': 'Unauthorized'}, status=401)
 
         output = io.StringIO()
