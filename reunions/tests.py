@@ -131,6 +131,37 @@ class ReunionsPermissionsTests(TestCase):
         self.assertContains(response, 'Accés denegat')
 
 
+class ReunioListOrderTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.coord = User.objects.create_user(username='coord-order', password='pass', nom_complet='Coord', rol=User.Rol.COORDINACIO)
+        now = timezone.now().replace(second=0, microsecond=0)
+        self.old_meeting = Reunio.objects.create(
+            titol='Reunió antiga',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.CELEBRADA,
+            inici=now - timedelta(days=5),
+            convocada_per=self.coord,
+            moderada_per=self.coord,
+        )
+        self.new_meeting = Reunio.objects.create(
+            titol='Reunió recent',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.CONVOCADA,
+            inici=now + timedelta(days=1),
+            convocada_per=self.coord,
+            moderada_per=self.coord,
+        )
+
+    def test_list_view_orders_latest_meetings_first(self):
+        self.client.force_login(self.coord)
+        response = self.client.get(reverse('reunions:reunio_list'))
+        self.assertEqual(response.status_code, 200)
+        reunions = list(response.context['reunions'])
+        self.assertEqual(reunions[0].pk, self.new_meeting.pk)
+        self.assertEqual(reunions[1].pk, self.old_meeting.pk)
+
+
 
 class PuntOrdreDiaMoveTests(TestCase):
     def setUp(self):
@@ -214,6 +245,64 @@ class ActaTaskCommandTests(TestCase):
         self.assertEqual(task.punt_acta_origen_id, self.punt.pk)
         self.assertEqual(task.responsable_id, self.altre.pk)
         self.assertEqual(task.prioritat, Tasca.Prioritat.ALTA)
+
+    def test_command_endpoint_is_idempotent_for_existing_commands(self):
+        self.client.force_login(self.coord)
+        url = reverse('reunions:punt_acta_task_command_create', kwargs={'pk': self.punt.pk})
+        content = '\n'.join([
+            '@tasca Trucar al Gerard | @jenny | 2030-05-01 | ALTA',
+            '@tasca Fer cartell revetlla | @jenny | 2030-05-10 | URGENT',
+        ])
+        first_response = self.client.post(url, {'content': content})
+        second_response = self.client.post(url, {'content': content})
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(Tasca.objects.count(), 2)
+        second_payload = second_response.json()
+        self.assertEqual(len(second_payload['tasks']), 0)
+        self.assertEqual(len(second_payload['skipped']), 2)
+
+
+class TascaDeletePermissionTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_user(username='admin-tasca', password='pass', nom_complet='Admin', rol=User.Rol.ADMINISTRACIO)
+        self.creator = User.objects.create_user(username='creator-tasca', password='pass', nom_complet='Creator', rol=User.Rol.COORDINACIO)
+        self.other = User.objects.create_user(username='other-tasca', password='pass', nom_complet='Other', rol=User.Rol.COORDINACIO)
+        self.reunio = Reunio.objects.create(
+            titol='Reunió tasca delete',
+            tipus=Reunio.Tipus.INTERNA,
+            estat=Reunio.Estat.CELEBRADA,
+            inici=timezone.now() + timedelta(days=1),
+            convocada_per=self.creator,
+            moderada_per=self.creator,
+        )
+        self.tasca = Tasca.objects.create(
+            titol='Tasca a eliminar',
+            creada_per=self.creator,
+            responsable=self.creator,
+            origen=Tasca.Origen.INDEPENDENT,
+            reunio_origen=self.reunio,
+        )
+
+    def test_creator_can_delete_task(self):
+        self.client.force_login(self.creator)
+        response = self.client.post(reverse('reunions:tasca_delete', kwargs={'pk': self.tasca.pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Tasca.objects.filter(pk=self.tasca.pk).exists())
+
+    def test_admin_can_delete_task(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('reunions:tasca_delete', kwargs={'pk': self.tasca.pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Tasca.objects.filter(pk=self.tasca.pk).exists())
+
+    def test_non_creator_non_admin_cannot_delete_task(self):
+        self.client.force_login(self.other)
+        response = self.client.post(reverse('reunions:tasca_delete', kwargs={'pk': self.tasca.pk}))
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Tasca.objects.filter(pk=self.tasca.pk).exists())
 
 
 class OrdreDiaShareTextTests(TestCase):

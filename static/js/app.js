@@ -293,11 +293,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const renderTaskChip = (task) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex gap-2 align-items-center';
+    wrapper.dataset.taskChip = '';
+    wrapper.dataset.taskId = task.id;
+
     const link = document.createElement('a');
     link.href = task.url;
-    link.className = 'task-chip-link';
+    link.className = 'task-chip-link flex-grow-1';
     link.innerHTML = `<strong>${task.title}</strong><span class="small text-muted">${task.status} · ${task.responsable}</span>`;
-    return link;
+    wrapper.appendChild(link);
+
+    if (task.can_delete && task.delete_url) {
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn btn-sm btn-outline-danger';
+      deleteButton.textContent = 'Eliminar';
+      deleteButton.dataset.taskDeleteUrl = task.delete_url;
+      deleteButton.dataset.taskDelete = '';
+      wrapper.appendChild(deleteButton);
+    }
+
+    return wrapper;
   };
 
   document.querySelectorAll('[data-point-quick-task-form]').forEach((form) => {
@@ -377,11 +394,50 @@ document.addEventListener('DOMContentLoaded', () => {
           (payload.tasks || []).forEach((task) => taskList.prepend(renderTaskChip(task)));
         }
         const createdCount = (payload.tasks || []).length;
+        const skippedCount = (payload.skipped || []).length;
         const errorsCount = (payload.errors || []).length;
-        if (feedback) feedback.textContent = `Creates ${createdCount} tasques${errorsCount ? ` · ${errorsCount} comandes amb errors` : ''}.`;
+        if (feedback) {
+          feedback.textContent = `Creades ${createdCount} tasques${skippedCount ? ` · ${skippedCount} ja existien` : ''}${errorsCount ? ` · ${errorsCount} comandes amb errors` : ''}.`;
+        }
       } catch (error) {
         if (feedback) feedback.textContent = error.message || 'Error en processar comandes.';
       }
     });
+  });
+
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-task-delete]');
+    if (!button) return;
+    const deleteUrl = button.dataset.taskDeleteUrl;
+    if (!deleteUrl) return;
+    event.preventDefault();
+
+    try {
+      const response = await fetch(deleteUrl, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || 'No s’ha pogut eliminar la tasca.');
+      }
+      const taskChip = button.closest('[data-task-chip]');
+      const taskList = taskChip?.parentElement;
+      taskChip?.remove();
+      if (taskList && !taskList.querySelector('[data-task-chip]')) {
+        const empty = document.createElement('div');
+        empty.className = 'small text-muted';
+        empty.dataset.emptyPointTasks = '';
+        empty.textContent = 'Encara no hi ha tasques vinculades.';
+        taskList.appendChild(empty);
+      }
+    } catch (error) {
+      const pointNode = button.closest('[data-acta-point]');
+      const feedback = pointNode?.querySelector('[data-command-feedback]');
+      if (feedback) feedback.textContent = error.message || 'Error en eliminar la tasca.';
+    }
   });
 });

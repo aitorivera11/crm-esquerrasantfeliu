@@ -56,10 +56,20 @@
                             <div class="small fw-semibold mb-2">Tasques vinculades a aquest punt</div>
                             <div id="point-task-list-{{ punt.pk }}" class="d-flex flex-column gap-2">
                                 {% for tasca in punt.tasques_generades.all %}
-                                    <a href="{{ tasca.get_absolute_url }}" class="task-chip-link">
-                                        <strong>{{ tasca.titol }}</strong>
-                                        <span class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.responsable }}</span>
-                                    </a>
+                                    <div class="d-flex gap-2 align-items-center" data-task-chip data-task-id="{{ tasca.pk }}">
+                                        <a href="{{ tasca.get_absolute_url }}" class="task-chip-link flex-grow-1">
+                                            <strong>{{ tasca.titol }}</strong>
+                                            <span class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.responsable }}</span>
+                                        </a>
+                                        {% if request.user.rol == 'ADMINISTRACIO' or tasca.creada_per_id == request.user.id %}
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-task-delete-url="{% url 'reunions:tasca_delete' tasca.pk %}"
+                                                data-task-delete
+                                            >Eliminar</button>
+                                        {% endif %}
+                                    </div>
                                 {% empty %}
                                     <div class="small text-muted" data-empty-point-tasks>Encara no hi ha tasques vinculades.</div>
                                 {% endfor %}
