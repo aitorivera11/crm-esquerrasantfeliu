@@ -132,6 +132,8 @@ ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*']
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = False
+SOCIALACCOUNT_ADAPTER = 'usuaris.adapters.RestrictedSocialAccountAdapter'
 
 LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'agenda:acte_list'
