@@ -488,10 +488,13 @@ class ReunioQuickTaskCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, Te
 class ReunioDocumentCreateView(ReunioWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
-        form = DocumentAdjuntForm(request.POST, request.FILES)
+        form = DocumentAdjuntForm(
+            request.POST,
+            request.FILES,
+            instance=DocumentAdjunt(reunio=reunio, pujat_per=request.user),
+        )
         if form.is_valid():
             document = form.save(commit=False)
-            document.reunio = reunio
             document.pujat_per = request.user
             document.save()
             messages.success(request, 'Document de reunió pujat correctament.')
@@ -751,10 +754,13 @@ class TascaDetailView(ReunionsBaseMixin, DetailView):
 class TascaDocumentCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
-        form = DocumentAdjuntForm(request.POST, request.FILES)
+        form = DocumentAdjuntForm(
+            request.POST,
+            request.FILES,
+            instance=DocumentAdjunt(tasca=tasca, pujat_per=request.user),
+        )
         if form.is_valid():
             document = form.save(commit=False)
-            document.tasca = tasca
             document.pujat_per = request.user
             document.save()
             messages.success(request, 'Document de tasca pujat correctament.')

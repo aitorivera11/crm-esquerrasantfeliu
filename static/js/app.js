@@ -231,6 +231,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  document.querySelectorAll('[data-file-dropzone]').forEach((dropzone) => {
+    const input = dropzone.querySelector('input[type="file"]');
+    const fileName = dropzone.querySelector('[data-file-dropzone-name]');
+    if (!input) return;
+
+    const updateFileName = () => {
+      if (!fileName) return;
+      const selected = input.files?.[0];
+      fileName.textContent = selected ? selected.name : 'Cap fitxer seleccionat.';
+    };
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.add('is-dragover');
+      });
+    });
+
+    ['dragleave', 'dragend', 'drop'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, () => {
+        dropzone.classList.remove('is-dragover');
+      });
+    });
+
+    dropzone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      const files = event.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+      input.files = files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    input.addEventListener('change', updateFileName);
+    updateFileName();
+  });
+
   const getCsrfToken = () => {
     const value = `; ${document.cookie}`;
     const parts = value.split('; csrftoken=');
