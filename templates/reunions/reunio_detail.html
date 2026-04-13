@@ -166,6 +166,36 @@
             <div class="mt-3"><a class="btn btn-workflow w-100" href="{% url 'reunions:tasca_create' %}?reunio={{ reunio.pk }}">Crear tasca completa</a></div>
         </section>
         <section class="card card-panel p-4">
+            <h3 class="h5">Documents de la reunió</h3>
+            <div class="list-group list-group-flush mb-3">
+                {% for document in reunio.documents_adjunts.all %}
+                    <div class="list-group-item px-0 py-3 border-bottom">
+                        <div class="d-flex justify-content-between gap-2 flex-wrap align-items-center">
+                            <div>
+                                <strong>{{ document.titol }}</strong>
+                                <div class="small text-muted">Pujat per {{ document.pujat_per }} · {{ document.creat_el|date:'d/m/Y H:i' }}</div>
+                                {% if document.descripcio %}<div class="small text-muted mt-1">{{ document.descripcio|linebreaksbr }}</div>{% endif %}
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-sm btn-outline-primary" href="{% url 'reunions:reunio_document_download' reunio.pk document.pk %}">Descarregar</a>
+                                <form method="post" action="{% url 'reunions:reunio_document_delete' reunio.pk document.pk %}">{% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">Encara no hi ha documents.</p>
+                {% endfor %}
+            </div>
+            <h4 class="h6">Pujar document</h4>
+            <form method="post" action="{% url 'reunions:reunio_document_create' reunio.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% include 'components/form_fields.html' with form=document_form %}
+                <button class="btn btn-outline-primary mt-3">Pujar document</button>
+            </form>
+        </section>
+        <section class="card card-panel p-4 mt-4">
             <h3 class="h5">Agenda i assistència</h3>
             {% if agenda_acte %}
                 

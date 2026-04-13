@@ -11,7 +11,7 @@ from persones.models import Persona
 from usuaris.forms import StyledFormMixin
 from usuaris.models import Usuari
 
-from .models import Acta, AreaCampanya, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
+from .models import Acta, AreaCampanya, DocumentAdjunt, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
 
 
 class ReunioForm(StyledFormMixin, forms.ModelForm):
@@ -179,6 +179,15 @@ class PuntActaForm(StyledFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.reunio:
             self.fields['punt_ordre_origen'].queryset = self.reunio.punts_ordre_dia.order_by('ordre')
+
+
+class DocumentAdjuntForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = DocumentAdjunt
+        fields = ['titol', 'descripcio', 'arxiu']
+        widgets = {
+            'descripcio': forms.Textarea(attrs={'rows': 2}),
+        }
 
 
 class TascaForm(StyledFormMixin, forms.ModelForm):
