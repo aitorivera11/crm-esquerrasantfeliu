@@ -81,9 +81,33 @@
                 {% endfor %}
             </div>
             <h4 class="h6">Pujar document</h4>
-            <form method="post" action="{% url 'reunions:tasca_document_create' tasca.pk %}" enctype="multipart/form-data" class="mb-4">
+            <form method="post" action="{% url 'reunions:tasca_document_create' tasca.pk %}" enctype="multipart/form-data" class="mb-4 file-upload-form">
                 {% csrf_token %}
-                {% include 'components/form_fields.html' with form=document_form %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ document_form.titol.id_for_label }}">{{ document_form.titol.label }}</label>
+                    {{ document_form.titol }}
+                    {% for error in document_form.titol.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ document_form.descripcio.id_for_label }}">{{ document_form.descripcio.label }}</label>
+                    {{ document_form.descripcio }}
+                    {% for error in document_form.descripcio.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-block">{{ document_form.arxiu.label }}</label>
+                    <div class="file-dropzone" data-file-dropzone>
+                        {{ document_form.arxiu }}
+                        <div class="file-dropzone__content">
+                            <strong>Arrossega el document aquí</strong>
+                            <span>o fes clic per seleccionar-lo</span>
+                            <small class="text-muted" data-file-dropzone-name>Cap fitxer seleccionat.</small>
+                        </div>
+                    </div>
+                    {% for error in document_form.arxiu.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                {% for error in document_form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endfor %}
                 <button class="btn btn-outline-primary mt-3">Pujar document</button>
             </form>
         </section>
