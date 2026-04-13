@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Acta,
     AreaCampanya,
+    DocumentAdjunt,
     EtiquetaReunioTasques,
     HistoricEstatTasca,
     PuntActa,
@@ -40,6 +41,12 @@ class SeguimentTascaInline(admin.TabularInline):
     autocomplete_fields = ('autor', 'reunio')
 
 
+class DocumentAdjuntInline(admin.TabularInline):
+    model = DocumentAdjunt
+    extra = 0
+    autocomplete_fields = ('pujat_per',)
+
+
 @admin.register(AreaCampanya)
 class AreaCampanyaAdmin(admin.ModelAdmin):
     list_display = ('nom', 'ordre', 'activa')
@@ -59,7 +66,7 @@ class ReunioAdmin(admin.ModelAdmin):
     list_filter = ('tipus', 'estat', 'es_estrategica', 'area')
     search_fields = ('titol', 'descripcio', 'objectiu', 'ubicacio')
     autocomplete_fields = ('convocada_per', 'moderada_per', 'area', 'assistents', 'persones_relacionades', 'entitats_relacionades', 'etiquetes')
-    inlines = [PuntOrdreDiaInline, TascaRelacioReunioInline]
+    inlines = [PuntOrdreDiaInline, TascaRelacioReunioInline, DocumentAdjuntInline]
 
 
 
@@ -94,7 +101,15 @@ class TascaAdmin(admin.ModelAdmin):
     list_filter = ('estat', 'prioritat', 'origen', 'es_estrategica', 'visibilitat', 'area')
     search_fields = ('titol', 'descripcio', 'observacions_seguiment', 'resultat_tancament')
     autocomplete_fields = ('creada_per', 'responsable', 'collaboradors', 'area', 'reunio_origen', 'punt_acta_origen', 'persones_relacionades', 'entitats_relacionades', 'etiquetes')
-    inlines = [TascaRelacioReunioInline, SeguimentTascaInline]
+    inlines = [TascaRelacioReunioInline, SeguimentTascaInline, DocumentAdjuntInline]
+
+
+@admin.register(DocumentAdjunt)
+class DocumentAdjuntAdmin(admin.ModelAdmin):
+    list_display = ('titol', 'reunio', 'tasca', 'pujat_per', 'creat_el')
+    list_filter = ('creat_el',)
+    search_fields = ('titol', 'descripcio', 'reunio__titol', 'tasca__titol')
+    autocomplete_fields = ('reunio', 'tasca', 'pujat_per')
 
 
 @admin.register(SeguimentTasca)

@@ -62,6 +62,32 @@
             </div>
         </section>
         <section class="card card-panel p-4">
+            <h3 class="h5">Documents de la tasca</h3>
+            <div class="list-group list-group-flush mb-4">
+                {% for document in tasca.documents_adjunts.all %}
+                    <div class="list-group-item px-0 py-3 border-bottom">
+                        <strong>{{ document.titol }}</strong>
+                        <div class="small text-muted">Pujat per {{ document.pujat_per }} · {{ document.creat_el|date:'d/m/Y H:i' }}</div>
+                        {% if document.descripcio %}<div class="small text-muted mt-1">{{ document.descripcio|linebreaksbr }}</div>{% endif %}
+                        <div class="d-flex gap-2 mt-2">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'reunions:tasca_document_download' tasca.pk document.pk %}">Descarregar</a>
+                            <form method="post" action="{% url 'reunions:tasca_document_delete' tasca.pk document.pk %}">{% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">Encara no hi ha documents.</p>
+                {% endfor %}
+            </div>
+            <h4 class="h6">Pujar document</h4>
+            <form method="post" action="{% url 'reunions:tasca_document_create' tasca.pk %}" enctype="multipart/form-data" class="mb-4">
+                {% csrf_token %}
+                {% include 'components/form_fields.html' with form=document_form %}
+                <button class="btn btn-outline-primary mt-3">Pujar document</button>
+            </form>
+        </section>
+        <section class="card card-panel p-4 mt-4">
             <h3 class="h5">Reunions on s’ha tractat</h3>
             <div class="list-group list-group-flush mb-4">{% for relacio in tasca.relacions_reunio.all %}<div class="list-group-item px-0 py-3 border-bottom"><a href="{{ relacio.reunio.get_absolute_url }}"><strong>{{ relacio.reunio.titol }}</strong></a><div class="small text-muted">{{ relacio.get_tipus_relacio_display }} · {{ relacio.tractada_el|date:'d/m/Y H:i' }}</div>{% if relacio.resum %}<div class="text-muted mt-1">{{ relacio.resum|linebreaksbr }}</div>{% endif %}</div>{% empty %}<p class="text-muted mb-0">Encara no s’ha vinculat a cap reunió.</p>{% endfor %}</div>
             <h4 class="h6">Afegir relació</h4>

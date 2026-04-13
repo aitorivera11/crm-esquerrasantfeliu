@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
 from django.db.models import Count, Max, Prefetch, Q
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -18,6 +18,7 @@ from usuaris.models import Usuari
 
 from .forms import (
     ActaForm,
+    DocumentAdjuntForm,
     PuntActaForm,
     PuntOrdreDiaForm,
     ReunioForm,
@@ -30,7 +31,7 @@ from .forms import (
     inicialitzar_punts_acta_des_de_ordre_dia,
     sincronitzar_punts_acta_amb_ordre_dia,
 )
-from .models import Acta, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
+from .models import Acta, DocumentAdjunt, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
 
 
 class ReunionsPermissionMixin(RoleRequiredMixin):
@@ -110,6 +111,7 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
             'assistents', 'etiquetes', 'persones_relacionades', 'entitats_relacionades',
             'punts_ordre_dia__responsable', 'relacions_tasca__tasca__responsable', 'relacions_tasca__punt_ordre_dia',
             'acta__punts__punt_ordre_origen', 'acta__punts__tasques_generades__responsable',
+            'documents_adjunts__pujat_per',
         )
 
     def get_context_data(self, **kwargs):
@@ -135,6 +137,7 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
             'acta_form': ActaForm(instance=acta, reunio=reunio) if acta else ActaForm(reunio=reunio, initial={'redactada_per': self.request.user}),
             'punt_acta_form': PuntActaForm(reunio=reunio),
             'tasca_rapida_form': TascaRapidaReunioForm(usuari=self.request.user),
+            'document_form': DocumentAdjuntForm(),
             'tasques_relacionades': Tasca.objects.filter(relacions_reunio__reunio=reunio).select_related('responsable').distinct(),
             'tasques_obertes': tasques_obertes_queryset(Tasca.objects.filter(relacions_reunio__reunio=reunio)).select_related('responsable').distinct(),
             'tasques_proposades_ordre': Tasca.objects.filter(
@@ -482,6 +485,39 @@ class ReunioQuickTaskCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, Te
         return redirect('reunions:reunio_detail', pk=reunio.pk)
 
 
+class ReunioDocumentCreateView(ReunioWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
+        form = DocumentAdjuntForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.reunio = reunio
+            document.pujat_per = request.user
+            document.save()
+            messages.success(request, 'Document de reunió pujat correctament.')
+        else:
+            messages.error(request, 'No s’ha pogut pujar el document. Revisa els camps del formulari.')
+        return redirect('reunions:reunio_detail', pk=reunio.pk)
+
+
+class ReunioDocumentDeleteView(ReunioWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        document = get_object_or_404(DocumentAdjunt, pk=kwargs['doc_pk'], reunio_id=kwargs['pk'])
+        reunio_id = document.reunio_id
+        document.arxiu.delete(save=False)
+        document.delete()
+        messages.success(request, 'Document de reunió eliminat.')
+        return redirect('reunions:reunio_detail', pk=reunio_id)
+
+
+class ReunioDocumentDownloadView(ReunionsBaseMixin, DetailView):
+    model = DocumentAdjunt
+
+    def get(self, request, *args, **kwargs):
+        document = get_object_or_404(DocumentAdjunt, pk=kwargs['doc_pk'], reunio_id=kwargs['pk'])
+        return FileResponse(document.arxiu.open('rb'), as_attachment=True, filename=document.arxiu.name.split('/')[-1])
+
+
 class ReunioOrdreDiaExportView(ReunionsBaseMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         reunio = get_object_or_404(Reunio, pk=kwargs['pk'])
@@ -697,6 +733,7 @@ class TascaDetailView(ReunionsBaseMixin, DetailView):
             'collaboradors', 'persones_relacionades', 'entitats_relacionades', 'etiquetes',
             'relacions_reunio__reunio', 'relacions_reunio__punt_ordre_dia', 'relacions_reunio__punt_acta',
             'seguiments__autor', 'seguiments__reunio', 'historic_estats__canviat_per',
+            'documents_adjunts__pujat_per',
         )
 
     def get_context_data(self, **kwargs):
@@ -705,9 +742,43 @@ class TascaDetailView(ReunionsBaseMixin, DetailView):
         context.update({
             'seguiment_form': SeguimentTascaForm(tasca=tasca, autor=self.request.user),
             'relacio_form': TascaRelacioReunioForm(tasca=tasca),
+            'document_form': DocumentAdjuntForm(),
             'can_delete_tasca': can_delete_task(self.request.user, tasca),
         })
         return context
+
+
+class TascaDocumentCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
+        form = DocumentAdjuntForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.tasca = tasca
+            document.pujat_per = request.user
+            document.save()
+            messages.success(request, 'Document de tasca pujat correctament.')
+        else:
+            messages.error(request, 'No s’ha pogut pujar el document. Revisa els camps del formulari.')
+        return redirect('reunions:tasca_detail', pk=tasca.pk)
+
+
+class TascaDocumentDeleteView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        document = get_object_or_404(DocumentAdjunt, pk=kwargs['doc_pk'], tasca_id=kwargs['pk'])
+        tasca_id = document.tasca_id
+        document.arxiu.delete(save=False)
+        document.delete()
+        messages.success(request, 'Document de tasca eliminat.')
+        return redirect('reunions:tasca_detail', pk=tasca_id)
+
+
+class TascaDocumentDownloadView(ReunionsBaseMixin, DetailView):
+    model = DocumentAdjunt
+
+    def get(self, request, *args, **kwargs):
+        document = get_object_or_404(DocumentAdjunt, pk=kwargs['doc_pk'], tasca_id=kwargs['pk'])
+        return FileResponse(document.arxiu.open('rb'), as_attachment=True, filename=document.arxiu.name.split('/')[-1])
 
 
 class TascaCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, CreateView):

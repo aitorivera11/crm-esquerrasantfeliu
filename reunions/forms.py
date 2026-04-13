@@ -11,7 +11,7 @@ from persones.models import Persona
 from usuaris.forms import StyledFormMixin
 from usuaris.models import Usuari
 
-from .models import Acta, AreaCampanya, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
+from .models import Acta, AreaCampanya, DocumentAdjunt, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
 
 
 class ReunioForm(StyledFormMixin, forms.ModelForm):
@@ -179,6 +179,29 @@ class PuntActaForm(StyledFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.reunio:
             self.fields['punt_ordre_origen'].queryset = self.reunio.punts_ordre_dia.order_by('ordre')
+
+
+class DocumentAdjuntForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = DocumentAdjunt
+        fields = ['titol', 'descripcio', 'arxiu']
+        widgets = {
+            'descripcio': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['titol'].required = False
+        self.fields['titol'].help_text = 'Si el deixes buit, s’utilitzarà el nom del fitxer.'
+
+    def clean_titol(self):
+        titol = (self.cleaned_data.get('titol') or '').strip()
+        if titol:
+            return titol
+        arxiu = self.cleaned_data.get('arxiu')
+        if arxiu and getattr(arxiu, 'name', ''):
+            return arxiu.name.split('/')[-1]
+        return ''
 
 
 class TascaForm(StyledFormMixin, forms.ModelForm):
