@@ -125,3 +125,5 @@ Implementació suggerida amb `Django Groups` i permisos de model:
 - notificacions
 - dashboard de campanya
 - mòduls de persones, tasques, materials i incidències
+
+Document de treball inicial del mòdul de material/inventari: `docs/modul_materials.md`.
