@@ -30,6 +30,43 @@ python manage.py runserver
 - `DEBUG`
 - `ALLOWED_HOSTS`
 - `DATABASE_URL`
+- `SITE_ID` (opcional, per defecte `1`)
+
+## Accés amb Google (OAuth)
+
+Aquest projecte està preparat amb `django-allauth` per oferir inici de sessió amb Google a la pantalla d'accés.
+
+### 1) Crear credencials OAuth a Google
+
+- **Google**: crea un OAuth Client (tipus *Web application*) a Google Cloud.
+
+En tots els casos, afegeix l'URL de callback que et mostrarà allauth. Exemple local típic:
+
+- `http://localhost:8000/accounts/google/login/callback/`
+
+### 2) Migracions
+
+Allauth necessita les taules de `sites` i `socialaccount`:
+
+```bash
+python manage.py migrate
+```
+
+### 3) Configurar el Site
+
+Al panell d'admin (`/admin/`), revisa **Sites** i assegura que el domini coincideix amb el teu entorn (`localhost:8000`, staging o producció). Si fas servir un altre `SITE_ID`, defineix-lo per variable d'entorn.
+
+### 4) Donar d'alta el proveïdor a Django Admin
+
+A `Social applications` (admin):
+
+1. Tria proveïdor (`Google`).
+2. Introdueix `Client id` i `Secret key`.
+3. Associa l'aplicació al `Site` correcte.
+
+### 5) Provar login
+
+A `/accounts/login/` veuràs el botó de “Continuar amb Google”.
 
 ## Desplegament a Vercel
 
