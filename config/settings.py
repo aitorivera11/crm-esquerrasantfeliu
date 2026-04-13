@@ -66,7 +66,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'usuaris.context_processors.pending_registrations',
+                # 'usuaris.context_processors.pending_registrations',
             ],
         },
     },
@@ -132,6 +132,6 @@ ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*']
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 
-LOGIN_URL = 'login'
+LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'agenda:acte_list'
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'account_login'
