@@ -1,6 +1,6 @@
 # CRM Esquerra Sant Feliu
 
-Base inicial d'un gestor de campanya municipal amb Django, templates i HTMX, preparada per desplegar a Vercel amb PostgreSQL/Neon.
+Base inicial d'un gestor de campanya municipal amb Django, templates i HTMX, preparada per desplegar-se en qualsevol entorn compatible amb Python i PostgreSQL/Neon.
 
 ## Arquitectura
 
@@ -68,31 +68,24 @@ A `Social applications` (admin):
 
 A `/accounts/login/` veuràs el botó de “Continuar amb Google”.
 
-## Desplegament a Vercel
+## Desplegament (Docker + Gunicorn)
 
-- El runtime de Vercel entra per `wsgi.py`, que reexporta l'app Django de `config/wsgi.py`.
-- `vercel.json` segueix l'esquema de `version: 2` amb dos builds: `@vercel/python` per a `wsgi.py` i `@vercel/static-build` per a `build.sh`, que publica els estàtics generats dins `staticfiles_build/`.
-- `settings.py` llegeix `DATABASE_URL` via `dj-database-url`.
-- `build.sh` executa `python manage.py migrate --noinput` i després `python manage.py collectstatic --noinput --clear`, de manera que les migracions i la recopilació d'estàtics passen durant el build.
-- Els estàtics es publiquen a `staticfiles_build/static/` i Vercel els resol amb la ruta `/static/(.*)`; Django també manté WhiteNoise amb `CompressedManifestStaticFilesStorage` per servir-los correctament si la petició entra per l'app Python.
-- Compatible amb PostgreSQL de Neon.
+- `Dockerfile` genera una imatge Python 3.12 i instal·la dependències de sistema per PostgreSQL.
+- `start.sh` espera la base de dades, executa `python manage.py migrate --noinput` i `python manage.py collectstatic --noinput`, i aixeca Gunicorn.
+- `settings.py` llegeix `DATABASE_URL` via `dj-database-url` i manté WhiteNoise per servir estàtics.
+- Compatible amb PostgreSQL de Neon o qualsevol PostgreSQL estàndard.
 
+## Migracions en entorns de producció
 
-## Migracions a Vercel amb Neon
-
-1. Defineix `DATABASE_URL` a Vercel amb la cadena de connexió de Neon.
-2. Cada desplegament executa `./build.sh`.
-3. Aquest script corre `python manage.py migrate --noinput` contra la base de dades remota i després `python manage.py collectstatic --noinput --clear`.
-4. Si hi ha una migració nova pendent, queda aplicada durant el build abans que el deploy entri en producció.
-
-Això evita haver d'entrar manualment a un contenidor: el mateix deploy de Vercel actualitza l'esquema de Neon.
-
+- Executa sempre `python manage.py migrate --noinput` abans d'arrencar l'aplicació.
+- Si el desplegament és amb contenidors, aquest pas ja queda cobert a `start.sh`.
+- Per forçar la recollida d'estàtics manualment: `python manage.py collectstatic --noinput --clear`.
 
 ## Importació automàtica d'actes de ciutat
 
 - El comandament `python manage.py import_city_events --cleanup` importa cada nit els actes confirmats de l'API pública de Sant Feliu i els desa a la taula `agenda_acte`.
 - Els actes importats queden marcats amb `external_source='AGENDA_CIUTAT'`, es publiquen automàticament i mantenen el payload original a `source_payload` per a futurs camps o integracions.
-- Vercel executa un cron a les `02:00` (UTC) contra `/agenda/cron/import-city-events/`.
+- Configura un cron extern a les `02:00` (UTC) contra `/agenda/cron/import-city-events/`.
 - Protegeix aquest endpoint amb `CRON_SECRET` i, si vols controlar el propietari dels actes creats, defineix `CITY_EVENTS_IMPORT_USER_ID`.
 - Per provar-ho localment: `DB_SSL_REQUIRE=False python manage.py import_city_events --cleanup`.
 
@@ -125,7 +118,7 @@ Implementació suggerida amb `Django Groups` i permisos de model:
 - models i autenticació
 - agenda i participació
 - auditoria bàsica
-- desplegament funcional a Vercel
+- desplegament funcional en infraestructura pròpia o cloud
 
 ### Iteracions següents
 - millores UX i filtres
