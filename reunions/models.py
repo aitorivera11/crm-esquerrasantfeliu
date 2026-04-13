@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -125,6 +124,56 @@ class Reunio(TimeStampedModel):
 
     def get_absolute_url(self):
         return reverse('reunions:reunio_detail', kwargs={'pk': self.pk})
+
+
+def _reunions_document_path(instance, filename):
+    model_scope = 'general'
+    object_id = 'sense-referencia'
+    if instance.reunio_id:
+        model_scope = 'reunions'
+        object_id = str(instance.reunio_id)
+    elif instance.tasca_id:
+        model_scope = 'tasques'
+        object_id = str(instance.tasca_id)
+    return f'documents/{model_scope}/{object_id}/{filename}'
+
+
+class DocumentAdjunt(TimeStampedModel):
+    titol = models.CharField(max_length=255)
+    descripcio = models.TextField(blank=True)
+    arxiu = models.FileField(upload_to=_reunions_document_path)
+    reunio = models.ForeignKey(
+        Reunio,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='documents_adjunts',
+    )
+    tasca = models.ForeignKey(
+        'Tasca',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='documents_adjunts',
+    )
+    pujat_per = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='documents_reunions_pujats',
+    )
+
+    class Meta:
+        ordering = ['-creat_el']
+        verbose_name = 'document adjunt'
+        verbose_name_plural = 'documents adjunts'
+
+    def __str__(self):
+        scope = self.reunio or self.tasca
+        return f'{self.titol} · {scope}'
+
+    def clean(self):
+        if bool(self.reunio_id) == bool(self.tasca_id):
+            raise ValidationError('El document ha d’estar vinculat a una reunió o a una tasca, però no a totes dues.')
 
 
 class PuntOrdreDia(TimeStampedModel):
