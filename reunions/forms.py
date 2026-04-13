@@ -189,6 +189,20 @@ class DocumentAdjuntForm(StyledFormMixin, forms.ModelForm):
             'descripcio': forms.Textarea(attrs={'rows': 2}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['titol'].required = False
+        self.fields['titol'].help_text = 'Si el deixes buit, s’utilitzarà el nom del fitxer.'
+
+    def clean_titol(self):
+        titol = (self.cleaned_data.get('titol') or '').strip()
+        if titol:
+            return titol
+        arxiu = self.cleaned_data.get('arxiu')
+        if arxiu and getattr(arxiu, 'name', ''):
+            return arxiu.name.split('/')[-1]
+        return ''
+
 
 class TascaForm(StyledFormMixin, forms.ModelForm):
     class Meta:
