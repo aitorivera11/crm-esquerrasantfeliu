@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Ítem{% endblock %}
+{% block page_title %}{% if object %}Editar ítem{% else %}Nou ítem{% endif %}{% endblock %}
+{% block content %}
+<section class="card card-panel form-wide panel-section"><form method="post" enctype="multipart/form-data" class="responsive-form">{% csrf_token %}{% include 'components/form_fields.html' with form=form %}<div class="d-flex gap-2"><button class="btn btn-primary">Desar</button><a href="{% url 'material:item_list' %}" class="btn btn-outline-secondary">Cancel·lar</a></div></form></section>
+{% endblock %}

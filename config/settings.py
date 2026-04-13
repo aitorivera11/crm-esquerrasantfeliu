@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'agenda',
     'entitats',
     'reunions',
+    'material',
 ]
 
 MIDDLEWARE = [

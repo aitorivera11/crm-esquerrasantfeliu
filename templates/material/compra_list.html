@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Compres de material{% endblock %}
+{% block page_title %}Compres de material{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section mb-3">
+    <form method="get" class="row g-2 align-items-end"><div class="col-md-8"><label class="form-label">Cercar</label><input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Proveïdor o factura"></div><div class="col-md-4 d-flex gap-2"><button class="btn btn-outline-primary w-100">Cercar</button><a class="btn btn-outline-secondary" href="{% url 'material:compra_list' %}">Netejar</a></div></form>
+</section>
+<section class="card card-panel panel-section">
+<div class="d-flex justify-content-between mb-3"><h2 class="h4 mb-0">Registre</h2><div class="d-flex gap-2"><a href="{% url 'material:linia_compra_create' %}" class="btn btn-outline-secondary">Nova línia</a><a href="{% url 'material:compra_create' %}" class="btn btn-primary">Nova compra</a></div></div>
+<table class="table app-table"><thead><tr><th>Data</th><th>Proveïdor</th><th>Import</th><th>Mètode</th><th></th></tr></thead><tbody>
+{% for compra in compres %}<tr><td>{{ compra.data_compra }}</td><td>{{ compra.proveidor }}</td><td>{{ compra.cost_total }} €</td><td>{{ compra.get_metode_pagament_display }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'material:compra_update' compra.pk %}">Editar</a></td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Sense compres.</td></tr>{% endfor %}
+</tbody></table>
+</section>
+{% endblock %}

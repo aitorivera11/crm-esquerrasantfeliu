@@ -44,6 +44,27 @@
             </a>
         </div>
     </div>
+
+    <div class="nav-group {% if request.resolver_match.namespace == 'material' %}open{% endif %}">
+        <span class="nav-link-side nav-link-heading">Material</span>
+        <div class="nav-submenu">
+            <a href="{% url 'material:dashboard' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'material' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                Dashboard
+            </a>
+            <a href="{% url 'material:compra_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'material' and request.resolver_match.url_name == 'compra_list' %}active{% endif %}">
+                Compres
+            </a>
+            <a href="{% url 'material:item_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'material' and request.resolver_match.url_name == 'item_list' %}active{% endif %}">
+                Inventariables
+            </a>
+            <a href="{% url 'material:stock_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'material' and request.resolver_match.url_name == 'stock_list' %}active{% endif %}">
+                Consumibles
+            </a>
+            <a href="{% url 'material:assignacio_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'material' and request.resolver_match.url_name == 'assignacio_list' %}active{% endif %}">
+                Assignacions
+            </a>
+        </div>
+    </div>
     {% endif %}
 
     <div class="nav-group {% if request.resolver_match.namespace == 'usuaris' and request.resolver_match.url_name != 'admin_usuari_list' and request.resolver_match.url_name != 'admin_usuari_create' and request.resolver_match.url_name != 'admin_usuari_update' and request.resolver_match.url_name != 'admin_usuari_password' and request.resolver_match.url_name != 'admin_usuari_toggle_active' and request.resolver_match.url_name != 'admin_usuari_delete' %}open{% endif %}">

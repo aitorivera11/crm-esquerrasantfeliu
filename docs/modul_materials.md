@@ -238,22 +238,146 @@ Permisos granulars suggerits:
 Per començar sense sobrecarregar:
 
 ### Sprint 1 (MVP real)
-- Models bàsics + admin.
-- CRUD de categories, ubicacions, compres i línies.
-- Alta d’inventariable/consumible.
-- Adjunt de ticket/factura.
-- Vinculació amb acte/tasca.
+- **Objectiu:** tenir el mòdul funcionant en producció per registrar compres i saber “què tenim i on és”.
+- **Backlog funcional**
+  1. Crear app `material` amb models base:
+     - `CategoriaMaterial`
+     - `UbicacioMaterial`
+     - `CompraMaterial`
+     - `LiniaCompraMaterial`
+     - `ItemMaterial`
+     - `StockMaterial`
+     - `MovimentMaterial`
+     - `AssignacioMaterial`
+  2. CRUD web (llistat + formulari + detall) per:
+     - categories
+     - ubicacions
+     - compres i línies
+     - inventariables i consumibles
+  3. Alta de compra amb adjunt (ticket/factura) i creació automàtica de:
+     - stock (consumible) o
+     - items inventariables (N unitats)
+  4. Moviments bàsics automàtics:
+     - `entrada_compra`
+     - `alta_manual`
+     - `trasllat`
+  5. Vinculació d’assignacions a:
+     - `agenda.Acte`
+     - `reunions.Tasca`
+- **Backlog tècnic**
+  - Migracions inicials i índexs per camps de cerca (`codi_barres`, `codi_intern`, `ubicacio`, `estat`).
+  - Permisos mínims (`view/add/change`) per rols existents.
+  - Navegació a sidebar i breadcrumbs seguint l’estil del CRM.
+  - Tests de model i validacions bàsiques:
+    - inventariable amb ubicació obligatòria
+    - stock no negatiu en sortides normals
+- **Criteris d’acceptació**
+  - Es pot registrar una compra amb 3 línies i document adjunt.
+  - El sistema crea moviments d’entrada i actualitza stock/ítems.
+  - Es pot filtrar inventari per categoria i ubicació.
+  - Es pot vincular material a un acte o tasca des del formulari.
+- **Riscos i mitigació**
+  - *Risc:* massa complexitat en un sol formulari de compra.  
+    *Mitigació:* separar capçalera i línies en pas 1/2.
+  - *Risc:* dades inicials inconsistents (ubicacions duplicades).  
+    *Mitigació:* catàleg inicial tancat + neteja en importació.
 
 ### Sprint 2 (mòbil i operativa)
-- Escaneig de codi de barres.
-- Captura de fotos des de mòbil.
-- Moviments i trasllats.
-- Reserva de material per actes.
+- **Objectiu:** reduir temps d’operació al terreny (local, carrer, acte).
+- **Backlog funcional**
+  1. Escaneig de codi de barres a compra i fitxa de material:
+     - primer `BarcodeDetector`
+     - fallback ZXing
+  2. Captura de foto des de mòbil:
+     - foto principal per ítem/producte
+     - previsualització en miniatura a llistat
+  3. Flux de trasllat ràpid:
+     - origen → destí
+     - actor responsable
+     - observacions
+  4. Reserva de material per acte:
+     - quantitat reservada
+     - check de disponibilitat
+     - estat `reservat/preparat/retornat`
+  5. Pantalla “inventari ràpid”:
+     - alta múltiple
+     - codi intern autogenerat
+- **Backlog tècnic**
+  - Millora responsive en formularis principals.
+  - Compressió d’imatges i límit de mida.
+  - Validacions en servidor per evitar sobre-reserva.
+  - Auditoria de moviments amb usuari i timestamp immutable.
+- **Criteris d’acceptació**
+  - Un usuari pot escanejar EAN des de mòbil i autocompletar en <5 segons.
+  - Un trasllat actualitza ubicació actual i crea moviment traçable.
+  - Una reserva no pot confirmar-se si no hi ha disponibilitat real.
+  - La fitxa d’ítem mostra foto i historial de moviments.
+- **Riscos i mitigació**
+  - *Risc:* incompatibilitat de càmera en alguns navegadors mòbils.  
+    *Mitigació:* fallback manual + detecció de capacitats.
+  - *Risc:* fotos massa pesades.  
+    *Mitigació:* redimensionat automàtic client/servidor.
 
 ### Sprint 3 (control i qualitat)
-- Alertes stock mínim.
-- Préstecs i devolucions.
-- Recompte inventari i ajustos.
-- Dashboard i KPI bàsics.
+- **Objectiu:** passar de “registre operatiu” a “control proactiu”.
+- **Backlog funcional**
+  1. Alertes de reposició:
+     - llindar mínim per consumible
+     - vista de “compra suggerida”
+  2. Préstecs i devolucions:
+     - persona/entitat prestatària
+     - data prevista retorn
+     - estat `pendent/retornat/retard`
+  3. Recompte d’inventari:
+     - quantitat sistema vs comptada
+     - ajust amb motiu obligatori
+  4. Dashboard material:
+     - stock crític
+     - préstecs pendents
+     - ús per acte/tasca
+     - despesa mensual bàsica
+  5. Exportació CSV de:
+     - compres
+     - moviments
+     - stock actual
+- **Backlog tècnic**
+  - Tasca periòdica (cron/Celery) per generar alertes.
+  - Sistema de notificació (in-app i/o correu).
+  - Consultes agregades optimitzades per KPI.
+  - Tests d’integració dels fluxos de préstec i recompte.
+- **Criteris d’acceptació**
+  - El dashboard mostra stock crític real sense falsos positius.
+  - Un préstec en retard queda marcat automàticament.
+  - Qualsevol ajust d’inventari queda justificat i auditable.
+  - Es pot exportar CSV usable per comptabilitat.
+- **Riscos i mitigació**
+  - *Risc:* saturació de notificacions (massa alertes).  
+    *Mitigació:* llindars configurables + resum diari.
+  - *Risc:* KPI lents amb volum de dades.  
+    *Mitigació:* índexs, agregats precomputats i caché.
 
 Aquesta seqüència dona valor des de la primera iteració i evita construir un ERP massa pesat.
+
+---
+
+## 13) Planificació orientativa (6 setmanes)
+
+- **Setmanes 1-2 → Sprint 1**
+  - Disseny model de dades, migracions, CRUD base i permisos.
+- **Setmanes 3-4 → Sprint 2**
+  - Optimització mòbil, escàner, fotos i reserves operatives.
+- **Setmanes 5-6 → Sprint 3**
+  - Alertes, préstecs, recompte i dashboard.
+
+> Si l’equip és reduït, es recomana tancar Sprint 1 + mig Sprint 2 abans d’obrir KPI avançats.
+
+---
+
+## 14) Definició de “fet” (Definition of Done)
+
+Per considerar cada sprint completat:
+1. Funcionalitats desplegades a entorn de staging.
+2. Tests crítics en verd (models, permisos i flux principal).
+3. Validació funcional amb 1-2 usuaris reals (coordinació/administració).
+4. Documentació curta d’ús actualitzada dins el CRM (manual ràpid).
+5. Incidències crítiques (P0/P1) resoltes abans de començar el sprint següent.

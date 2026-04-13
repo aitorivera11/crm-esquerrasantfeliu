@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Ubicacions{% endblock %}
+{% block page_title %}Ubicacions de material{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section">
+    <div class="d-flex justify-content-between mb-3"><h2 class="h4 mb-0">Ubicacions</h2><a href="{% url 'material:ubicacio_create' %}" class="btn btn-primary">Nova ubicació</a></div>
+    <table class="table app-table"><thead><tr><th>Nom</th><th>Responsable</th><th>Activa</th><th></th></tr></thead><tbody>
+    {% for ubicacio in ubicacions %}<tr><td>{{ ubicacio.nom }}</td><td>{{ ubicacio.responsable_per_defecte|default:'—' }}</td><td>{{ ubicacio.activa|yesno:'Sí,No' }}</td><td class="text-end"><a href="{% url 'material:ubicacio_update' ubicacio.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td></tr>{% empty %}
+    <tr><td colspan="4" class="text-muted">Sense ubicacions.</td></tr>{% endfor %}
+    </tbody></table>
+</section>
+{% endblock %}

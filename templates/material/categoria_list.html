@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Categories de material{% endblock %}
+{% block page_title %}Categories de material{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section">
+    <div class="d-flex justify-content-between mb-3">
+        <h2 class="h4 mb-0">Catàleg</h2>
+        <a href="{% url 'material:categoria_create' %}" class="btn btn-primary">Nova categoria</a>
+    </div>
+    <table class="table app-table"><thead><tr><th>Nom</th><th>Pare</th><th>Activa</th><th></th></tr></thead><tbody>
+        {% for categoria in categories %}<tr><td>{{ categoria.nom }}</td><td>{{ categoria.pare|default:'—' }}</td><td>{{ categoria.activa|yesno:'Sí,No' }}</td><td class="text-end"><a href="{% url 'material:categoria_update' categoria.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td></tr>{% empty %}
+        <tr><td colspan="4" class="text-muted">Sense categories.</td></tr>{% endfor %}
+    </tbody></table>
+</section>
+{% endblock %}

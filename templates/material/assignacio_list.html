@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Assignacions{% endblock %}
+{% block page_title %}Assignacions de material{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section"><div class="d-flex justify-content-between mb-3"><h2 class="h4 mb-0">Assignacions</h2><a class="btn btn-primary" href="{% url 'material:assignacio_create' %}">Nova assignació</a></div>
+<table class="table app-table"><thead><tr><th>Objectiu</th><th>Recurs</th><th>Reservada</th><th>Estat</th><th></th></tr></thead><tbody>
+{% for assignacio in assignacions %}<tr><td>{% if assignacio.acte %}Acte: {{ assignacio.acte }}{% else %}Tasca: {{ assignacio.tasca }}{% endif %}</td><td>{{ assignacio.item|default:assignacio.stock }}</td><td>{{ assignacio.quantitat_reservada }}</td><td>{{ assignacio.get_estat_reserva_display }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'material:assignacio_update' assignacio.pk %}">Editar</a></td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Sense assignacions.</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}

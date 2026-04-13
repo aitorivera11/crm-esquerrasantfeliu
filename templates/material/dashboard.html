@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Material{% endblock %}
+{% block page_title %}Material i inventari{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Control de compres, inventari i assignacions de material.</p>{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section mb-4">
+    <div class="row g-3">
+        <div class="col-md-4"><div class="p-3 border rounded"><strong>Ítems inventariables</strong><div class="h3 mb-0">{{ total_items }}</div></div></div>
+        <div class="col-md-4"><div class="p-3 border rounded"><strong>Stocks consumibles</strong><div class="h3 mb-0">{{ total_stock }}</div></div></div>
+        <div class="col-md-4"><div class="p-3 border rounded"><strong>Assignacions obertes</strong><div class="h3 mb-0">{{ assignacions_obertes|length }}</div></div></div>
+    </div>
+</section>
+<section class="card card-panel panel-section">
+    <h2 class="h5">Accions ràpides</h2>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary" href="{% url 'material:compra_create' %}">Nova compra</a>
+        <a class="btn btn-outline-primary" href="{% url 'material:item_create' %}">Nou ítem</a>
+        <a class="btn btn-outline-primary" href="{% url 'material:stock_create' %}">Nou stock</a>
+        <a class="btn btn-outline-secondary" href="{% url 'material:assignacio_create' %}">Nova assignació</a>
+    </div>
+</section>
+{% endblock %}
