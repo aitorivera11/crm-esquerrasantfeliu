@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
 
@@ -38,6 +40,25 @@ class EntitatsPermissionsTests(TestCase):
         self.assertRedirects(response, reverse('entitats:entitat_list'))
         entitat = Entitat.objects.get(nom='Ateneu Popular')
         self.assertEqual(list(entitat.persones.all()), [persona])
+
+    def test_list_shows_manual_sync_button_for_allowed_roles(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('entitats:entitat_list'))
+        self.assertContains(response, 'Sincronitzar entitats')
+
+    def test_participant_cannot_run_manual_sync(self):
+        self.client.force_login(self.participant)
+        response = self.client.post(reverse('entitats:sync_imported_entities'))
+        self.assertIn(response.status_code, {403, 405})
+
+    @patch('entitats.views.call_command')
+    def test_manual_sync_runs_import_command(self, mocked_call_command):
+        self.client.force_login(self.coord)
+        response = self.client.post(reverse('entitats:sync_imported_entities'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('entitats:entitat_list'))
+        mocked_call_command.assert_called_once()
+        self.assertEqual(mocked_call_command.call_args.args, ('import_entities', '--cleanup'))
 
 
 class EntitatsImporterTests(TestCase):
