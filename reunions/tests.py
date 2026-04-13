@@ -327,7 +327,7 @@ class OrdreDiaShareTextTests(TestCase):
         PuntOrdreDia.objects.create(reunio=self.reunio, ordre=1, titol='Formació ENGEGA')
 
     def test_generar_text_ordre_dia_includes_schedule_location_and_link(self):
-        text = generar_text_ordre_dia(self.reunio, share_url='https://crm-esquerrasantfeliu.vercel.app/agenda/175/')
+        text = generar_text_ordre_dia(self.reunio, share_url='https://crm-esquerrasantfeliu.org/agenda/175/')
 
         self.assertIn('Trobada Pla de Campanya', text)
         self.assertIn('📅 ', text)
@@ -335,7 +335,7 @@ class OrdreDiaShareTextTests(TestCase):
         self.assertIn('📍 Local', text)
         self.assertIn('Ordre del dia', text)
         self.assertIn('1. Formació ENGEGA', text)
-        self.assertTrue(text.endswith('https://crm-esquerrasantfeliu.vercel.app/agenda/175/'))
+        self.assertTrue(text.endswith('https://crm-esquerrasantfeliu.org/agenda/175/'))
 
 
 class ActaOrdreDiaSyncTests(TestCase):
