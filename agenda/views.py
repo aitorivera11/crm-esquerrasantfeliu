@@ -1,11 +1,13 @@
 from datetime import timedelta
 import io
+import json
 import os
 from urllib.parse import quote
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -538,9 +540,33 @@ class SyncImportedEventsView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     def post(self, request):
         output = io.StringIO()
-        call_command('import_city_events', '--cleanup', stdout=output)
-        messages.success(request, "Sincronització completada. Els actes importats s'han actualitzat com a publicats.")
+        try:
+            call_command('import_city_events', '--cleanup', stdout=output)
+        except CommandError as exc:
+            messages.error(request, f"La sincronització d'actes importats ha fallat: {exc}")
+            return redirect('agenda:acte_list')
+        stats = self._extract_stats(output.getvalue())
+        if stats:
+            messages.success(
+                request,
+                (
+                    "Sincronització completada. "
+                    f"Importats: {stats.get('created', 0)} nous, "
+                    f"{stats.get('updated', 0)} actualitzats, "
+                    f"{stats.get('cleanup', 0)} eliminats."
+                ),
+            )
+        else:
+            messages.success(request, "Sincronització completada. Els actes importats s'han actualitzat com a publicats.")
         return redirect('agenda:acte_list')
+
+    def _extract_stats(self, raw_output):
+        for line in reversed([item.strip() for item in raw_output.splitlines() if item.strip()]):
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                continue
+        return None
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -554,5 +580,8 @@ class ImportCityEventsCronView(View):
             return JsonResponse({'ok': False, 'error': 'Unauthorized'}, status=401)
 
         output = io.StringIO()
-        call_command('import_city_events', '--cleanup', stdout=output)
+        try:
+            call_command('import_city_events', '--cleanup', stdout=output)
+        except CommandError as exc:
+            return JsonResponse({'ok': False, 'error': str(exc), 'details': output.getvalue().strip()}, status=500)
         return JsonResponse({'ok': True, 'details': output.getvalue().strip()})
