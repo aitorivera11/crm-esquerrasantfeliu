@@ -1361,3 +1361,13 @@ input[type="checkbox"] {
     margin-bottom: 1rem;
     flex-wrap: wrap;
 }
+
+.scanner-preview {
+    width: min(100%, 420px);
+    aspect-ratio: 4 / 3;
+    border-radius: .75rem;
+    border: 1px solid rgba(0, 0, 0, .12);
+    object-fit: cover;
+    background: #111;
+    margin-bottom: 1rem;
+}

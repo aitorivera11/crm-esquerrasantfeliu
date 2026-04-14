@@ -34,6 +34,7 @@
   async function startScan(inputSelector, feedbackSelector, options = {}) {
     const input = document.querySelector(inputSelector);
     const feedback = document.querySelector(feedbackSelector);
+    const video = document.getElementById(options.videoElementId || 'material-scan-video');
     if (!input) return;
 
     const setFeedback = (msg, isError) => {
@@ -43,19 +44,37 @@
       feedback.classList.toggle('text-muted', !isError);
     };
 
+    const showVideoPreview = () => {
+      if (!video) return;
+      video.classList.remove('d-none');
+      video.classList.add('scanner-preview');
+    };
+
+    const hideVideoPreview = () => {
+      if (!video) return;
+      video.pause();
+      video.srcObject = null;
+      video.classList.add('d-none');
+      video.classList.remove('scanner-preview');
+    };
+
     const handleCode = async (code) => {
       if (!code) return;
       input.value = code;
       input.dispatchEvent(new Event('input', { bubbles: true }));
       setFeedback('Codi detectat correctament.', false);
       await fetchCatalogData(code, feedback, options);
+      hideVideoPreview();
     };
 
     if ('BarcodeDetector' in window) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        const video = document.createElement('video');
+        if (!video) throw new Error('No hi ha element de vídeo disponible');
+        showVideoPreview();
         video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
+        video.muted = true;
         await video.play();
         const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'] });
         const canvas = document.createElement('canvas');
@@ -77,6 +96,7 @@
         }, 400);
         return;
       } catch (err) {
+        hideVideoPreview();
         setFeedback('No s’ha pogut utilitzar BarcodeDetector. S’activa el fallback.', true);
       }
     }
@@ -85,12 +105,15 @@
       const reader = new window.ZXing.BrowserMultiFormatReader();
       setFeedback('Escanejant amb fallback ZXing...', false);
       try {
+        showVideoPreview();
         const result = await reader.decodeOnceFromVideoDevice(undefined, options.videoElementId || 'material-scan-video');
         await handleCode(result.text);
       } catch (err) {
+        hideVideoPreview();
         setFeedback('No s’ha pogut detectar cap codi. Introdueix-lo manualment.', true);
       } finally {
         reader.reset();
+        hideVideoPreview();
       }
     } else {
       setFeedback('Navegador sense suport d’escàner. Introdueix el codi manualment.', true);
