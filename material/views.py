@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.forms import inlineformset_factory
 from django.db import transaction
 from django.db.models import F, Q
 from django.http import HttpResponseRedirect, JsonResponse
@@ -55,6 +56,8 @@ class MaterialDashboardView(MaterialPermissionMixin, TemplateView):
                 'total_items': ItemMaterial.objects.count(),
                 'total_stock': StockMaterial.objects.count(),
                 'compres_mes': CompraMaterial.objects.order_by('-data_compra')[:5],
+                'ultims_items': ItemMaterial.objects.select_related('ubicacio_actual').order_by('-creat_el')[:5],
+                'ultims_stocks': StockMaterial.objects.select_related('ubicacio').order_by('-creat_el')[:5],
                 'stocks_critics': StockMaterial.objects.filter(quantitat_actual__lte=F('llindar_minim'))[:10],
                 'assignacions_obertes': AssignacioMaterial.objects.exclude(estat_reserva=AssignacioMaterial.EstatReserva.RETORNAT)[:10],
             }
@@ -140,6 +143,36 @@ class CompraMaterialUpdateView(MaterialPermissionMixin, UpdateView):
     form_class = CompraMaterialForm
     template_name = 'material/compra_form.html'
     success_url = reverse_lazy('material:compra_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        LiniesFormset = inlineformset_factory(
+            CompraMaterial,
+            LiniaCompraMaterial,
+            form=LiniaCompraMaterialForm,
+            extra=3,
+            can_delete=False,
+        )
+        if self.request.method == 'POST':
+            context['linies_formset'] = LiniesFormset(self.request.POST, self.request.FILES, instance=self.object, prefix='linies')
+        else:
+            context['linies_formset'] = LiniesFormset(instance=self.object, queryset=LiniaCompraMaterial.objects.none(), prefix='linies')
+        context['linies_existents'] = self.object.linies.all()
+        return context
+
+    @transaction.atomic
+    def form_valid(self, form):
+        context = self.get_context_data()
+        linies_formset = context['linies_formset']
+        self.object = form.save()
+        if linies_formset.is_valid():
+            noves_linies = linies_formset.save(commit=False)
+            for linia in noves_linies:
+                linia.compra = self.object
+                linia.save()
+            messages.success(self.request, 'Compra actualitzada i línies afegides correctament.')
+            return HttpResponseRedirect(self.get_success_url())
+        return self.form_invalid(form)
 
 
 class LiniaCompraMaterialCreateView(MaterialPermissionMixin, CreateView):
@@ -295,4 +328,3 @@ class InventariRapidCreateView(MaterialPermissionMixin, FormView):
 
         messages.success(self.request, f'S’han creat {created} ítems correctament.')
         return HttpResponseRedirect(self.get_success_url())
-
