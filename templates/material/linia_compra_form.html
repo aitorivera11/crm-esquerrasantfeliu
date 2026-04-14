@@ -1,6 +1,25 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Línia de compra{% endblock %}
 {% block page_title %}Nova línia de compra{% endblock %}
+{% block extra_head %}
+<script src="https://unpkg.com/@zxing/library@0.21.3"></script>
+<script defer src="{% static 'js/material_scanner.js' %}"></script>
+{% endblock %}
 {% block content %}
-<section class="card card-panel form-wide panel-section"><form method="post" enctype="multipart/form-data" class="responsive-form">{% csrf_token %}{% include 'components/form_fields.html' with form=form %}<div class="d-flex gap-2"><button class="btn btn-primary">Desar</button><a href="{% url 'material:compra_list' %}" class="btn btn-outline-secondary">Cancel·lar</a></div></form></section>
+<section class="card card-panel form-wide panel-section">
+    <form method="post" enctype="multipart/form-data" class="responsive-form">
+        {% csrf_token %}
+        {% include 'components/form_fields.html' with form=form %}
+        <div class="scanner-inline">
+            <button type="button" class="btn btn-outline-primary" onclick="MaterialBarcodeScanner.startScan('#id_codi_barres', '#scan-feedback', {lookupUrl: '{% url "material:barcode_lookup" %}', descriptionSelector: '#id_descripcio', videoElementId: 'material-scan-video-linia'})">Escanejar codi</button>
+            <small id="scan-feedback" class="text-muted">Escaneig ràpid (BarcodeDetector + fallback ZXing).</small>
+        </div>
+        <video id="material-scan-video-linia" class="d-none"></video>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary">Desar</button>
+            <a href="{% url 'material:compra_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
+    </form>
+</section>
 {% endblock %}

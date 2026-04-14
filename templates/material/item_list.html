@@ -2,8 +2,37 @@
 {% block title %}Ítems{% endblock %}
 {% block page_title %}Inventariables{% endblock %}
 {% block content %}
-<section class="card card-panel panel-section"><div class="d-flex justify-content-between mb-3"><h2 class="h4 mb-0">Ítems</h2><a class="btn btn-primary" href="{% url 'material:item_create' %}">Nou ítem</a></div>
-<table class="table app-table"><thead><tr><th>Codi</th><th>Descripció</th><th>Estat</th><th>Ubicació</th><th></th></tr></thead><tbody>
-{% for item in items %}<tr><td>{{ item.codi_intern }}</td><td>{{ item.descripcio }}</td><td>{{ item.get_estat_display }}</td><td>{{ item.ubicacio_actual }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'material:item_update' item.pk %}">Editar</a></td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Sense ítems.</td></tr>{% endfor %}
-</tbody></table></section>
+<section class="card card-panel panel-section">
+    <div class="d-flex justify-content-between mb-3 gap-2 flex-wrap">
+        <h2 class="h4 mb-0">Ítems</h2>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary" href="{% url 'material:inventari_rapid' %}">Inventari ràpid</a>
+            <a class="btn btn-outline-secondary" href="{% url 'material:trasllat_rapid' %}">Trasllat ràpid</a>
+            <a class="btn btn-primary" href="{% url 'material:item_create' %}">Nou ítem</a>
+        </div>
+    </div>
+    <table class="table app-table">
+        <thead><tr><th>Foto</th><th>Codi</th><th>Descripció</th><th>Estat</th><th>Ubicació</th><th></th></tr></thead>
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td>
+                    {% if item.foto_principal %}
+                        <img src="{{ item.foto_principal.url }}" alt="{{ item.descripcio }}" class="material-thumb">
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td><a href="{% url 'material:item_detail' item.pk %}">{{ item.codi_intern }}</a></td>
+                <td>{{ item.descripcio }}</td>
+                <td>{{ item.get_estat_display }}</td>
+                <td>{{ item.ubicacio_actual }}</td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'material:item_update' item.pk %}">Editar</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6" class="text-muted">Sense ítems.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
 {% endblock %}
