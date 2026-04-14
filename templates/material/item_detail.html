@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Detall ítem{% endblock %}
+{% block page_title %}Detall de {{ item.codi_intern }}{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section mb-3">
+    <div class="d-flex gap-3 align-items-start flex-wrap">
+        {% if item.foto_principal %}
+            <img src="{{ item.foto_principal.url }}" alt="{{ item.descripcio }}" class="material-thumb material-thumb-lg">
+        {% endif %}
+        <div>
+            <h2 class="h4 mb-1">{{ item.descripcio }}</h2>
+            <div class="text-muted">Ubicació actual: {{ item.ubicacio_actual }}</div>
+            <div class="text-muted">Estat: {{ item.get_estat_display }}</div>
+        </div>
+    </div>
+</section>
+<section class="card card-panel panel-section">
+    <h3 class="h5 mb-3">Historial de moviments</h3>
+    <table class="table app-table">
+        <thead><tr><th>Data</th><th>Tipus</th><th>Origen</th><th>Destí</th><th>Actor</th><th>Observacions</th></tr></thead>
+        <tbody>
+        {% for moviment in moviments %}
+            <tr>
+                <td>{{ moviment.data_moviment|date:'d/m/Y H:i' }}</td>
+                <td>{{ moviment.get_tipus_moviment_display }}</td>
+                <td>{{ moviment.origen|default:'-' }}</td>
+                <td>{{ moviment.desti|default:'-' }}</td>
+                <td>{{ moviment.actor|default:'-' }}</td>
+                <td>{{ moviment.observacions|default:'-' }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6" class="text-muted">Encara no hi ha moviments registrats.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

@@ -31,6 +31,11 @@ python manage.py runserver
 - `ALLOWED_HOSTS`
 - `DATABASE_URL`
 - `SITE_ID` (opcional, per defecte `1`)
+- `UPCITEMDB_USER_KEY` (opcional, per activar lookup autenticat de UPCitemdb al mòdul Material)
+- `UPCITEMDB_KEY_TYPE` (opcional, per defecte `3scale`)
+
+
+Si no defineixes `UPCITEMDB_USER_KEY`, el sistema farà servir el mode *trial* públic de UPCitemdb (amb limitacions de quota).
 
 ## Accés amb Google (OAuth)
 

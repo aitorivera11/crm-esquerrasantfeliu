@@ -1339,3 +1339,25 @@ input[type="checkbox"] {
         min-height: auto;
     }
 }
+
+.material-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: .5rem;
+    border: 1px solid rgba(0,0,0,.08);
+}
+
+.material-thumb-lg {
+    width: 180px;
+    height: 180px;
+}
+
+.scanner-inline {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-top: -.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}

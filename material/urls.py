@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AssignacioMaterialCreateView,
+    BarcodeLookupView,
     AssignacioMaterialListView,
     AssignacioMaterialUpdateView,
     CategoriaMaterialCreateView,
@@ -10,7 +11,9 @@ from .views import (
     CompraMaterialCreateView,
     CompraMaterialListView,
     CompraMaterialUpdateView,
+    InventariRapidCreateView,
     ItemMaterialCreateView,
+    ItemMaterialDetailView,
     ItemMaterialListView,
     ItemMaterialUpdateView,
     LiniaCompraMaterialCreateView,
@@ -18,6 +21,7 @@ from .views import (
     StockMaterialCreateView,
     StockMaterialListView,
     StockMaterialUpdateView,
+    TrasllatRapidView,
     UbicacioMaterialCreateView,
     UbicacioMaterialListView,
     UbicacioMaterialUpdateView,
@@ -37,6 +41,7 @@ urlpatterns = [
     path('compres/linia/nova/', LiniaCompraMaterialCreateView.as_view(), name='linia_compra_create'),
     path('items/', ItemMaterialListView.as_view(), name='item_list'),
     path('items/nou/', ItemMaterialCreateView.as_view(), name='item_create'),
+    path('items/<int:pk>/', ItemMaterialDetailView.as_view(), name='item_detail'),
     path('items/<int:pk>/editar/', ItemMaterialUpdateView.as_view(), name='item_update'),
     path('stocks/', StockMaterialListView.as_view(), name='stock_list'),
     path('stocks/nou/', StockMaterialCreateView.as_view(), name='stock_create'),
@@ -44,4 +49,7 @@ urlpatterns = [
     path('assignacions/', AssignacioMaterialListView.as_view(), name='assignacio_list'),
     path('assignacions/nova/', AssignacioMaterialCreateView.as_view(), name='assignacio_create'),
     path('assignacions/<int:pk>/editar/', AssignacioMaterialUpdateView.as_view(), name='assignacio_update'),
+    path('trasllat-rapid/', TrasllatRapidView.as_view(), name='trasllat_rapid'),
+    path('inventari-rapid/', InventariRapidCreateView.as_view(), name='inventari_rapid'),
+    path('api/barcode-lookup/', BarcodeLookupView.as_view(), name='barcode_lookup'),
 ]
