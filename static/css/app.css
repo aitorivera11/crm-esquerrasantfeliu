@@ -1348,6 +1348,15 @@ input[type="checkbox"] {
     border: 1px solid rgba(0,0,0,.08);
 }
 
+.material-items-table table {
+    min-width: 860px;
+}
+
+.material-item-description {
+    max-width: 560px;
+    word-break: break-word;
+}
+
 .material-thumb-lg {
     width: 180px;
     height: 180px;
@@ -1370,4 +1379,15 @@ input[type="checkbox"] {
     object-fit: cover;
     background: #111;
     margin-bottom: 1rem;
+}
+
+@media (max-width: 767.98px) {
+    .material-thumb {
+        width: 48px;
+        height: 48px;
+    }
+
+    .material-items-table table {
+        min-width: 700px;
+    }
 }

@@ -2,5 +2,44 @@
 {% block title %}Compra{% endblock %}
 {% block page_title %}{% if object %}Editar compra{% else %}Nova compra{% endif %}{% endblock %}
 {% block content %}
-<section class="card card-panel form-wide panel-section"><form method="post" enctype="multipart/form-data" class="responsive-form">{% csrf_token %}{% include 'components/form_fields.html' with form=form %}<div class="d-flex gap-2"><button class="btn btn-primary">Desar</button><a href="{% url 'material:compra_list' %}" class="btn btn-outline-secondary">Cancel·lar</a></div></form></section>
+<section class="card card-panel form-wide panel-section">
+    <form method="post" enctype="multipart/form-data" class="responsive-form">
+        {% csrf_token %}
+        {% include 'components/form_fields.html' with form=form %}
+
+        {% if object %}
+            <hr>
+            <h2 class="h5 mb-3">Línies de compra actuals</h2>
+            <div class="table-responsive mb-4">
+                <table class="table app-table mb-0">
+                    <thead><tr><th>Descripció</th><th>Quantitat</th><th>Total línia</th></tr></thead>
+                    <tbody>
+                    {% for linia in linies_existents %}
+                        <tr>
+                            <td>{{ linia.descripcio }}</td>
+                            <td>{{ linia.quantitat }}</td>
+                            <td>{{ linia.total_linia }} €</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="3" class="text-muted">Encara no hi ha línies.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="h5 mb-3">Afegir línies ràpides</h2>
+            {{ linies_formset.management_form }}
+            {% for linia_form in linies_formset %}
+                <div class="border rounded p-3 mb-3">
+                    {% include 'components/form_fields.html' with form=linia_form %}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary">Desar</button>
+            <a href="{% url 'material:compra_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
+    </form>
+</section>
 {% endblock %}

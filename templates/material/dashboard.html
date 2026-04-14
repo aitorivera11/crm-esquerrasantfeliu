@@ -19,4 +19,50 @@
         <a class="btn btn-outline-secondary" href="{% url 'material:assignacio_create' %}">Nova assignació</a>
     </div>
 </section>
+<section class="card card-panel panel-section mt-4">
+    <div class="row g-4">
+        <div class="col-12 col-xl-4">
+            <h2 class="h5">Últimes 5 compres</h2>
+            <div class="list-group list-group-flush">
+                {% for compra in compres_mes %}
+                    <a class="list-group-item px-0 py-2 border-bottom" href="{% url 'material:compra_update' compra.pk %}">
+                        <strong>{{ compra.proveidor }}</strong>
+                        <div class="small text-muted">{{ compra.data_compra|date:'d/m/Y' }} · {{ compra.cost_total }} €</div>
+                    </a>
+                {% empty %}
+                    <p class="text-muted mb-0">Sense compres recents.</p>
+                {% endfor %}
+            </div>
+            <a class="btn btn-sm btn-outline-secondary mt-2" href="{% url 'material:compra_list' %}">Veure totes</a>
+        </div>
+        <div class="col-12 col-xl-4">
+            <h2 class="h5">Últims 5 inventariables</h2>
+            <div class="list-group list-group-flush">
+                {% for item in ultims_items %}
+                    <a class="list-group-item px-0 py-2 border-bottom" href="{% url 'material:item_detail' item.pk %}">
+                        <strong>{{ item.codi_intern }}</strong>
+                        <div class="small text-muted">{{ item.descripcio|truncatechars:80 }}</div>
+                    </a>
+                {% empty %}
+                    <p class="text-muted mb-0">Sense ítems recents.</p>
+                {% endfor %}
+            </div>
+            <a class="btn btn-sm btn-outline-secondary mt-2" href="{% url 'material:item_list' %}">Veure tots</a>
+        </div>
+        <div class="col-12 col-xl-4">
+            <h2 class="h5">Últims 5 consumibles</h2>
+            <div class="list-group list-group-flush">
+                {% for stock in ultims_stocks %}
+                    <a class="list-group-item px-0 py-2 border-bottom" href="{% url 'material:stock_update' stock.pk %}">
+                        <strong>{{ stock.producte }}</strong>
+                        <div class="small text-muted">{{ stock.quantitat_actual }} {{ stock.unitat }} · {{ stock.ubicacio }}</div>
+                    </a>
+                {% empty %}
+                    <p class="text-muted mb-0">Sense consumibles recents.</p>
+                {% endfor %}
+            </div>
+            <a class="btn btn-sm btn-outline-secondary mt-2" href="{% url 'material:stock_list' %}">Veure tots</a>
+        </div>
+    </div>
+</section>
 {% endblock %}

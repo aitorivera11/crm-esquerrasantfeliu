@@ -3,6 +3,7 @@ from io import BytesIO
 from django import forms
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Sum
+from django.utils.text import slugify
 
 from usuaris.forms import StyledFormMixin
 
@@ -81,9 +82,13 @@ class CompraMaterialForm(StyledFormMixin, forms.ModelForm):
             'observacions',
         ]
         widgets = {
-            'data_compra': forms.DateInput(attrs={'type': 'date'}),
+            'data_compra': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'observacions': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['data_compra'].input_formats = ['%Y-%m-%d']
 
 
 class LiniaCompraMaterialForm(StyledFormMixin, forms.ModelForm):
@@ -125,14 +130,26 @@ class ItemMaterialForm(StyledFormMixin, forms.ModelForm):
             'foto_principal',
         ]
         widgets = {
-            'data_alta': forms.DateInput(attrs={'type': 'date'}),
+            'data_alta': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'codi_barres': forms.TextInput(attrs={'data-barcode-target': 'true'}),
             'foto_principal': forms.ClearableFileInput(attrs={'accept': 'image/*', 'capture': 'environment'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['data_alta'].input_formats = ['%Y-%m-%d']
+
     def clean_foto_principal(self):
         foto = self.cleaned_data.get('foto_principal')
-        return optimize_uploaded_image(foto)
+        foto = optimize_uploaded_image(foto)
+        if not foto:
+            return foto
+        codi_intern = (self.cleaned_data.get('codi_intern') or '').strip()
+        if codi_intern:
+            extensio = foto.name.rsplit('.', 1)[-1].lower()
+            nom_base = slugify(codi_intern) or 'item'
+            foto.name = f'{nom_base}.{extensio}'
+        return foto
 
 
 class StockMaterialForm(StyledFormMixin, forms.ModelForm):
@@ -203,5 +220,8 @@ class InventariRapidForm(StyledFormMixin, forms.Form):
     categoria = forms.ModelChoiceField(queryset=CategoriaMaterial.objects.filter(activa=True), required=False)
     ubicacio_actual = forms.ModelChoiceField(queryset=UbicacioMaterial.objects.filter(activa=True))
     quantitat = forms.IntegerField(min_value=1, max_value=200, initial=1)
-    data_alta = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    data_alta = forms.DateField(
+        input_formats=['%Y-%m-%d'],
+        widget=forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
+    )
     valor_estimad = forms.DecimalField(min_value=0, decimal_places=2, max_digits=10, initial=0)
