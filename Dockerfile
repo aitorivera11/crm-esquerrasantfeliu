@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     wget \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    tesseract-ocr-cat \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
