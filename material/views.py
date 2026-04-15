@@ -5,7 +5,7 @@ from django.db.models import F, Q
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DetailView, FormView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, TemplateView, UpdateView
 
 from core.mixins import RoleRequiredMixin
 from usuaris.models import Usuari
@@ -187,70 +187,97 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
 
         return payload, parsed
 
-    def _registrar_entrada_material(self, compra, linies):
+    def _sync_linea_material(self, compra, linia):
         ubicacio = UbicacioMaterial.objects.filter(activa=True).order_by('id').first()
         if not ubicacio:
             messages.warning(
                 self.request,
                 'No hi ha cap ubicació activa: no s’ha pogut registrar l’entrada automàtica de material.',
             )
-            return 0
+            return
 
-        for linia in linies:
-            if linia.tipus_linia == LiniaCompraMaterial.TipusLinia.INVENTARIABLE:
-                for index in range(1, linia.quantitat + 1):
-                    codi_intern = f'CMP-{compra.id:05d}-{linia.id:05d}-{index:03d}'
-                    item = ItemMaterial.objects.create(
-                        codi_intern=codi_intern,
-                        descripcio=linia.descripcio,
-                        categoria=linia.categoria,
-                        ubicacio_actual=ubicacio,
-                        data_alta=compra.data_compra,
-                        valor_estimad=linia.preu_unitari,
-                        codi_barres=linia.codi_barres,
-                    )
-                    MovimentMaterial.objects.create(
-                        tipus_moviment=MovimentMaterial.Tipus.ENTRADA,
-                        desti=ubicacio,
-                        quantitat=1,
-                        item=item,
-                        actor=self.request.user,
-                        observacions=f'Alta automàtica des de compra #{linia.compra_id}.',
-                    )
-                continue
+        if linia.tipus_linia == LiniaCompraMaterial.TipusLinia.INVENTARIABLE:
+            if getattr(linia, 'stock_generat', None):
+                linia.stock_generat.delete()
 
-            stock, _ = StockMaterial.objects.get_or_create(
-                producte=linia.descripcio,
-                ubicacio=ubicacio,
+            item, _ = ItemMaterial.objects.get_or_create(
+                linia_compra=linia,
                 defaults={
+                    'codi_intern': f'CMP-{compra.id:05d}-{linia.id:05d}',
+                    'descripcio': linia.descripcio,
                     'categoria': linia.categoria,
-                    'quantitat_actual': 0,
-                    'unitat': 'u',
-                    'llindar_minim': 0,
-                    'codi_barres': linia.codi_barres or '',
+                    'ubicacio_actual': ubicacio,
+                    'data_alta': compra.data_compra,
+                    'valor_estimad': linia.preu_unitari,
+                    'codi_barres': linia.codi_barres,
+                    'quantitat_actual': linia.quantitat,
                 },
             )
-            fields_to_update = []
-            if not stock.categoria and linia.categoria:
-                stock.categoria = linia.categoria
-                fields_to_update.append('categoria')
-            if not stock.codi_barres and linia.codi_barres:
-                stock.codi_barres = linia.codi_barres
-                fields_to_update.append('codi_barres')
-            if fields_to_update:
-                stock.save(update_fields=[*fields_to_update, 'actualitzat_el'])
+            updated = []
+            for field_name, value in [
+                ('descripcio', linia.descripcio),
+                ('categoria', linia.categoria),
+                ('data_alta', compra.data_compra),
+                ('valor_estimad', linia.preu_unitari),
+                ('codi_barres', linia.codi_barres),
+                ('quantitat_actual', linia.quantitat),
+            ]:
+                if getattr(item, field_name) != value:
+                    setattr(item, field_name, value)
+                    updated.append(field_name)
+            if updated:
+                item.save(update_fields=[*updated, 'actualitzat_el'])
 
-            stock.quantitat_actual = F('quantitat_actual') + linia.quantitat
-            stock.save(update_fields=['quantitat_actual', 'actualitzat_el'])
             MovimentMaterial.objects.create(
                 tipus_moviment=MovimentMaterial.Tipus.ENTRADA,
                 desti=ubicacio,
                 quantitat=linia.quantitat,
-                stock=stock,
+                item=item,
                 actor=self.request.user,
                 observacions=f'Entrada automàtica des de compra #{linia.compra_id}.',
             )
-        return
+            return
+
+        if getattr(linia, 'item_generat', None):
+            linia.item_generat.delete()
+        stock, _ = StockMaterial.objects.get_or_create(
+            linia_compra=linia,
+            defaults={
+                'producte': linia.descripcio,
+                'categoria': linia.categoria,
+                'ubicacio': ubicacio,
+                'quantitat_actual': linia.quantitat,
+                'unitat': 'u',
+                'llindar_minim': 0,
+                'codi_barres': linia.codi_barres or '',
+            },
+        )
+        updated = []
+        for field_name, value in [
+            ('producte', linia.descripcio),
+            ('categoria', linia.categoria),
+            ('codi_barres', linia.codi_barres or ''),
+            ('quantitat_actual', linia.quantitat),
+        ]:
+            if getattr(stock, field_name) != value:
+                setattr(stock, field_name, value)
+                updated.append(field_name)
+        if updated:
+            stock.save(update_fields=[*updated, 'actualitzat_el'])
+        MovimentMaterial.objects.create(
+            tipus_moviment=MovimentMaterial.Tipus.ENTRADA,
+            desti=ubicacio,
+            quantitat=linia.quantitat,
+            stock=stock,
+            actor=self.request.user,
+            observacions=f'Entrada automàtica des de compra #{linia.compra_id}.',
+        )
+
+    def _remove_linea_material(self, linia):
+        if getattr(linia, 'item_generat', None):
+            linia.item_generat.delete()
+        if getattr(linia, 'stock_generat', None):
+            linia.stock_generat.delete()
 
     def post(self, request, *args, **kwargs):
         self.object = None
@@ -287,7 +314,8 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
             linia.save()
         for to_delete in linies_formset.deleted_objects:
             to_delete.delete()
-        self._registrar_entrada_material(self.object, linies)
+        for linia in linies:
+            self._sync_linea_material(self.object, linia)
         messages.success(self.request, 'Compra i línies creades correctament.')
         return HttpResponseRedirect(self.get_success_url())
 
@@ -366,15 +394,17 @@ class CompraMaterialUpdateView(MaterialPermissionMixin, UpdateView):
 
     @transaction.atomic
     def form_valid(self, form):
-        context = self.get_context_data()
+        context = self.get_context_data(form=form)
         linies_formset = context['linies_formset']
-        self.object = form.save()
         if linies_formset.is_valid():
+            self.object = form.save()
             linies = linies_formset.save(commit=False)
             for linia in linies:
                 linia.compra = self.object
                 linia.save()
+                CompraMaterialCreateView._sync_linea_material(self, self.object, linia)
             for to_delete in linies_formset.deleted_objects:
+                CompraMaterialCreateView._remove_linea_material(self, to_delete)
                 to_delete.delete()
             messages.success(self.request, 'Compra i línies actualitzades correctament.')
             return HttpResponseRedirect(self.get_success_url())
@@ -419,6 +449,15 @@ class ItemMaterialUpdateView(MaterialPermissionMixin, UpdateView):
     success_url = reverse_lazy('material:item_list')
 
 
+class ItemMaterialDeleteView(MaterialPermissionMixin, DeleteView):
+    model = ItemMaterial
+    success_url = reverse_lazy('material:item_list')
+
+    def post(self, request, *args, **kwargs):
+        messages.success(self.request, 'Ítem eliminat correctament.')
+        return super().post(request, *args, **kwargs)
+
+
 class StockMaterialListView(MaterialPermissionMixin, ListView):
     model = StockMaterial
     template_name = 'material/stock_list.html'
@@ -437,6 +476,15 @@ class StockMaterialUpdateView(MaterialPermissionMixin, UpdateView):
     form_class = StockMaterialForm
     template_name = 'material/stock_form.html'
     success_url = reverse_lazy('material:stock_list')
+
+
+class StockMaterialDeleteView(MaterialPermissionMixin, DeleteView):
+    model = StockMaterial
+    success_url = reverse_lazy('material:stock_list')
+
+    def post(self, request, *args, **kwargs):
+        messages.success(self.request, 'Stock eliminat correctament.')
+        return super().post(request, *args, **kwargs)
 
 
 class AssignacioMaterialListView(MaterialPermissionMixin, ListView):
@@ -469,14 +517,38 @@ class TrasllatRapidView(MaterialPermissionMixin, FormView):
         item = form.cleaned_data['item']
         origen = item.ubicacio_actual
         desti = form.cleaned_data['desti']
+        quantitat = form.cleaned_data['quantitat']
         observacions = form.cleaned_data.get('observacions', '')
-        item.ubicacio_actual = desti
-        item.save(update_fields=['ubicacio_actual', 'actualitzat_el'])
+        if quantitat == item.quantitat_actual:
+            item.ubicacio_actual = desti
+            item.save(update_fields=['ubicacio_actual', 'actualitzat_el'])
+            item_desti = item
+        else:
+            item.quantitat_actual = item.quantitat_actual - quantitat
+            item.save(update_fields=['quantitat_actual', 'actualitzat_el'])
+            split_counter = 1
+            split_code = f'{item.codi_intern}-T{split_counter}'
+            while ItemMaterial.objects.filter(codi_intern=split_code).exists():
+                split_counter += 1
+                split_code = f'{item.codi_intern}-T{split_counter}'
+            item_desti = ItemMaterial.objects.create(
+                codi_intern=split_code,
+                descripcio=item.descripcio,
+                categoria=item.categoria,
+                estat=item.estat,
+                ubicacio_actual=desti,
+                data_alta=item.data_alta,
+                valor_estimad=item.valor_estimad,
+                codi_barres=item.codi_barres,
+                foto_principal=item.foto_principal,
+                quantitat_actual=quantitat,
+            )
         MovimentMaterial.objects.create(
             tipus_moviment=MovimentMaterial.Tipus.TRASLLAT,
             origen=origen,
             desti=desti,
-            item=item,
+            item=item_desti,
+            quantitat=quantitat,
             actor=self.request.user,
             observacions=observacions,
         )
@@ -499,10 +571,7 @@ class InventariRapidCreateView(MaterialPermissionMixin, FormView):
         data_alta = form.cleaned_data['data_alta']
         valor = form.cleaned_data['valor_estimad']
 
-        existing_codes = (
-            ItemMaterial.objects.filter(codi_intern__startswith=f'{prefix}-')
-            .values_list('codi_intern', flat=True)
-        )
+        existing_codes = ItemMaterial.objects.filter(codi_intern__startswith=f'{prefix}-').values_list('codi_intern', flat=True)
         max_sequence = 0
         for code in existing_codes:
             try:
@@ -511,26 +580,24 @@ class InventariRapidCreateView(MaterialPermissionMixin, FormView):
             except ValueError:
                 continue
 
-        created = 0
-        for offset in range(1, quantitat + 1):
-            sequence = max_sequence + offset
-            codi_intern = f'{prefix}-{sequence:04d}'
-            item = ItemMaterial.objects.create(
-                codi_intern=codi_intern,
-                descripcio=descripcio,
-                categoria=categoria,
-                ubicacio_actual=ubicacio,
-                data_alta=data_alta,
-                valor_estimad=valor,
-            )
-            MovimentMaterial.objects.create(
-                tipus_moviment=MovimentMaterial.Tipus.ENTRADA,
-                desti=ubicacio,
-                item=item,
-                actor=self.request.user,
-                observacions='Alta múltiple des d’inventari ràpid.',
-            )
-            created += 1
+        codi_intern = f'{prefix}-{max_sequence + 1:04d}'
+        item = ItemMaterial.objects.create(
+            codi_intern=codi_intern,
+            descripcio=descripcio,
+            categoria=categoria,
+            ubicacio_actual=ubicacio,
+            data_alta=data_alta,
+            valor_estimad=valor,
+            quantitat_actual=quantitat,
+        )
+        MovimentMaterial.objects.create(
+            tipus_moviment=MovimentMaterial.Tipus.ENTRADA,
+            desti=ubicacio,
+            item=item,
+            quantitat=quantitat,
+            actor=self.request.user,
+            observacions='Alta des d’inventari ràpid.',
+        )
 
-        messages.success(self.request, f'S’han creat {created} ítems correctament.')
+        messages.success(self.request, f'S’ha creat un ítem agrupat amb quantitat {quantitat}.')
         return HttpResponseRedirect(self.get_success_url())

@@ -134,6 +134,7 @@ class ItemMaterialForm(StyledFormMixin, forms.ModelForm):
             'ubicacio_actual',
             'data_alta',
             'valor_estimad',
+            'quantitat_actual',
             'codi_barres',
             'foto_principal',
         ]
@@ -163,7 +164,24 @@ class ItemMaterialForm(StyledFormMixin, forms.ModelForm):
 class StockMaterialForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = StockMaterial
-        fields = ['producte', 'categoria', 'ubicacio', 'quantitat_actual', 'unitat', 'llindar_minim', 'codi_barres']
+        fields = [
+            'producte',
+            'categoria',
+            'ubicacio',
+            'quantitat_actual',
+            'unitat',
+            'llindar_minim',
+            'codi_barres',
+            'foto_principal',
+        ]
+        widgets = {
+            'codi_barres': forms.TextInput(attrs={'data-barcode-target': 'true'}),
+            'foto_principal': forms.ClearableFileInput(attrs={'accept': 'image/*', 'capture': 'environment'}),
+        }
+
+    def clean_foto_principal(self):
+        foto = self.cleaned_data.get('foto_principal')
+        return optimize_uploaded_image(foto)
 
 
 class AssignacioMaterialForm(StyledFormMixin, forms.ModelForm):
@@ -211,6 +229,7 @@ class AssignacioMaterialForm(StyledFormMixin, forms.ModelForm):
 class TrasllatRapidForm(StyledFormMixin, forms.Form):
     item = forms.ModelChoiceField(queryset=ItemMaterial.objects.select_related('ubicacio_actual'), label='Ítem')
     desti = forms.ModelChoiceField(queryset=UbicacioMaterial.objects.filter(activa=True), label='Ubicació destí')
+    quantitat = forms.DecimalField(min_value=0.01, decimal_places=2, max_digits=12, initial=1)
     observacions = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 3}))
 
     def clean(self):
@@ -219,6 +238,9 @@ class TrasllatRapidForm(StyledFormMixin, forms.Form):
         desti = cleaned_data.get('desti')
         if item and desti and item.ubicacio_actual_id == desti.id:
             raise forms.ValidationError('L’origen i el destí no poden ser la mateixa ubicació.')
+        quantitat = cleaned_data.get('quantitat')
+        if item and quantitat and quantitat > item.quantitat_actual:
+            raise forms.ValidationError(f'La quantitat supera l’existent. Disponible: {item.quantitat_actual}.')
         return cleaned_data
 
 
