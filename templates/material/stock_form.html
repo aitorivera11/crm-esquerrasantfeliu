@@ -1,6 +1,93 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Stock{% endblock %}
 {% block page_title %}{% if object %}Editar stock{% else %}Nou stock{% endif %}{% endblock %}
+{% block extra_head %}
+<script src="https://unpkg.com/@zxing/library@0.21.3"></script>
+<script defer src="{% static 'js/material_scanner.js' %}"></script>
+{% endblock %}
 {% block content %}
-<section class="card card-panel form-wide panel-section"><form method="post" class="responsive-form">{% csrf_token %}{% include 'components/form_fields.html' with form=form %}<div class="d-flex gap-2"><button class="btn btn-primary">Desar</button><a href="{% url 'material:stock_list' %}" class="btn btn-outline-secondary">Cancel·lar</a></div></form></section>
+<section class="card card-panel form-wide panel-section">
+    <form method="post" enctype="multipart/form-data" class="responsive-form" id="stock-form">
+        {% csrf_token %}
+        <div class="form-grid">
+            {% for field in form %}
+                {% if field.name != 'foto_principal' %}
+                    <div class="mb-3 form-grid__item {% if field.field.widget.input_type == 'checkbox' or field.field.widget.allow_multiple_selected or field.field.widget.attrs.rows %}form-grid__item--full{% endif %}">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div class="material-photo-editor mb-3">
+            <label class="form-label d-block">{{ form.foto_principal.label }}</label>
+            <div class="d-flex gap-3 flex-wrap align-items-start">
+                <div>
+                    {% if object and object.foto_principal %}
+                        <img id="stock-photo-preview" class="material-thumb material-thumb-lg" src="{{ object.foto_principal.url }}" alt="{{ object.producte }}" onerror="this.src='{% static 'img/item-placeholder.svg' %}'">
+                    {% else %}
+                        <img id="stock-photo-preview" class="material-thumb material-thumb-lg" src="{% static 'img/item-placeholder.svg' %}" alt="Sense foto">
+                    {% endif %}
+                </div>
+                <div class="d-grid gap-2">
+                    {{ form.foto_principal }}
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="canviar-foto-stock-btn">Canviar foto</button>
+                        {% if object and object.foto_principal %}
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="borrar-foto-stock-btn">Borrar foto</button>
+                        {% endif %}
+                    </div>
+                    {% for error in form.foto_principal.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="scanner-inline">
+            <button type="button" class="btn btn-outline-primary" onclick="MaterialBarcodeScanner.startScan('#id_codi_barres', '#scan-feedback-stock', {lookupUrl: '{% url "material:barcode_lookup" %}', descriptionSelector: '#id_producte', videoElementId: 'material-scan-video-stock'})">Escanejar codi</button>
+            <small id="scan-feedback-stock" class="text-muted">Escaneig ràpid (BarcodeDetector + fallback ZXing).</small>
+        </div>
+        <video id="material-scan-video-stock" class="d-none"></video>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary">Desar</button>
+            <a href="{% url 'material:stock_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
+    </form>
+    {% if object %}
+        <form method="post" action="{% url 'material:stock_delete' object.pk %}" onsubmit="return confirm('Segur que vols eliminar aquest stock?');" class="mt-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">Eliminar</button>
+        </form>
+    {% endif %}
+</section>
+<script>
+(() => {
+    const fileInput = document.getElementById('id_foto_principal');
+    const preview = document.getElementById('stock-photo-preview');
+    const changeBtn = document.getElementById('canviar-foto-stock-btn');
+    const clearCheckbox = document.getElementById('foto_principal-clear_id');
+    const clearBtn = document.getElementById('borrar-foto-stock-btn');
+    const placeholder = "{% static 'img/item-placeholder.svg' %}";
+
+    if (fileInput) {
+        fileInput.classList.add('d-none');
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files?.[0];
+            if (!file || !preview) return;
+            preview.src = URL.createObjectURL(file);
+            if (clearCheckbox) clearCheckbox.checked = false;
+        });
+    }
+    if (changeBtn && fileInput) {
+        changeBtn.addEventListener('click', () => fileInput.click());
+    }
+    if (clearBtn && clearCheckbox && preview) {
+        clearBtn.addEventListener('click', () => {
+            clearCheckbox.checked = true;
+            fileInput.value = '';
+            preview.src = placeholder;
+        });
+    }
+})();
+</script>
 {% endblock %}

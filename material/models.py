@@ -124,6 +124,14 @@ class ItemMaterial(TimeStampedModel):
     valor_estimad = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     codi_barres = models.CharField(max_length=64, blank=True, db_index=True)
     foto_principal = models.ImageField(upload_to='material/items/', blank=True)
+    quantitat_actual = models.DecimalField(max_digits=12, decimal_places=2, default=1)
+    linia_compra = models.OneToOneField(
+        LiniaCompraMaterial,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='item_generat',
+    )
 
     class Meta:
         ordering = ['codi_intern']
@@ -142,6 +150,14 @@ class StockMaterial(TimeStampedModel):
     unitat = models.CharField(max_length=20, default='u')
     llindar_minim = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     codi_barres = models.CharField(max_length=64, blank=True, db_index=True)
+    foto_principal = models.ImageField(upload_to='material/stocks/', blank=True)
+    linia_compra = models.OneToOneField(
+        LiniaCompraMaterial,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='stock_generat',
+    )
 
     class Meta:
         ordering = ['producte']

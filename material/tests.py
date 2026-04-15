@@ -222,13 +222,72 @@ class PurchaseCreateStockSyncTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(CompraMaterial.objects.count(), 1)
-        self.assertEqual(ItemMaterial.objects.filter(descripcio='Taula plegable').count(), 2)
+        item = ItemMaterial.objects.get(descripcio='Taula plegable')
+        self.assertEqual(item.quantitat_actual, Decimal('2'))
 
         stock = StockMaterial.objects.get(producte='Díptic campanya')
         self.assertEqual(stock.quantitat_actual, Decimal('50'))
 
         self.assertEqual(
             MovimentMaterial.objects.filter(item__descripcio='Taula plegable', tipus_moviment=MovimentMaterial.Tipus.ENTRADA).count(),
-            2,
+            1,
         )
         self.assertTrue(MovimentMaterial.objects.filter(stock=stock, tipus_moviment=MovimentMaterial.Tipus.ENTRADA).exists())
+
+    def test_updating_purchase_lines_syncs_generated_material(self):
+        compra = CompraMaterial.objects.create(
+            data_compra=date(2026, 4, 15),
+            proveidor='Fusteria Soler',
+            cost_total=Decimal('200.00'),
+            metode_pagament=CompraMaterial.MetodePagament.TARGETA,
+        )
+        linia = LiniaCompraMaterial.objects.create(
+            compra=compra,
+            categoria=self.categoria,
+            tipus_linia=LiniaCompraMaterial.TipusLinia.INVENTARIABLE,
+            descripcio='Cadira',
+            quantitat=10,
+            preu_unitari=Decimal('20.00'),
+            iva_percent=Decimal('21.00'),
+            total_linia=Decimal('200.00'),
+        )
+        ItemMaterial.objects.create(
+            codi_intern='CMP-00001-00001',
+            descripcio='Cadira',
+            categoria=self.categoria,
+            ubicacio_actual=self.ubicacio,
+            data_alta=date(2026, 4, 15),
+            valor_estimad=Decimal('20.00'),
+            quantitat_actual=Decimal('10'),
+            linia_compra=linia,
+        )
+
+        response = self.client.post(
+            reverse('material:compra_update', kwargs={'pk': compra.pk}),
+            data={
+                'data_compra': '2026-04-15',
+                'proveidor': 'Fusteria Soler',
+                'cost_total': '180.00',
+                'metode_pagament': 'TARGETA',
+                'num_factura_ticket': '',
+                'linies-TOTAL_FORMS': '1',
+                'linies-INITIAL_FORMS': '1',
+                'linies-MIN_NUM_FORMS': '0',
+                'linies-MAX_NUM_FORMS': '1000',
+                'linies-0-id': str(linia.pk),
+                'linies-0-compra': str(compra.pk),
+                'linies-0-categoria': str(self.categoria.pk),
+                'linies-0-tipus_linia': LiniaCompraMaterial.TipusLinia.CONSUMIBLE,
+                'linies-0-descripcio': 'Cinta adhesiva',
+                'linies-0-quantitat': '30',
+                'linies-0-preu_unitari': '6.00',
+                'linies-0-iva_percent': '21.00',
+                'linies-0-total_linia': '180.00',
+                'linies-0-codi_barres': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ItemMaterial.objects.filter(descripcio='Cadira').exists())
+        stock = StockMaterial.objects.get(producte='Cinta adhesiva')
+        self.assertEqual(stock.quantitat_actual, Decimal('30'))
