@@ -137,6 +137,91 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
     template_name = 'material/compra_form.html'
     success_url = reverse_lazy('material:compra_list')
 
+    LiniesFormset = inlineformset_factory(
+        CompraMaterial,
+        LiniaCompraMaterial,
+        form=LiniaCompraMaterialForm,
+        extra=0,
+        can_delete=True,
+    )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['linies_formset'] = kwargs.get('linies_formset') or self.LiniesFormset(
+            self.request.POST if self.request.method == 'POST' else None,
+            self.request.FILES if self.request.method == 'POST' else None,
+            instance=getattr(self, 'object', None) or CompraMaterial(),
+            prefix='linies',
+        )
+        context['linia_form_buida'] = context['linies_formset'].empty_form
+        return context
+
+    def _build_analyze_payload(self, request):
+        parsed = parse_purchase_document(request.FILES.get('document_analisi'))
+
+        payload = request.POST.copy()
+        detected_fields = parsed.get('fields', {})
+        for field_name in ['proveidor', 'num_factura_ticket', 'cost_total', 'data_compra']:
+            current_value = (payload.get(field_name) or '').strip()
+            detected_value = detected_fields.get(field_name)
+            if current_value or not detected_value:
+                continue
+            if field_name == 'data_compra':
+                payload[field_name] = detected_value.strftime('%Y-%m-%d')
+            else:
+                payload[field_name] = str(detected_value)
+
+        lines = parsed.get('lines', [])
+        total_forms = int(payload.get('linies-TOTAL_FORMS', 0) or 0)
+        for index, line in enumerate(lines, start=total_forms):
+            payload[f'linies-{index}-descripcio'] = line.get('descripcio') or 'Línia detectada automàticament'
+            payload[f'linies-{index}-quantitat'] = str(line.get('quantitat') or 1)
+            payload[f'linies-{index}-preu_unitari'] = str(line.get('preu_unitari') or 0)
+            payload[f'linies-{index}-iva_percent'] = str(line.get('iva_percent') or 21)
+            payload[f'linies-{index}-total_linia'] = str(line.get('total_linia') or 0)
+        if lines:
+            payload['linies-TOTAL_FORMS'] = str(total_forms + len(lines))
+
+        return payload, parsed
+
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        if 'analitzar_document' in request.POST:
+            payload, parsed = self._build_analyze_payload(request)
+            form = self.get_form_class()(payload, request.FILES)
+            linies_formset = self.LiniesFormset(payload, request.FILES, instance=CompraMaterial(), prefix='linies')
+
+            for warning in parsed.get('warnings', []):
+                messages.warning(request, warning)
+            if parsed.get('lines'):
+                messages.success(
+                    request,
+                    f"S'han detectat {len(parsed['lines'])} línies automàtiques. Revisa-les abans de desar.",
+                )
+            if parsed.get('fields'):
+                messages.success(request, 'S’han emplenat camps suggerits de capçalera. Revisa’ls abans de desar.')
+
+            context = self.get_context_data(form=form, linies_formset=linies_formset)
+            return self.render_to_response(context)
+        return super().post(request, *args, **kwargs)
+
+    @transaction.atomic
+    def form_valid(self, form):
+        context = self.get_context_data(form=form)
+        linies_formset = context['linies_formset']
+        if not linies_formset.is_valid():
+            return self.form_invalid(form)
+
+        self.object = form.save()
+        linies = linies_formset.save(commit=False)
+        for linia in linies:
+            linia.compra = self.object
+            linia.save()
+        for to_delete in linies_formset.deleted_objects:
+            to_delete.delete()
+        messages.success(self.request, 'Compra i línies creades correctament.')
+        return HttpResponseRedirect(self.get_success_url())
+
 
 class CompraMaterialUpdateView(MaterialPermissionMixin, UpdateView):
     model = CompraMaterial
@@ -144,61 +229,67 @@ class CompraMaterialUpdateView(MaterialPermissionMixin, UpdateView):
     template_name = 'material/compra_form.html'
     success_url = reverse_lazy('material:compra_list')
 
+    LiniesFormset = CompraMaterialCreateView.LiniesFormset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        LiniesFormset = inlineformset_factory(
-            CompraMaterial,
-            LiniaCompraMaterial,
-            form=LiniaCompraMaterialForm,
-            extra=0,
-            can_delete=True,
+        context['linies_formset'] = kwargs.get('linies_formset') or self.LiniesFormset(
+            self.request.POST if self.request.method == 'POST' else None,
+            self.request.FILES if self.request.method == 'POST' else None,
+            instance=self.object,
+            prefix='linies',
         )
-        if self.request.method == 'POST':
-            context['linies_formset'] = LiniesFormset(self.request.POST, self.request.FILES, instance=self.object, prefix='linies')
-        else:
-            context['linies_formset'] = LiniesFormset(instance=self.object, prefix='linies')
         context['linia_form_buida'] = context['linies_formset'].empty_form
         context['linies_existents'] = self.object.linies.all()
         return context
 
+    def _build_analyze_payload(self, request):
+        parsed = parse_purchase_document(request.FILES.get('document_analisi'))
+
+        payload = request.POST.copy()
+        detected_fields = parsed.get('fields', {})
+        for field_name in ['proveidor', 'num_factura_ticket', 'cost_total', 'data_compra']:
+            current_value = (payload.get(field_name) or '').strip()
+            detected_value = detected_fields.get(field_name)
+            if current_value or not detected_value:
+                continue
+            if field_name == 'data_compra':
+                payload[field_name] = detected_value.strftime('%Y-%m-%d')
+            else:
+                payload[field_name] = str(detected_value)
+
+        lines = parsed.get('lines', [])
+        total_forms = int(payload.get('linies-TOTAL_FORMS', 0) or 0)
+        for index, line in enumerate(lines, start=total_forms):
+            payload[f'linies-{index}-descripcio'] = line.get('descripcio') or 'Línia detectada automàticament'
+            payload[f'linies-{index}-quantitat'] = str(line.get('quantitat') or 1)
+            payload[f'linies-{index}-preu_unitari'] = str(line.get('preu_unitari') or 0)
+            payload[f'linies-{index}-iva_percent'] = str(line.get('iva_percent') or 21)
+            payload[f'linies-{index}-total_linia'] = str(line.get('total_linia') or 0)
+        if lines:
+            payload['linies-TOTAL_FORMS'] = str(total_forms + len(lines))
+
+        return payload, parsed
+
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         if 'analitzar_document' in request.POST:
-            uploaded_document = request.FILES.get('document_analisi')
-            parsed = parse_purchase_document(uploaded_document)
+            payload, parsed = self._build_analyze_payload(request)
+            form = self.get_form_class()(payload, request.FILES, instance=self.object)
+            linies_formset = self.LiniesFormset(payload, request.FILES, instance=self.object, prefix='linies')
 
-            if parsed['warnings']:
-                for warning in parsed['warnings']:
-                    messages.warning(request, warning)
-
-            if parsed['lines']:
-                for line in parsed['lines']:
-                    LiniaCompraMaterial.objects.create(
-                        compra=self.object,
-                        descripcio=line.get('descripcio') or 'Línia detectada automàticament',
-                        quantitat=line.get('quantitat') or 1,
-                        preu_unitari=line.get('preu_unitari') or 0,
-                        iva_percent=line.get('iva_percent') or 21,
-                        total_linia=line.get('total_linia') or 0,
-                    )
+            for warning in parsed.get('warnings', []):
+                messages.warning(request, warning)
+            if parsed.get('lines'):
                 messages.success(
                     request,
-                    f"S'han creat {len(parsed['lines'])} línies automàtiques. Revisa-les i desa la compra.",
+                    f"S'han detectat {len(parsed['lines'])} línies automàtiques. Revisa-les abans de desar.",
                 )
+            if parsed.get('fields'):
+                messages.success(request, 'S’han emplenat camps suggerits de capçalera. Revisa’ls abans de desar.')
 
-            detected_fields = parsed.get('fields', {})
-            updated_fields = []
-            for field_name in ['proveidor', 'num_factura_ticket', 'cost_total', 'data_compra']:
-                detected_value = detected_fields.get(field_name)
-                current_value = getattr(self.object, field_name, None)
-                if detected_value and (not current_value):
-                    setattr(self.object, field_name, detected_value)
-                    updated_fields.append(field_name)
-            if updated_fields:
-                self.object.save(update_fields=updated_fields + ['actualitzat_el'])
-                messages.success(request, 'S’han actualitzat camps de capçalera amb dades detectades.')
-
-            return HttpResponseRedirect(request.path)
+            context = self.get_context_data(form=form, linies_formset=linies_formset)
+            return self.render_to_response(context)
         return super().post(request, *args, **kwargs)
 
     @transaction.atomic
