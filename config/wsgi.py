@@ -3,10 +3,11 @@ from django.core.wsgi import get_wsgi_application
 from whitenoise import WhiteNoise
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-
 application = get_wsgi_application()
 
-# Configura WhiteNoise per servir la carpeta media
-# 'root' ha de coincidir amb el teu MEDIA_ROOT (/app/media)
-# 'prefix' ha de coincidir amb el teu MEDIA_URL (/media/)
-application = WhiteNoise(application, root='/app/media', prefix='/media/')
+# Utilitzem la ruta absoluta per evitar confusions de BASE_DIR
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+media_path = os.path.join(base_path, 'media')
+
+application = WhiteNoise(application, root=media_path, prefix='/media/', autorefresh=True)
+application.add_files(media_path, prefix='/media/') # Força la lectura dels fitxers media
