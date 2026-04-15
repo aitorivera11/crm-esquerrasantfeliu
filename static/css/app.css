@@ -1381,6 +1381,13 @@ input[type="checkbox"] {
     margin-bottom: 1rem;
 }
 
+.material-photo-editor {
+    border: 1px dashed rgba(0, 13, 35, 0.2);
+    border-radius: .9rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.65);
+}
+
 @media (max-width: 767.98px) {
     .material-thumb {
         width: 48px;

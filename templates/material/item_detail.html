@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Detall ítem{% endblock %}
 {% block page_title %}Detall de {{ item.codi_intern }}{% endblock %}
 {% block content %}
 <section class="card card-panel panel-section mb-3">
     <div class="d-flex gap-3 align-items-start flex-wrap">
         {% if item.foto_principal %}
-            <img src="{{ item.foto_principal.url }}" alt="{{ item.descripcio }}" class="material-thumb material-thumb-lg">
+            <img src="{{ item.foto_principal.url }}" alt="{{ item.descripcio }}" class="material-thumb material-thumb-lg" onerror="this.src='{% static 'img/item-placeholder.svg' %}'">
+        {% else %}
+            <img src="{% static 'img/item-placeholder.svg' %}" alt="Sense foto" class="material-thumb material-thumb-lg">
         {% endif %}
         <div>
             <h2 class="h4 mb-1">{{ item.descripcio }}</h2>
