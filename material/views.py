@@ -174,6 +174,9 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
         lines = parsed.get('lines', [])
         total_forms = int(payload.get('linies-TOTAL_FORMS', 0) or 0)
         for index, line in enumerate(lines, start=total_forms):
+            payload[f'linies-{index}-tipus_linia'] = (
+                line.get('tipus_linia') or LiniaCompraMaterial.TipusLinia.CONSUMIBLE
+            )
             payload[f'linies-{index}-descripcio'] = line.get('descripcio') or 'Línia detectada automàticament'
             payload[f'linies-{index}-quantitat'] = str(line.get('quantitat') or 1)
             payload[f'linies-{index}-preu_unitari'] = str(line.get('preu_unitari') or 0)
@@ -183,6 +186,71 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
             payload['linies-TOTAL_FORMS'] = str(total_forms + len(lines))
 
         return payload, parsed
+
+    def _registrar_entrada_material(self, compra, linies):
+        ubicacio = UbicacioMaterial.objects.filter(activa=True).order_by('id').first()
+        if not ubicacio:
+            messages.warning(
+                self.request,
+                'No hi ha cap ubicació activa: no s’ha pogut registrar l’entrada automàtica de material.',
+            )
+            return 0
+
+        for linia in linies:
+            if linia.tipus_linia == LiniaCompraMaterial.TipusLinia.INVENTARIABLE:
+                for index in range(1, linia.quantitat + 1):
+                    codi_intern = f'CMP-{compra.id:05d}-{linia.id:05d}-{index:03d}'
+                    item = ItemMaterial.objects.create(
+                        codi_intern=codi_intern,
+                        descripcio=linia.descripcio,
+                        categoria=linia.categoria,
+                        ubicacio_actual=ubicacio,
+                        data_alta=compra.data_compra,
+                        valor_estimad=linia.preu_unitari,
+                        codi_barres=linia.codi_barres,
+                    )
+                    MovimentMaterial.objects.create(
+                        tipus_moviment=MovimentMaterial.Tipus.ENTRADA,
+                        desti=ubicacio,
+                        quantitat=1,
+                        item=item,
+                        actor=self.request.user,
+                        observacions=f'Alta automàtica des de compra #{linia.compra_id}.',
+                    )
+                continue
+
+            stock, _ = StockMaterial.objects.get_or_create(
+                producte=linia.descripcio,
+                ubicacio=ubicacio,
+                defaults={
+                    'categoria': linia.categoria,
+                    'quantitat_actual': 0,
+                    'unitat': 'u',
+                    'llindar_minim': 0,
+                    'codi_barres': linia.codi_barres or '',
+                },
+            )
+            fields_to_update = []
+            if not stock.categoria and linia.categoria:
+                stock.categoria = linia.categoria
+                fields_to_update.append('categoria')
+            if not stock.codi_barres and linia.codi_barres:
+                stock.codi_barres = linia.codi_barres
+                fields_to_update.append('codi_barres')
+            if fields_to_update:
+                stock.save(update_fields=[*fields_to_update, 'actualitzat_el'])
+
+            stock.quantitat_actual = F('quantitat_actual') + linia.quantitat
+            stock.save(update_fields=['quantitat_actual', 'actualitzat_el'])
+            MovimentMaterial.objects.create(
+                tipus_moviment=MovimentMaterial.Tipus.ENTRADA,
+                desti=ubicacio,
+                quantitat=linia.quantitat,
+                stock=stock,
+                actor=self.request.user,
+                observacions=f'Entrada automàtica des de compra #{linia.compra_id}.',
+            )
+        return
 
     def post(self, request, *args, **kwargs):
         self.object = None
@@ -219,6 +287,7 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
             linia.save()
         for to_delete in linies_formset.deleted_objects:
             to_delete.delete()
+        self._registrar_entrada_material(self.object, linies)
         messages.success(self.request, 'Compra i línies creades correctament.')
         return HttpResponseRedirect(self.get_success_url())
 
@@ -261,6 +330,9 @@ class CompraMaterialUpdateView(MaterialPermissionMixin, UpdateView):
         lines = parsed.get('lines', [])
         total_forms = int(payload.get('linies-TOTAL_FORMS', 0) or 0)
         for index, line in enumerate(lines, start=total_forms):
+            payload[f'linies-{index}-tipus_linia'] = (
+                line.get('tipus_linia') or LiniaCompraMaterial.TipusLinia.CONSUMIBLE
+            )
             payload[f'linies-{index}-descripcio'] = line.get('descripcio') or 'Línia detectada automàticament'
             payload[f'linies-{index}-quantitat'] = str(line.get('quantitat') or 1)
             payload[f'linies-{index}-preu_unitari'] = str(line.get('preu_unitari') or 0)
