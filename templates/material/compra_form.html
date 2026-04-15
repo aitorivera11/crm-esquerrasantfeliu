@@ -5,6 +5,18 @@
 <section class="card card-panel form-wide panel-section">
     <form method="post" enctype="multipart/form-data" class="responsive-form">
         {% csrf_token %}
+        <h2 class="h5 mb-3">Importació intel·ligent de ticket/factura</h2>
+        <div class="soft-panel p-3 mb-4">
+            <p class="mb-2 text-muted">Carrega un PDF o imatge i el sistema intentarà extreure capçalera i línies de compra automàticament.</p>
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div class="flex-grow-1">
+                    <label class="form-label" for="{{ form.document_analisi.id_for_label }}">{{ form.document_analisi.label }}</label>
+                    {{ form.document_analisi }}
+                </div>
+                <button class="btn btn-outline-primary" type="submit" name="analitzar_document" value="1">Analitzar document</button>
+            </div>
+        </div>
+
         <div class="form-grid">
             {% for field in form %}
                 {% if field.name != 'document_analisi' %}
@@ -21,35 +33,21 @@
             <div class="alert alert-danger">{{ error }}</div>
         {% endfor %}
 
-        {% if object %}
-            <hr>
-            <h2 class="h5 mb-3">Importació intel·ligent de ticket/factura</h2>
-            <div class="soft-panel p-3 mb-4">
-                <p class="mb-2 text-muted">Carrega un PDF o imatge i el sistema intentarà extreure capçalera i línies de compra automàticament.</p>
-                <div class="d-flex flex-wrap gap-2 align-items-end">
-                    <div class="flex-grow-1">
-                        <label class="form-label" for="{{ form.document_analisi.id_for_label }}">{{ form.document_analisi.label }}</label>
-                        {{ form.document_analisi }}
-                    </div>
-                    <button class="btn btn-outline-primary" type="submit" name="analitzar_document" value="1">Analitzar document</button>
-                </div>
-            </div>
-
-            <h2 class="h5 mb-3">Línies de compra</h2>
-            <p class="text-muted mb-2">Afegeix només les línies que necessitis amb el botó “+ Afegir línia”.</p>
-            {{ linies_formset.management_form }}
-            <div id="linies-container" class="d-grid gap-3">
-                {% for linia_form in linies_formset %}
-                    {% include 'material/partials/linia_compra_formset_row.html' with linia_form=linia_form %}
-                {% empty %}
-                    <p class="text-muted mb-0">Encara no hi ha línies.</p>
-                {% endfor %}
-            </div>
-            <template id="linia-empty-template">
-                {% include 'material/partials/linia_compra_formset_row.html' with linia_form=linia_form_buida %}
-            </template>
-            <button type="button" id="afegir-linia-btn" class="btn btn-outline-primary mt-3">+ Afegir línia</button>
-        {% endif %}
+        <hr>
+        <h2 class="h5 mb-3">Línies de compra</h2>
+        <p class="text-muted mb-2">Afegeix només les línies que necessitis amb el botó “+ Afegir línia”.</p>
+        {{ linies_formset.management_form }}
+        <div id="linies-container" class="d-grid gap-3">
+            {% for linia_form in linies_formset %}
+                {% include 'material/partials/linia_compra_formset_row.html' with linia_form=linia_form %}
+            {% empty %}
+                <p class="text-muted mb-0">Encara no hi ha línies.</p>
+            {% endfor %}
+        </div>
+        <template id="linia-empty-template">
+            {% include 'material/partials/linia_compra_formset_row.html' with linia_form=linia_form_buida %}
+        </template>
+        <button type="button" id="afegir-linia-btn" class="btn btn-outline-primary mt-3">+ Afegir línia</button>
 
         <div class="d-flex gap-2">
             <button class="btn btn-primary">Desar</button>
@@ -57,7 +55,6 @@
         </div>
     </form>
 </section>
-{% if object %}
 <script>
 (() => {
     const container = document.getElementById('linies-container');
@@ -94,5 +91,4 @@
     bindDeleteButtons(container);
 })();
 </script>
-{% endif %}
 {% endblock %}
