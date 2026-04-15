@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Ítems{% endblock %}
 {% block page_title %}Inventariables{% endblock %}
 {% block content %}
@@ -19,9 +20,9 @@
                 <tr>
                     <td>
                         {% if item.foto_principal %}
-                            <img src="{{ item.foto_principal.url }}" alt="{{ item.descripcio }}" class="material-thumb">
+                            <img src="{{ item.foto_principal.url }}" alt="{{ item.descripcio }}" class="material-thumb" onerror="this.src='{% static 'img/item-placeholder.svg' %}'">
                         {% else %}
-                            <span class="text-muted">—</span>
+                            <img src="{% static 'img/item-placeholder.svg' %}" alt="Sense foto" class="material-thumb">
                         {% endif %}
                     </td>
                     <td><a href="{% url 'material:item_detail' item.pk %}">{{ item.codi_intern }}</a></td>

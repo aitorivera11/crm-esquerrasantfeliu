@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.core.exceptions import ValidationError
@@ -10,7 +11,7 @@ from usuaris.models import Usuari
 
 from .forms import AssignacioMaterialForm, InventariRapidForm, TrasllatRapidForm
 from .models import AssignacioMaterial, CategoriaMaterial, ItemMaterial, StockMaterial, UbicacioMaterial
-from .services import lookup_product_by_barcode
+from .services import lookup_product_by_barcode, parse_purchase_document
 
 
 class MaterialModelTests(TestCase):
@@ -135,3 +136,30 @@ class BarcodeLookupTests(TestCase):
                 },
             },
         )
+
+
+class PurchaseDocumentParserTests(TestCase):
+    @patch('material.services.PdfReader')
+    def test_parse_purchase_document_detects_fields_and_lines_from_pdf(self, mock_pdf_reader):
+        pdf_file = SimpleNamespace(name='ticket.pdf')
+        mock_pdf_reader.return_value.pages = [
+            MagicMock(extract_text=MagicMock(return_value=(
+                "Forn Sant Josep\n"
+                "Ticket: ABC-4433\n"
+                "14/04/2026\n"
+                "Barra de pa 2 1,20 2,40\n"
+                "Aigua 1 0,80 0,80\n"
+                "TOTAL 3,20 €"
+            )))
+        ]
+
+        parsed = parse_purchase_document(pdf_file)
+
+        self.assertEqual(parsed['fields']['proveidor'], 'Forn Sant Josep')
+        self.assertEqual(parsed['fields']['num_factura_ticket'], 'ABC-4433')
+        self.assertEqual(parsed['fields']['cost_total'], Decimal('3.20'))
+        self.assertEqual(len(parsed['lines']), 2)
+
+    def test_parse_purchase_document_without_file_returns_warning(self):
+        parsed = parse_purchase_document(None)
+        self.assertTrue(parsed['warnings'])

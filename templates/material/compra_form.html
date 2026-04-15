@@ -5,35 +5,50 @@
 <section class="card card-panel form-wide panel-section">
     <form method="post" enctype="multipart/form-data" class="responsive-form">
         {% csrf_token %}
-        {% include 'components/form_fields.html' with form=form %}
+        <div class="form-grid">
+            {% for field in form %}
+                {% if field.name != 'document_analisi' %}
+                    <div class="mb-3 form-grid__item {% if field.field.widget.input_type == 'checkbox' or field.field.widget.allow_multiple_selected or field.field.widget.attrs.rows %}form-grid__item--full{% endif %}">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<small class="text-muted d-block mt-1">{{ field.help_text }}</small>{% endif %}
+                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endfor %}
 
         {% if object %}
             <hr>
-            <h2 class="h5 mb-3">Línies de compra actuals</h2>
-            <div class="table-responsive mb-4">
-                <table class="table app-table mb-0">
-                    <thead><tr><th>Descripció</th><th>Quantitat</th><th>Total línia</th></tr></thead>
-                    <tbody>
-                    {% for linia in linies_existents %}
-                        <tr>
-                            <td>{{ linia.descripcio }}</td>
-                            <td>{{ linia.quantitat }}</td>
-                            <td>{{ linia.total_linia }} €</td>
-                        </tr>
-                    {% empty %}
-                        <tr><td colspan="3" class="text-muted">Encara no hi ha línies.</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+            <h2 class="h5 mb-3">Importació intel·ligent de ticket/factura</h2>
+            <div class="soft-panel p-3 mb-4">
+                <p class="mb-2 text-muted">Carrega un PDF o imatge i el sistema intentarà extreure capçalera i línies de compra automàticament.</p>
+                <div class="d-flex flex-wrap gap-2 align-items-end">
+                    <div class="flex-grow-1">
+                        <label class="form-label" for="{{ form.document_analisi.id_for_label }}">{{ form.document_analisi.label }}</label>
+                        {{ form.document_analisi }}
+                    </div>
+                    <button class="btn btn-outline-primary" type="submit" name="analitzar_document" value="1">Analitzar document</button>
+                </div>
             </div>
 
-            <h2 class="h5 mb-3">Afegir línies ràpides</h2>
+            <h2 class="h5 mb-3">Línies de compra</h2>
+            <p class="text-muted mb-2">Afegeix només les línies que necessitis amb el botó “+ Afegir línia”.</p>
             {{ linies_formset.management_form }}
-            {% for linia_form in linies_formset %}
-                <div class="border rounded p-3 mb-3">
-                    {% include 'components/form_fields.html' with form=linia_form %}
-                </div>
-            {% endfor %}
+            <div id="linies-container" class="d-grid gap-3">
+                {% for linia_form in linies_formset %}
+                    {% include 'material/partials/linia_compra_formset_row.html' with linia_form=linia_form %}
+                {% empty %}
+                    <p class="text-muted mb-0">Encara no hi ha línies.</p>
+                {% endfor %}
+            </div>
+            <template id="linia-empty-template">
+                {% include 'material/partials/linia_compra_formset_row.html' with linia_form=linia_form_buida %}
+            </template>
+            <button type="button" id="afegir-linia-btn" class="btn btn-outline-primary mt-3">+ Afegir línia</button>
         {% endif %}
 
         <div class="d-flex gap-2">
@@ -42,4 +57,42 @@
         </div>
     </form>
 </section>
+{% if object %}
+<script>
+(() => {
+    const container = document.getElementById('linies-container');
+    const addButton = document.getElementById('afegir-linia-btn');
+    const template = document.getElementById('linia-empty-template');
+    const totalForms = document.getElementById('id_linies-TOTAL_FORMS');
+    if (!container || !addButton || !template || !totalForms) return;
+
+    const bindDeleteButtons = (root) => {
+        root.querySelectorAll('[data-remove-linia]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const row = btn.closest('[data-linia-row]');
+                if (!row) return;
+                const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                if (deleteInput) {
+                    deleteInput.checked = true;
+                    row.classList.add('d-none');
+                } else {
+                    row.remove();
+                    totalForms.value = String(Math.max(parseInt(totalForms.value, 10) - 1, 0));
+                }
+            });
+        });
+    };
+
+    addButton.addEventListener('click', () => {
+        const index = parseInt(totalForms.value, 10);
+        const html = template.innerHTML.replaceAll('__prefix__', index);
+        container.insertAdjacentHTML('beforeend', html);
+        totalForms.value = String(index + 1);
+        bindDeleteButtons(container.lastElementChild || container);
+    });
+
+    bindDeleteButtons(container);
+})();
+</script>
+{% endif %}
 {% endblock %}

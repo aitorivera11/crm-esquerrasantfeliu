@@ -22,7 +22,7 @@ from .forms import (
     UbicacioMaterialForm,
 )
 from .models import AssignacioMaterial, CategoriaMaterial, CompraMaterial, ItemMaterial, LiniaCompraMaterial, MovimentMaterial, StockMaterial, UbicacioMaterial
-from .services import lookup_product_by_barcode
+from .services import lookup_product_by_barcode, parse_purchase_document
 
 
 class MaterialPermissionMixin(RoleRequiredMixin):
@@ -150,15 +150,56 @@ class CompraMaterialUpdateView(MaterialPermissionMixin, UpdateView):
             CompraMaterial,
             LiniaCompraMaterial,
             form=LiniaCompraMaterialForm,
-            extra=3,
-            can_delete=False,
+            extra=0,
+            can_delete=True,
         )
         if self.request.method == 'POST':
             context['linies_formset'] = LiniesFormset(self.request.POST, self.request.FILES, instance=self.object, prefix='linies')
         else:
-            context['linies_formset'] = LiniesFormset(instance=self.object, queryset=LiniaCompraMaterial.objects.none(), prefix='linies')
+            context['linies_formset'] = LiniesFormset(instance=self.object, prefix='linies')
+        context['linia_form_buida'] = context['linies_formset'].empty_form
         context['linies_existents'] = self.object.linies.all()
         return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if 'analitzar_document' in request.POST:
+            uploaded_document = request.FILES.get('document_analisi')
+            parsed = parse_purchase_document(uploaded_document)
+
+            if parsed['warnings']:
+                for warning in parsed['warnings']:
+                    messages.warning(request, warning)
+
+            if parsed['lines']:
+                for line in parsed['lines']:
+                    LiniaCompraMaterial.objects.create(
+                        compra=self.object,
+                        descripcio=line.get('descripcio') or 'Línia detectada automàticament',
+                        quantitat=line.get('quantitat') or 1,
+                        preu_unitari=line.get('preu_unitari') or 0,
+                        iva_percent=line.get('iva_percent') or 21,
+                        total_linia=line.get('total_linia') or 0,
+                    )
+                messages.success(
+                    request,
+                    f"S'han creat {len(parsed['lines'])} línies automàtiques. Revisa-les i desa la compra.",
+                )
+
+            detected_fields = parsed.get('fields', {})
+            updated_fields = []
+            for field_name in ['proveidor', 'num_factura_ticket', 'cost_total', 'data_compra']:
+                detected_value = detected_fields.get(field_name)
+                current_value = getattr(self.object, field_name, None)
+                if detected_value and (not current_value):
+                    setattr(self.object, field_name, detected_value)
+                    updated_fields.append(field_name)
+            if updated_fields:
+                self.object.save(update_fields=updated_fields + ['actualitzat_el'])
+                messages.success(request, 'S’han actualitzat camps de capçalera amb dades detectades.')
+
+            return HttpResponseRedirect(request.path)
+        return super().post(request, *args, **kwargs)
 
     @transaction.atomic
     def form_valid(self, form):
@@ -166,11 +207,13 @@ class CompraMaterialUpdateView(MaterialPermissionMixin, UpdateView):
         linies_formset = context['linies_formset']
         self.object = form.save()
         if linies_formset.is_valid():
-            noves_linies = linies_formset.save(commit=False)
-            for linia in noves_linies:
+            linies = linies_formset.save(commit=False)
+            for linia in linies:
                 linia.compra = self.object
                 linia.save()
-            messages.success(self.request, 'Compra actualitzada i línies afegides correctament.')
+            for to_delete in linies_formset.deleted_objects:
+                to_delete.delete()
+            messages.success(self.request, 'Compra i línies actualitzades correctament.')
             return HttpResponseRedirect(self.get_success_url())
         return self.form_invalid(form)
 
