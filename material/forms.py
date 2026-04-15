@@ -104,6 +104,7 @@ class LiniaCompraMaterialForm(StyledFormMixin, forms.ModelForm):
         fields = [
             'compra',
             'categoria',
+            'tipus_linia',
             'descripcio',
             'quantitat',
             'preu_unitari',

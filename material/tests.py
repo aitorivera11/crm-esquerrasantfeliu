@@ -10,7 +10,16 @@ from django.urls import reverse
 from usuaris.models import Usuari
 
 from .forms import AssignacioMaterialForm, InventariRapidForm, TrasllatRapidForm
-from .models import AssignacioMaterial, CategoriaMaterial, ItemMaterial, StockMaterial, UbicacioMaterial
+from .models import (
+    AssignacioMaterial,
+    CategoriaMaterial,
+    CompraMaterial,
+    ItemMaterial,
+    LiniaCompraMaterial,
+    MovimentMaterial,
+    StockMaterial,
+    UbicacioMaterial,
+)
 from .services import lookup_product_by_barcode, parse_purchase_document
 
 
@@ -163,3 +172,63 @@ class PurchaseDocumentParserTests(TestCase):
     def test_parse_purchase_document_without_file_returns_warning(self):
         parsed = parse_purchase_document(None)
         self.assertTrue(parsed['warnings'])
+
+
+class PurchaseCreateStockSyncTests(TestCase):
+    def setUp(self):
+        self.user = Usuari.objects.create_user(
+            username='adminstock',
+            password='secret12345',
+            nom_complet='Admin Stock',
+            rol=Usuari.Rol.ADMINISTRACIO,
+        )
+        self.client.force_login(self.user)
+        self.ubicacio = UbicacioMaterial.objects.create(nom='Magatzem Central', activa=True)
+        self.categoria = CategoriaMaterial.objects.create(nom='Mobiliari')
+
+    def test_creating_purchase_routes_inventariable_to_items_and_consumible_to_stock(self):
+        response = self.client.post(
+            reverse('material:compra_create'),
+            data={
+                'data_compra': '2026-04-15',
+                'proveidor': 'Fusteria Soler',
+                'cost_total': '200.00',
+                'metode_pagament': 'TARGETA',
+                'num_factura_ticket': 'FAC-2026-15',
+                'linies-TOTAL_FORMS': '2',
+                'linies-INITIAL_FORMS': '0',
+                'linies-MIN_NUM_FORMS': '0',
+                'linies-MAX_NUM_FORMS': '1000',
+                'linies-0-compra': '',
+                'linies-0-categoria': str(self.categoria.pk),
+                'linies-0-tipus_linia': LiniaCompraMaterial.TipusLinia.INVENTARIABLE,
+                'linies-0-descripcio': 'Taula plegable',
+                'linies-0-quantitat': '2',
+                'linies-0-preu_unitari': '75.00',
+                'linies-0-iva_percent': '21.00',
+                'linies-0-total_linia': '150.00',
+                'linies-0-codi_barres': '',
+                'linies-1-compra': '',
+                'linies-1-categoria': str(self.categoria.pk),
+                'linies-1-tipus_linia': LiniaCompraMaterial.TipusLinia.CONSUMIBLE,
+                'linies-1-descripcio': 'Díptic campanya',
+                'linies-1-quantitat': '50',
+                'linies-1-preu_unitari': '1.00',
+                'linies-1-iva_percent': '21.00',
+                'linies-1-total_linia': '50.00',
+                'linies-1-codi_barres': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(CompraMaterial.objects.count(), 1)
+        self.assertEqual(ItemMaterial.objects.filter(descripcio='Taula plegable').count(), 2)
+
+        stock = StockMaterial.objects.get(producte='Díptic campanya')
+        self.assertEqual(stock.quantitat_actual, Decimal('50'))
+
+        self.assertEqual(
+            MovimentMaterial.objects.filter(item__descripcio='Taula plegable', tipus_moviment=MovimentMaterial.Tipus.ENTRADA).count(),
+            2,
+        )
+        self.assertTrue(MovimentMaterial.objects.filter(stock=stock, tipus_moviment=MovimentMaterial.Tipus.ENTRADA).exists())
