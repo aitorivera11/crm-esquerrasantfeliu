@@ -5,11 +5,10 @@ import os
 import re
 from datetime import datetime, timedelta
 from typing import Any
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import urlopen
+import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
@@ -25,6 +24,7 @@ DAYS_AHEAD = 60
 PAGE_SIZE = 1000
 REQUEST_TIMEOUT = 30
 SOURCE_NAME = "AGENDA_CIUTAT"
+EXPECTED_API_HOST = "dadesobertes.seu-e.cat"
 
 
 class Command(BaseCommand):
@@ -45,7 +45,15 @@ class CityEventsImporter:
         self.days_ahead = days_ahead
         self.stdout = stdout
 
+    def validate_api_url(self) -> None:
+        parsed = urlsplit(BASE_URL)
+        if parsed.scheme.lower() != "https":
+            raise CommandError("La URL de l'API pública ha de ser HTTPS.")
+        if parsed.hostname != EXPECTED_API_HOST:
+            raise CommandError(f"Host d'API no permès: {parsed.hostname}")
+
     def run(self, *, cleanup: bool = False) -> dict[str, int]:
+        self.validate_api_url()
         records = self.fetch_all_events()
         events = self.normalize_records(records)
         owner = self.get_owner_user()
@@ -162,24 +170,33 @@ class CityEventsImporter:
         return "\n".join(line for line in lines if line).strip()
 
     def build_sql(self, start_dt: datetime, end_dt: datetime, limit: int, offset: int) -> str:
-        return f'''
-            SELECT *
-            FROM "{RESOURCE_ID}"
-            WHERE "ESTAT" = 'Confirmat'
-              AND "DATA_HORA_INICI_ACTE" >= '{self.format_api_dt(start_dt)}'
-              AND "DATA_HORA_INICI_ACTE" < '{self.format_api_dt(end_dt)}'
-            ORDER BY "DATA_HORA_INICI_ACTE" ASC
-            LIMIT {limit}
-            OFFSET {offset}
-        '''
+        start_value = self.format_api_dt(start_dt)
+        end_value = self.format_api_dt(end_dt)
+        if not (start_value.isdigit() and end_value.isdigit()):
+            raise CommandError("Format de data invàlid per construir la consulta d'importació.")
+
+        # No és vector d'injecció en aquest context: dates/limit/offset es deriven del codi
+        # i no de cap entrada externa d'usuari.
+        clean_limit = max(1, int(limit))
+        clean_offset = max(0, int(offset))
+        return (
+            f'SELECT * FROM "{RESOURCE_ID}" '
+            'WHERE "ESTAT" = \'Confirmat\' '
+            f'AND "DATA_HORA_INICI_ACTE" >= \'{start_value}\' '
+            f'AND "DATA_HORA_INICI_ACTE" < \'{end_value}\' '
+            'ORDER BY "DATA_HORA_INICI_ACTE" ASC '
+            f"LIMIT {clean_limit} OFFSET {clean_offset}"
+        )
 
     def fetch_page(self, sql: str) -> list[dict[str, Any]]:
-        query = urlencode({"sql": sql})
         try:
-            with urlopen(f"{BASE_URL}?{query}", timeout=REQUEST_TIMEOUT) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except (HTTPError, URLError) as exc:
+            response = requests.get(BASE_URL, params={"sql": sql}, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+            payload = response.json()
+        except requests.exceptions.RequestException as exc:
             raise CommandError(f"Error consultant l'API pública: {exc}") from exc
+        except ValueError as exc:
+            raise CommandError(f"Resposta no JSON de l'API pública: {exc}") from exc
         if not payload.get("success"):
             raise CommandError(f"Resposta incorrecta de l'API: {payload}")
         return payload.get("result", {}).get("records", [])
