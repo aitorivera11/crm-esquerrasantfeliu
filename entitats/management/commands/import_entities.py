@@ -2,9 +2,9 @@ import hashlib
 import json
 import re
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.parse import urlsplit
+
+import requests
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -16,6 +16,7 @@ BASE_URL = 'https://dadesobertes.seu-e.cat/api/3/action/datastore_search'
 REQUEST_TIMEOUT = 30
 PAGE_SIZE = 1000
 SOURCE_NAME = 'DIRECTORI_ENTITATS'
+EXPECTED_API_HOST = 'dadesobertes.seu-e.cat'
 
 
 class Command(BaseCommand):
@@ -34,7 +35,15 @@ class EntitiesImporter:
     def __init__(self, *, stdout):
         self.stdout = stdout
 
+    def validate_api_url(self) -> None:
+        parsed = urlsplit(BASE_URL)
+        if parsed.scheme.lower() != 'https':
+            raise CommandError("La URL de l'API d'entitats ha de ser HTTPS.")
+        if parsed.hostname != EXPECTED_API_HOST:
+            raise CommandError(f"Host d'API d'entitats no permès: {parsed.hostname}")
+
     def run(self, *, cleanup: bool = False) -> dict[str, int]:
+        self.validate_api_url()
         records = self.fetch_all_records()
         normalized = self.normalize_records(records)
         created = 0
@@ -72,12 +81,18 @@ class EntitiesImporter:
         return {'created': created, 'updated': updated, 'removed': removed, 'fetched': len(normalized)}
 
     def fetch_page(self, offset: int) -> list[dict[str, Any]]:
-        query = urlencode({'resource_id': RESOURCE_ID, 'limit': PAGE_SIZE, 'offset': offset})
         try:
-            with urlopen(f'{BASE_URL}?{query}', timeout=REQUEST_TIMEOUT) as response:
-                payload = json.loads(response.read().decode('utf-8'))
-        except (HTTPError, URLError) as exc:
+            response = requests.get(
+                BASE_URL,
+                params={'resource_id': RESOURCE_ID, 'limit': PAGE_SIZE, 'offset': offset},
+                timeout=REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except requests.exceptions.RequestException as exc:
             raise CommandError(f"Error consultant l'API pública d'entitats: {exc}") from exc
+        except ValueError as exc:
+            raise CommandError(f"Resposta no JSON de l'API d'entitats: {exc}") from exc
         if not payload.get('success'):
             raise CommandError(f"Resposta incorrecta de l'API d'entitats: {payload}")
         return payload.get('result', {}).get('records', [])
@@ -121,7 +136,9 @@ class EntitiesImporter:
             value = self.clean_text(record.get(key))
             if value:
                 return value
-        return re.sub(r'[^a-z0-9]+', '-', nom.lower()).strip('-') or hashlib.sha1(json.dumps(record, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+        return re.sub(r'[^a-z0-9]+', '-', nom.lower()).strip('-') or hashlib.sha256(
+            json.dumps(record, sort_keys=True, ensure_ascii=False).encode('utf-8')
+        ).hexdigest()
 
     def normalize_records(self, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         normalized = []
