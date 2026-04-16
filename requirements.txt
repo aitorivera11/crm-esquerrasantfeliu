@@ -11,3 +11,5 @@ PyJWT>=2.12.1
 pillow>=12.2.0
 pypdf>=5.4.0
 pytesseract>=0.3.13
+bandit>=1.9.4
+semgrep>=1.159.0
