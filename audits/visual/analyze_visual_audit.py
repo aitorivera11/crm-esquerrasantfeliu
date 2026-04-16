@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import mimetypes
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -116,6 +118,25 @@ def _group_by_route(results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return grouped
 
 
+def _image_file_to_data_url(path: str) -> str:
+    file_path = Path(path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Screenshot not found: {file_path}")
+
+    mime_type, _ = mimetypes.guess_type(file_path.name)
+    if not mime_type:
+        mime_type = "image/png"
+
+    encoded = base64.b64encode(file_path.read_bytes()).decode("utf-8")
+    return f"data:{mime_type};base64,{encoded}"
+
+
+def _validate_image_url(value: str) -> None:
+    if value.startswith(("http://", "https://", "data:image/")):
+        return
+    raise ValueError(f"Invalid image_url format: {value[:120]}")
+
+
 def _analyze_route(client: OpenAI, model: str, route_data: dict[str, Any]) -> dict[str, Any]:
     content: list[dict[str, Any]] = [
         {"type": "input_text", "text": PER_SCREEN_PROMPT_TEMPLATE.format(**route_data)}
@@ -124,6 +145,9 @@ def _analyze_route(client: OpenAI, model: str, route_data: dict[str, Any]) -> di
     for device in ("desktop", "mobile"):
         image_path = route_data.get("captures", {}).get(device)
         if image_path:
+            image_data_url = _image_file_to_data_url(image_path)
+            _validate_image_url(image_data_url)
+
             content.append(
                 {
                     "type": "input_text",
@@ -133,7 +157,7 @@ def _analyze_route(client: OpenAI, model: str, route_data: dict[str, Any]) -> di
             content.append(
                 {
                     "type": "input_image",
-                    "image_url": f"file://{Path(image_path).resolve()}",
+                    "image_url": image_data_url,
                 }
             )
 
