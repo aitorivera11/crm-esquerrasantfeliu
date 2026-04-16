@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
-from django.db.models import Count, Max, Prefetch, Q
+from django.db.models import Case, Count, IntegerField, Max, Prefetch, Q, Value, When
 from django.http import FileResponse, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -61,6 +61,26 @@ def tasques_obertes_queryset(queryset=None):
 
 def tasques_vencudes_queryset(queryset=None):
     return tasques_obertes_queryset(queryset).filter(data_limit__lt=timezone.localdate())
+
+
+def tasques_visibles_per_usuari(user, queryset=None):
+    base_queryset = queryset if queryset is not None else Tasca.objects.all()
+    if getattr(user, 'rol', None) == Usuari.Rol.ADMINISTRACIO:
+        return base_queryset
+    return base_queryset.filter(Q(responsable=user) | Q(creada_per=user)).distinct()
+
+
+def ordenar_tasques_operatiu(queryset):
+    return queryset.annotate(
+        prioritat_sort=Case(
+            When(prioritat=Tasca.Prioritat.URGENT, then=Value(0)),
+            When(prioritat=Tasca.Prioritat.ALTA, then=Value(1)),
+            When(prioritat=Tasca.Prioritat.MITJANA, then=Value(2)),
+            When(prioritat=Tasca.Prioritat.BAIXA, then=Value(3)),
+            default=Value(9),
+            output_field=IntegerField(),
+        ),
+    ).order_by('prioritat_sort', 'data_limit', '-es_estrategica', '-creat_el')
 
 
 class ReunioListView(ReunionsBaseMixin, ListView):
@@ -699,9 +719,14 @@ class TascaListView(ReunionsBaseMixin, ListView):
 
     def get_queryset(self):
         qs = Tasca.objects.select_related('responsable', 'creada_per', 'area', 'reunio_origen', 'punt_acta_origen__acta__reunio').prefetch_related('collaboradors', 'etiquetes')
+        qs = tasques_visibles_per_usuari(self.request.user, qs)
         search = (self.request.GET.get('q') or '').strip()
         if search:
             qs = qs.filter(Q(titol__icontains=search) | Q(descripcio__icontains=search) | Q(observacions_seguiment__icontains=search))
+
+        has_explicit_estat_filter = 'estat' in self.request.GET
+        if not has_explicit_estat_filter:
+            qs = qs.filter(estat=Tasca.Estat.PENDENT)
         for field, values in [('estat', Tasca.Estat.values), ('prioritat', Tasca.Prioritat.values), ('origen', Tasca.Origen.values)]:
             current = self.request.GET.get(field)
             if current in values:
@@ -710,18 +735,20 @@ class TascaListView(ReunionsBaseMixin, ListView):
             qs = tasques_vencudes_queryset(qs)
         if self.request.GET.get('bloquejades') == '1':
             qs = qs.filter(estat=Tasca.Estat.BLOQUEJADA)
-        return qs
+        return ordenar_tasques_operatiu(qs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        tasques_visibles = tasques_visibles_per_usuari(self.request.user)
         context.update({
             'current_filters': {key: self.request.GET.get(key, '') for key in ['q', 'estat', 'prioritat', 'origen', 'vencudes', 'bloquejades']},
             'estat_options': Tasca.Estat.choices,
             'prioritat_options': Tasca.Prioritat.choices,
             'origen_options': Tasca.Origen.choices,
-            'pendents_count': Tasca.objects.filter(estat=Tasca.Estat.PENDENT).count(),
-            'bloquejades_count': Tasca.objects.filter(estat=Tasca.Estat.BLOQUEJADA).count(),
-            'estrategiques_count': Tasca.objects.filter(es_estrategica=True).count(),
+            'pendents_count': tasques_visibles.filter(estat=Tasca.Estat.PENDENT).count(),
+            'bloquejades_count': tasques_visibles.filter(estat=Tasca.Estat.BLOQUEJADA).count(),
+            'estrategiques_count': tasques_visibles.filter(es_estrategica=True).count(),
+            'filtre_per_defecte_pendents': 'estat' not in self.request.GET,
         })
         return context
 
@@ -852,6 +879,42 @@ class SeguimentTascaCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, Tem
         return redirect('reunions:tasca_detail', pk=tasca.pk)
 
 
+class TascaQuickSeguimentCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        tasca = get_object_or_404(tasques_visibles_per_usuari(request.user), pk=kwargs['pk'])
+        comentari = (request.POST.get('comentari') or '').strip()
+        if not comentari:
+            messages.error(request, 'Cal escriure un comentari per afegir el seguiment.')
+            return redirect(request.POST.get('next') or reverse('reunions:tasca_list'))
+
+        SeguimentTasca.objects.create(
+            tasca=tasca,
+            autor=request.user,
+            tipus=SeguimentTasca.Tipus.COMENTARI,
+            comentari=comentari,
+        )
+        messages.success(request, 'Seguiment afegit ràpidament.')
+        return redirect(request.POST.get('next') or reverse('reunions:tasca_list'))
+
+
+class TascaQuickCompletarView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
+    def post(self, request, *args, **kwargs):
+        tasca = get_object_or_404(tasques_visibles_per_usuari(request.user), pk=kwargs['pk'])
+        if tasca.estat == Tasca.Estat.COMPLETADA:
+            messages.info(request, 'La tasca ja estava completada.')
+            return redirect(request.POST.get('next') or reverse('reunions:tasca_list'))
+
+        SeguimentTasca.objects.create(
+            tasca=tasca,
+            autor=request.user,
+            tipus=SeguimentTasca.Tipus.DECISIO,
+            comentari='Tasca completada des del tauler operatiu.',
+            nou_estat=Tasca.Estat.COMPLETADA,
+        )
+        messages.success(request, 'Tasca completada i seguiment de decisió registrat.')
+        return redirect(request.POST.get('next') or reverse('reunions:tasca_list'))
+
+
 class TascaRelacioReunioCreateView(TascaWritePermissionMixin, ReunionsBaseMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         tasca = get_object_or_404(Tasca, pk=kwargs['pk'])
@@ -883,16 +946,27 @@ class SeguimentPanelView(ReunionsBaseMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        tasques = Tasca.objects.select_related('responsable', 'area', 'reunio_origen').prefetch_related('relacions_reunio__reunio')
+        tasques = Tasca.objects.select_related('responsable', 'creada_per', 'area', 'reunio_origen').prefetch_related('relacions_reunio__reunio', 'etiquetes')
+        tasques = tasques_visibles_per_usuari(self.request.user, tasques)
         obertes = tasques_obertes_queryset(tasques)
+        kanban_columns = [
+            {'code': Tasca.Estat.PENDENT, 'label': 'Pendents', 'tasks': ordenar_tasques_operatiu(tasques.filter(estat=Tasca.Estat.PENDENT))[:30]},
+            {'code': Tasca.Estat.EN_CURS, 'label': 'En curs', 'tasks': ordenar_tasques_operatiu(tasques.filter(estat=Tasca.Estat.EN_CURS))[:30]},
+            {'code': Tasca.Estat.BLOQUEJADA, 'label': 'Bloquejades', 'tasks': ordenar_tasques_operatiu(tasques.filter(estat=Tasca.Estat.BLOQUEJADA))[:30]},
+            {'code': Tasca.Estat.COMPLETADA, 'label': 'Completades', 'tasks': tasques.filter(estat=Tasca.Estat.COMPLETADA).order_by('-actualitzat_el')[:30]},
+        ]
         context.update({
-            'tasques_obertes': obertes.order_by('data_limit', '-es_estrategica')[:10],
-            'tasques_bloquejades': tasques.filter(estat=Tasca.Estat.BLOQUEJADA)[:10],
-            'tasques_vencudes': tasques_vencudes_queryset(tasques).order_by('data_limit', '-es_estrategica')[:10],
-            'seguiments_recents': SeguimentTasca.objects.select_related('tasca', 'autor', 'reunio')[:12],
+            'tasques_obertes': ordenar_tasques_operatiu(obertes)[:10],
+            'tasques_bloquejades': ordenar_tasques_operatiu(tasques.filter(estat=Tasca.Estat.BLOQUEJADA))[:10],
+            'tasques_vencudes': ordenar_tasques_operatiu(tasques_vencudes_queryset(tasques))[:10],
+            'seguiments_recents': SeguimentTasca.objects.select_related('tasca', 'autor', 'reunio').filter(tasca__in=tasques)[:12],
+            'kanban_columns': kanban_columns,
             'reunions_amb_tasques_obertes': Reunio.objects.annotate(
                 total_obertes=Count('relacions_tasca', filter=Q(relacions_tasca__tasca__estat__in=[Tasca.Estat.PENDENT, Tasca.Estat.EN_CURS, Tasca.Estat.BLOQUEJADA]), distinct=True)
-            ).filter(total_obertes__gt=0).select_related('area')[:10],
+            ).filter(
+                total_obertes__gt=0,
+                relacions_tasca__tasca__in=tasques,
+            ).distinct().select_related('area')[:10],
         })
         return context
 

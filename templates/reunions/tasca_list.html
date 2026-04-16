@@ -1,19 +1,24 @@
 {% extends 'base.html' %}
 {% block title %}Tasques{% endblock %}
 {% block page_title %}Tasques{% endblock %}
-{% block page_intro %}{% endblock %}
+{% block page_intro %}
+<p class="page-subtitle mb-0">Vista operativa de tasques amb seguiment ràpid: primer les pendents i priorització automàtica per urgència i data límit.</p>
+{% endblock %}
 {% block content %}
 <section class="card card-panel mb-4 p-4">
     <div class="d-flex justify-content-between gap-3 align-items-center flex-wrap">
         <h2 class="h4 mb-0">Seguiment de tasques</h2>
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
             <span class="info-chip">{{ pendents_count }} pendents</span>
             <span class="info-chip">{{ bloquejades_count }} bloquejades</span>
             <span class="info-chip">{{ estrategiques_count }} estratègiques</span>
             <a class="btn btn-primary" href="{% url 'reunions:tasca_create' %}">Nova tasca</a>
-            <a class="btn btn-outline-secondary" href="{% url 'reunions:panel_seguiment' %}">Panell de seguiment</a>
+            <a class="btn btn-outline-secondary" href="{% url 'reunions:panel_seguiment' %}">Panell KANBAN</a>
         </div>
     </div>
+    {% if filtre_per_defecte_pendents %}
+    <p class="small text-muted mt-3 mb-0">S’ha aplicat el filtre inicial de <strong>Pendents</strong>. Pots canviar-lo als filtres de sota.</p>
+    {% endif %}
 </section>
 
 <section class="card card-panel mb-4 p-4">
@@ -50,23 +55,41 @@
 <section class="row g-3">
     {% for tasca in tasques %}
     <div class="col-12 col-xl-6">
-        <article class="card card-panel p-4 h-100">
+        <article class="card card-panel p-4 h-100 {% if tasca.esta_vencuda %}task-card-overdue{% endif %}">
             <div class="d-flex justify-content-between gap-3 flex-wrap mb-3">
                 <div>
                     <p class="eyebrow mb-1">{{ tasca.get_origen_display }}</p>
                     <h3 class="h4 mb-1"><a class="text-decoration-none" href="{{ tasca.get_absolute_url }}">{{ tasca.titol }}</a></h3>
-                    <div class="text-muted">Responsable: {{ tasca.responsable }}{% if tasca.data_limit %} · Límit {{ tasca.data_limit|date:'d/m/Y' }}{% endif %}</div>
+                    <div class="text-muted">Responsable: {{ tasca.responsable }} · Creada per {{ tasca.creada_per }}</div>
+                    <div class="text-muted">{% if tasca.data_limit %}Límit {{ tasca.data_limit|date:'d/m/Y' }}{% else %}Sense data límit{% endif %}</div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap inline-status-actions">
                     <span class="badge text-bg-light">{{ tasca.get_estat_display }}</span>
                     <span class="badge priority-chip priority-{{ tasca.prioritat|lower }}">{{ tasca.get_prioritat_display }}</span>
+                    {% if tasca.esta_vencuda %}<span class="badge overdue-chip">⚠ Límit sobrepassat</span>{% endif %}
                     {% if tasca.estat == 'BLOQUEJADA' %}<span class="badge block-age-chip">Bloquejada des de {{ tasca.actualitzat_el|date:'d/m' }}</span>{% endif %}
                     {% if tasca.es_estrategica %}<span class="badge text-bg-warning">Estratègica</span>{% endif %}
                 </div>
             </div>
-            <p>{{ tasca.descripcio|truncatechars:220 }}</p>
+            <p>{{ tasca.descripcio|default:'Sense descripció.'|truncatechars:220 }}</p>
             <div class="d-flex gap-2 flex-wrap">{% for etiqueta in tasca.etiquetes.all %}<span class="info-chip">{{ etiqueta.nom }}</span>{% endfor %}</div>
-            <div class="d-flex gap-2 mt-3 flex-wrap">
+
+            <details class="mt-3 quick-followup-box">
+                <summary>+ Afegir seguiment ràpid</summary>
+                <form method="post" action="{% url 'reunions:seguiment_quick_create' tasca.pk %}" class="mt-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <textarea class="form-control mb-2" name="comentari" rows="2" placeholder="Ex: trucada feta, pendent resposta de proveïdor..."></textarea>
+                    <button class="btn btn-sm btn-outline-primary">Guardar seguiment</button>
+                </form>
+            </details>
+
+            <div class="d-flex gap-2 mt-3 flex-wrap align-items-center">
+                <form method="post" action="{% url 'reunions:tasca_quick_complete' tasca.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="btn btn-sm btn-success" {% if tasca.estat == 'COMPLETADA' %}disabled{% endif %}>Completar</button>
+                </form>
                 <form method="post" action="{% url 'reunions:tasca_toggle_ordre_dia' tasca.pk %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -74,6 +97,7 @@
                         {% if tasca.proposar_seguent_ordre_dia %}Treure del següent O.D.{% else %}Portar al següent O.D.{% endif %}
                     </button>
                 </form>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ tasca.get_absolute_url }}">Detall</a>
             </div>
         </article>
     </div>

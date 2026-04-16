@@ -1,10 +1,60 @@
 {% extends 'base.html' %}
 {% block title %}Panell de seguiment{% endblock %}
 {% block page_title %}Panell de seguiment{% endblock %}
-{% block page_intro %}<p class="page-subtitle mb-0">Una vista operativa per detectar bloquejos, venciments i reunions amb càrrega oberta.</p>{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Vista KANBAN per fer seguiment real de les tasques: prioritat, venciments i accions ràpides.</p>{% endblock %}
 {% block content %}
+<section class="card card-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="h5 mb-0">Tauler KANBAN</h3>
+        <a class="btn btn-outline-secondary" href="{% url 'reunions:tasca_list' %}">Veure llista detallada</a>
+    </div>
+</section>
+
+<section class="kanban-board mb-4">
+    {% for column in kanban_columns %}
+    <article class="card card-panel p-3 kanban-column">
+        <header class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="h6 mb-0">{{ column.label }}</h3>
+            <span class="info-chip">{{ column.tasks|length }}</span>
+        </header>
+
+        <div class="kanban-column-body d-grid gap-3">
+            {% for tasca in column.tasks %}
+            <div class="soft-panel p-3 kanban-task {% if tasca.esta_vencuda %}kanban-task-overdue{% endif %}">
+                <a class="text-decoration-none fw-semibold d-block mb-1" href="{{ tasca.get_absolute_url }}">{{ tasca.titol }}</a>
+                <div class="small text-muted mb-2">{{ tasca.responsable }} · {{ tasca.get_prioritat_display }}</div>
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                    <span class="badge text-bg-light">{{ tasca.get_estat_display }}</span>
+                    {% if tasca.data_limit %}<span class="badge text-bg-light">{{ tasca.data_limit|date:'d/m' }}</span>{% endif %}
+                    {% if tasca.esta_vencuda %}<span class="badge overdue-chip">Vencuda</span>{% endif %}
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <details class="quick-followup-box">
+                        <summary>Seguiment</summary>
+                        <form method="post" action="{% url 'reunions:seguiment_quick_create' tasca.pk %}" class="mt-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <textarea class="form-control mb-2" name="comentari" rows="2" placeholder="Afegeix seguiment..."></textarea>
+                            <button class="btn btn-sm btn-outline-primary">Guardar</button>
+                        </form>
+                    </details>
+                    <form method="post" action="{% url 'reunions:tasca_quick_complete' tasca.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="btn btn-sm btn-success" {% if tasca.estat == 'COMPLETADA' %}disabled{% endif %}>Completar</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted mb-0">No hi ha tasques en aquesta columna.</p>
+            {% endfor %}
+        </div>
+    </article>
+    {% endfor %}
+</section>
+
 <div class="row g-4">
-    <div class="col-12 col-xl-4"><section class="card card-panel p-4 h-100"><h3 class="h5">Tasques obertes</h3><div class="list-group list-group-flush">{% for tasca in tasques_obertes %}<a class="list-group-item px-0 py-3 border-bottom" href="{{ tasca.get_absolute_url }}"><strong>{{ tasca.titol }}</strong><div class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.responsable }}</div></a>{% empty %}<p class="text-muted mb-0">Cap tasca oberta.</p>{% endfor %}</div></section></div>
+    <div class="col-12 col-xl-4"><section class="card card-panel p-4 h-100"><h3 class="h5">Tasques obertes (top)</h3><div class="list-group list-group-flush">{% for tasca in tasques_obertes %}<a class="list-group-item px-0 py-3 border-bottom" href="{{ tasca.get_absolute_url }}"><strong>{{ tasca.titol }}</strong><div class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.responsable }}</div></a>{% empty %}<p class="text-muted mb-0">Cap tasca oberta.</p>{% endfor %}</div></section></div>
     <div class="col-12 col-xl-4"><section class="card card-panel p-4 h-100"><h3 class="h5">Bloquejades / vencudes</h3><div class="mb-3"><strong>Bloquejades</strong><div class="list-group list-group-flush">{% for tasca in tasques_bloquejades %}<a class="list-group-item px-0 py-2 border-bottom" href="{{ tasca.get_absolute_url }}">{{ tasca.titol }}</a>{% empty %}<p class="text-muted mb-0">Cap bloqueig.</p>{% endfor %}</div></div><div><strong>Vencudes</strong><div class="list-group list-group-flush">{% for tasca in tasques_vencudes %}<a class="list-group-item px-0 py-2 border-bottom" href="{{ tasca.get_absolute_url }}">{{ tasca.titol }}</a>{% empty %}<p class="text-muted mb-0">Cap tasca vençuda.</p>{% endfor %}</div></div></section></div>
     <div class="col-12 col-xl-4"><section class="card card-panel p-4 h-100"><h3 class="h5">Seguiments recents</h3><div class="list-group list-group-flush">{% for item in seguiments_recents %}<div class="list-group-item px-0 py-3 border-bottom"><strong>{{ item.tasca.titol }}</strong><div class="small text-muted">{{ item.autor }} · {{ item.creat_el|date:'d/m/Y H:i' }}</div><div class="text-muted mt-1">{{ item.comentari|truncatechars:120 }}</div></div>{% empty %}<p class="text-muted mb-0">Sense activitat recent.</p>{% endfor %}</div></section></div>
 </div>

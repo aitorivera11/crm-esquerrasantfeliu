@@ -1398,3 +1398,56 @@ input[type="checkbox"] {
         min-width: 700px;
     }
 }
+
+.task-card-overdue {
+    border-color: rgba(173, 47, 27, .45);
+    background: linear-gradient(180deg, #fff6f4, #fff);
+}
+.overdue-chip {
+    background: rgba(173, 47, 27, .14);
+    color: #922a1a;
+    border: 1px solid rgba(173, 47, 27, .24);
+}
+.quick-followup-box {
+    border: 1px dashed rgba(0, 13, 35, .2);
+    border-radius: .75rem;
+    padding: .55rem .7rem;
+    background: rgba(0, 13, 35, .02);
+}
+.quick-followup-box > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+}
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+.kanban-column {
+    min-height: 14rem;
+}
+.kanban-column-body {
+    max-height: 68vh;
+    overflow: auto;
+    padding-right: .2rem;
+}
+.kanban-task {
+    border: 1px solid rgba(0, 13, 35, .08);
+}
+.kanban-task-overdue {
+    border-color: rgba(173, 47, 27, .32);
+    background: linear-gradient(180deg, #fff6f4, #fff);
+}
+
+@media (max-width: 1199.98px) {
+    .kanban-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 767.98px) {
+    .kanban-board {
+        grid-template-columns: 1fr;
+    }
+}
