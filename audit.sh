@@ -8,7 +8,7 @@
 set -euo pipefail
 
 PROJECT_DIR="${1:-.}"
-REPORT_DIR="./app/media/audit-reports"
+REPORT_DIR="./media/audit-reports"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 # Colores
