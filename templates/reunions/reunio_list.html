@@ -29,7 +29,7 @@
             <label class="form-label">Tipus</label>
             <select name="tipus" class="form-select">
                 <option value="">Tots</option>
-                {% for value, label in tipus_options %}<option value="{{ value }}" {% if current_filters.tipus == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                {% for tipus in tipus_options %}<option value="{{ tipus.pk }}" {% if current_filters.tipus == tipus.pk|stringformat:'s' %}selected{% endif %}>{{ tipus.nom }}</option>{% endfor %}
             </select>
         </div>
         <div class="col-12 col-md-3">
@@ -49,7 +49,7 @@
             <article class="card card-panel h-100 p-4">
                 <div class="d-flex justify-content-between gap-3 flex-wrap mb-3">
                     <div>
-                        <p class="eyebrow mb-1">{{ reunio.get_tipus_display }}</p>
+                        <p class="eyebrow mb-1">{{ reunio.tipus.nom }}</p>
                         <h3 class="h4 mb-1"><a href="{{ reunio.get_absolute_url }}" class="text-decoration-none">{{ reunio.titol }}</a></h3>
                         <div class="text-muted">{{ reunio.inici|date:'d/m/Y H:i' }}{% if reunio.ubicacio %} · {{ reunio.ubicacio }}{% endif %}</div>
                     </div>

@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.timezone import localtime
 
 from agenda.management.commands.import_city_events import CityEventsImporter, SOURCE_NAME
-from reunions.models import Reunio
+from reunions.models import Reunio, TipusReunio
 from .forms import ActeForm
 from .models import Acte, ParticipacioActe, SegmentVisibilitat
 
@@ -409,7 +409,7 @@ class AgendaMeetingSyncTests(TestCase):
         )
         self.reunio = Reunio.objects.create(
             titol='Executiva local',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})[0],
             estat=Reunio.Estat.CONVOCADA,
             inici=self.acte.inici,
             fi=self.acte.fi,

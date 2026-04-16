@@ -54,7 +54,12 @@
                             {% endif %}
                         {% endwith %}
                     </td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'entitats:entitat_update' entitat.pk %}">Editar</a></td>
+                    <td class="text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'reunions:reunio_create' %}?entitat={{ entitat.pk }}">Programar reunió</a>
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'entitats:entitat_update' entitat.pk %}">Editar</a>
+                        </div>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>

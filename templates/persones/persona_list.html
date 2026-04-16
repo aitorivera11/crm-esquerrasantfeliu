@@ -42,7 +42,12 @@
                         {% endwith %}
                     </td>
                     <td>{{ persona.notes|default:'Sense notes'|truncatechars:100 }}</td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'persones:persona_update' persona.pk %}">Editar</a></td>
+                    <td class="text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'reunions:reunio_create' %}?persona={{ persona.pk }}">Programar reunió</a>
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'persones:persona_update' persona.pk %}">Editar</a>
+                        </div>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
