@@ -121,16 +121,6 @@ run_visual_audit() {
     exit 2
   fi
 
-  pip install --quiet playwright openai 2>/dev/null || {
-    echo -e "${RED}Error instalando dependencias visuales. Ejecuta: pip install playwright openai${NC}"
-    exit 1
-  }
-
-  python -m playwright install chromium 2>/dev/null || {
-    echo -e "${RED}No se pudo instalar Chromium para Playwright.${NC}"
-    exit 1
-  }
-
   ./audits/visual/run.sh
 }
 
