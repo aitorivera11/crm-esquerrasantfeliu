@@ -1,0 +1,76 @@
+{
+  "routes": [
+    {
+      "name": "dashboard",
+      "path": "/"
+    },
+    {
+      "name": "agenda_list",
+      "path": "/agenda/"
+    },
+    {
+      "name": "agenda_create",
+      "path": "/agenda/nou/"
+    },
+    {
+      "name": "persones_list",
+      "path": "/persones/"
+    },
+    {
+      "name": "persones_create",
+      "path": "/persones/nova/"
+    },
+    {
+      "name": "entitats_list",
+      "path": "/entitats/"
+    },
+    {
+      "name": "entitats_create",
+      "path": "/entitats/nova/"
+    },
+    {
+      "name": "reunions_list",
+      "path": "/reunions/"
+    },
+    {
+      "name": "reunions_followup",
+      "path": "/reunions/seguiment/"
+    },
+    {
+      "name": "reunions_create",
+      "path": "/reunions/nova/"
+    },
+    {
+      "name": "tasques_list",
+      "path": "/reunions/tasques/"
+    },
+    {
+      "name": "tasques_create",
+      "path": "/reunions/tasques/nova/"
+    },
+    {
+      "name": "material_dashboard",
+      "path": "/material/"
+    },
+    {
+      "name": "material_items",
+      "path": "/material/items/"
+    },
+    {
+      "name": "material_item_create",
+      "path": "/material/items/nou/"
+    },
+    {
+      "name": "material_stock",
+      "path": "/material/stocks/"
+    },
+    {
+      "name": "material_stock_create",
+      "path": "/material/stocks/nou/"
+    },
+    {
+      "name": "perfil",
+      "path": "/usuaris/perfil/"
+    }
+  ]
+}
