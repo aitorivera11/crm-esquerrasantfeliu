@@ -8,7 +8,7 @@ from django.utils import timezone
 from agenda.models import Acte, SegmentVisibilitat
 
 from .forms import ReunioForm, sincronitzar_punts_acta_amb_ordre_dia
-from .models import Acta, PuntActa, PuntOrdreDia, Reunio, Tasca
+from .models import Acta, PuntActa, PuntOrdreDia, Reunio, Tasca, TipusReunio
 from .views import generar_text_ordre_dia, parse_task_commands
 
 
@@ -21,12 +21,13 @@ class ReunioAgendaSyncTests(TestCase):
             nom_complet='Coord Reunio',
             rol=User.Rol.COORDINACIO,
         )
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
 
     def _build_form(self, **overrides):
         inici = timezone.now().replace(second=0, microsecond=0) + timedelta(days=3)
         data = {
             'titol': 'Executiva local',
-            'tipus': Reunio.Tipus.INTERNA,
+            'tipus': self.tipus_reunio.pk,
             'estat': Reunio.Estat.CONVOCADA,
             'inici': inici.strftime('%Y-%m-%dT%H:%M'),
             'fi': (inici + timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M'),
@@ -72,7 +73,7 @@ class ReunioAgendaSyncTests(TestCase):
 
         update_data = {
             'titol': reunio.titol,
-            'tipus': reunio.tipus,
+            'tipus': reunio.tipus_id,
             'estat': reunio.estat,
             'inici': timezone.localtime(reunio.inici).strftime('%Y-%m-%dT%H:%M'),
             'fi': timezone.localtime(reunio.fi).strftime('%Y-%m-%dT%H:%M'),
@@ -105,6 +106,7 @@ class ReunionsPermissionsTests(TestCase):
         User = get_user_model()
         self.coord = User.objects.create_user(username='coord-reunions', password='pass', nom_complet='Coord', rol=User.Rol.COORDINACIO)
         self.participant = User.objects.create_user(username='participant-reunions', password='pass', nom_complet='Participant', rol=User.Rol.PARTICIPANT)
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
 
     def test_participant_cannot_access_reunions_list(self):
         self.client.force_login(self.participant)
@@ -135,10 +137,11 @@ class ReunioListOrderTests(TestCase):
     def setUp(self):
         User = get_user_model()
         self.coord = User.objects.create_user(username='coord-order', password='pass', nom_complet='Coord', rol=User.Rol.COORDINACIO)
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
         now = timezone.now().replace(second=0, microsecond=0)
         self.old_meeting = Reunio.objects.create(
             titol='Reunió antiga',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=self.tipus_reunio,
             estat=Reunio.Estat.CELEBRADA,
             inici=now - timedelta(days=5),
             convocada_per=self.coord,
@@ -146,7 +149,7 @@ class ReunioListOrderTests(TestCase):
         )
         self.new_meeting = Reunio.objects.create(
             titol='Reunió recent',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=self.tipus_reunio,
             estat=Reunio.Estat.CONVOCADA,
             inici=now + timedelta(days=1),
             convocada_per=self.coord,
@@ -172,9 +175,10 @@ class PuntOrdreDiaMoveTests(TestCase):
             nom_complet='Coord Move',
             rol=User.Rol.COORDINACIO,
         )
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
         self.reunio = Reunio.objects.create(
             titol='Reunió ordre del dia',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=self.tipus_reunio,
             estat=Reunio.Estat.PREPARACIO,
             inici=timezone.now() + timedelta(days=1),
             convocada_per=self.coord,
@@ -213,9 +217,10 @@ class ActaTaskCommandTests(TestCase):
             nom_complet='Jenny',
             rol=User.Rol.COORDINACIO,
         )
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
         self.reunio = Reunio.objects.create(
             titol='Reunió comissions',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=self.tipus_reunio,
             estat=Reunio.Estat.CELEBRADA,
             inici=timezone.now() - timedelta(days=1),
             convocada_per=self.coord,
@@ -270,9 +275,10 @@ class TascaDeletePermissionTests(TestCase):
         self.admin = User.objects.create_user(username='admin-tasca', password='pass', nom_complet='Admin', rol=User.Rol.ADMINISTRACIO)
         self.creator = User.objects.create_user(username='creator-tasca', password='pass', nom_complet='Creator', rol=User.Rol.COORDINACIO)
         self.other = User.objects.create_user(username='other-tasca', password='pass', nom_complet='Other', rol=User.Rol.COORDINACIO)
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
         self.reunio = Reunio.objects.create(
             titol='Reunió tasca delete',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=self.tipus_reunio,
             estat=Reunio.Estat.CELEBRADA,
             inici=timezone.now() + timedelta(days=1),
             convocada_per=self.creator,
@@ -314,9 +320,10 @@ class OrdreDiaShareTextTests(TestCase):
             nom_complet='Coord Share',
             rol=User.Rol.COORDINACIO,
         )
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
         self.reunio = Reunio.objects.create(
             titol='Trobada Pla de Campanya',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=self.tipus_reunio,
             estat=Reunio.Estat.CONVOCADA,
             inici=timezone.now().replace(second=0, microsecond=0) + timedelta(days=1),
             fi=timezone.now().replace(second=0, microsecond=0) + timedelta(days=1, hours=2, minutes=30),
@@ -347,9 +354,10 @@ class ActaOrdreDiaSyncTests(TestCase):
             nom_complet='Coord Sync',
             rol=User.Rol.COORDINACIO,
         )
+        self.tipus_reunio, _ = TipusReunio.objects.get_or_create(codi='interna', defaults={'nom': 'Reunió interna', 'ordre': 0})
         self.reunio = Reunio.objects.create(
             titol='Reunió amb ordre canviant',
-            tipus=Reunio.Tipus.INTERNA,
+            tipus=self.tipus_reunio,
             estat=Reunio.Estat.CELEBRADA,
             inici=timezone.now() + timedelta(days=1),
             convocada_per=self.coord,

@@ -36,11 +36,27 @@ class AreaCampanya(TimeStampedModel):
         return self.nom
 
 
-class Reunio(TimeStampedModel):
-    class Tipus(models.TextChoices):
-        INTERNA = 'INTERNA', 'Reunió interna'
-        ASSEMBLEA = 'ASSEMBLEA', 'Assemblea'
+class TipusReunio(TimeStampedModel):
+    codi = models.SlugField(max_length=40, unique=True)
+    nom = models.CharField(max_length=120, unique=True)
+    descripcio = models.TextField(blank=True)
+    ordre = models.PositiveIntegerField(default=0)
+    activa = models.BooleanField(default=True)
+    permet_ordre_dia_i_acta = models.BooleanField(
+        default=True,
+        help_text='Si es desactiva, la reunió es considera informal i no requereix ordre del dia ni acta.',
+    )
 
+    class Meta:
+        ordering = ['ordre', 'nom']
+        verbose_name = 'tipus de reunió'
+        verbose_name_plural = 'tipus de reunió'
+
+    def __str__(self):
+        return self.nom
+
+
+class Reunio(TimeStampedModel):
     class Estat(models.TextChoices):
         PREPARACIO = 'PREPARACIO', 'En preparació'
         CONVOCADA = 'CONVOCADA', 'Convocada'
@@ -49,7 +65,7 @@ class Reunio(TimeStampedModel):
         CANCEL_LADA = 'CANCEL_LADA', 'Cancel·lada'
 
     titol = models.CharField(max_length=255)
-    tipus = models.CharField(max_length=20, choices=Tipus.choices)
+    tipus = models.ForeignKey(TipusReunio, on_delete=models.PROTECT, related_name='reunions')
     estat = models.CharField(max_length=20, choices=Estat.choices, default=Estat.PREPARACIO)
     inici = models.DateTimeField()
     fi = models.DateTimeField(null=True, blank=True)
@@ -117,7 +133,7 @@ class Reunio(TimeStampedModel):
         errors = {}
         if self.fi and self.inici and self.fi <= self.inici:
             errors['fi'] = 'La data de finalització ha de ser posterior a l’inici.'
-        if self.estat == self.Estat.TANCADA and not hasattr(self, 'acta'):
+        if self.estat == self.Estat.TANCADA and self.tipus and self.tipus.permet_ordre_dia_i_acta and not hasattr(self, 'acta'):
             errors['estat'] = 'No pots tancar una reunió sense acta.'
         if errors:
             raise ValidationError(errors)

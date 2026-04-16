@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Max
 from django.utils.formats import localize_input
 
@@ -11,7 +11,18 @@ from persones.models import Persona
 from usuaris.forms import StyledFormMixin
 from usuaris.models import Usuari
 
-from .models import Acta, AreaCampanya, DocumentAdjunt, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
+from .models import (
+    Acta,
+    AreaCampanya,
+    DocumentAdjunt,
+    PuntActa,
+    PuntOrdreDia,
+    Reunio,
+    SeguimentTasca,
+    Tasca,
+    TascaRelacioReunio,
+    TipusReunio,
+)
 
 
 class ReunioForm(StyledFormMixin, forms.ModelForm):
@@ -47,6 +58,10 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
         self.fields['assistents'].queryset = Usuari.objects.order_by('nom_complet', 'username')
         self.fields['persones_relacionades'].queryset = Persona.objects.order_by('nom')
         self.fields['entitats_relacionades'].queryset = Entitat.objects.order_by('nom')
+        tipus_queryset = TipusReunio.objects.filter(activa=True)
+        if self.instance and self.instance.pk and self.instance.tipus_id:
+            tipus_queryset = TipusReunio.objects.filter(models.Q(activa=True) | models.Q(pk=self.instance.tipus_id))
+        self.fields['tipus'].queryset = tipus_queryset.order_by('ordre', 'nom')
         self.fields['area'].queryset = AreaCampanya.objects.filter(activa=True).order_by('ordre', 'nom')
         self.fields['acte_agenda'].queryset = Acte.objects.filter(external_source='').order_by('-inici', 'titol')
         self.fields['acte_agenda'].required = False
@@ -80,7 +95,7 @@ class ReunioForm(StyledFormMixin, forms.ModelForm):
         if creating:
             acte = Acte(creador=reunio.convocada_per)
 
-        tipus_nom = reunio.get_tipus_display()
+        tipus_nom = reunio.tipus.nom
         acte_tipus, _ = ActeTipus.objects.get_or_create(nom=tipus_nom, defaults={'ordre': 0, 'actiu': True})
         acte.titol = reunio.titol
         acte.tipus = acte_tipus
@@ -370,6 +385,10 @@ class ReunioRapidaForm(StyledFormMixin, forms.ModelForm):
         ordered_users = Usuari.objects.order_by('nom_complet', 'username')
         self.fields['convocada_per'].queryset = ordered_users
         self.fields['moderada_per'].queryset = ordered_users
+        tipus_queryset = TipusReunio.objects.filter(activa=True)
+        if self.instance and self.instance.pk and self.instance.tipus_id:
+            tipus_queryset = TipusReunio.objects.filter(models.Q(activa=True) | models.Q(pk=self.instance.tipus_id))
+        self.fields['tipus'].queryset = tipus_queryset.order_by('ordre', 'nom')
         self.fields['fi'].required = False
         self.fields['inici'].input_formats = ReunioForm.datetime_input_formats
         self.fields['fi'].input_formats = ReunioForm.datetime_input_formats

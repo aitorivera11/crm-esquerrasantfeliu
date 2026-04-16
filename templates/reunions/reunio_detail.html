@@ -8,7 +8,7 @@
         <section class="card card-panel p-4 mb-4">
             <div class="d-flex justify-content-between gap-3 flex-wrap mb-3">
                 <div>
-                    <p class="eyebrow mb-1">{{ reunio.get_tipus_display }}</p>
+                    <p class="eyebrow mb-1">{{ reunio.tipus.nom }}</p>
                     <h2 class="h3 mb-1">{{ reunio.titol }}</h2>
                     <div class="text-muted">{{ reunio.inici|date:'d/m/Y H:i' }}{% if reunio.fi %} · fins {{ reunio.fi|date:'H:i' }}{% endif %}{% if reunio.ubicacio %} · {{ reunio.ubicacio }}{% endif %}</div>
                 </div>

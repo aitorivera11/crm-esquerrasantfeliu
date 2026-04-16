@@ -31,7 +31,7 @@ from .forms import (
     inicialitzar_punts_acta_des_de_ordre_dia,
     sincronitzar_punts_acta_amb_ordre_dia,
 )
-from .models import Acta, DocumentAdjunt, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio
+from .models import Acta, DocumentAdjunt, PuntActa, PuntOrdreDia, Reunio, SeguimentTasca, Tasca, TascaRelacioReunio, TipusReunio
 
 
 class ReunionsPermissionMixin(RoleRequiredMixin):
@@ -89,7 +89,7 @@ class ReunioListView(ReunionsBaseMixin, ListView):
     context_object_name = 'reunions'
 
     def get_queryset(self):
-        qs = Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related(
+        qs = Reunio.objects.select_related('tipus', 'convocada_per', 'moderada_per', 'area').prefetch_related(
             'etiquetes',
             Prefetch('tasques_originades', queryset=tasques_obertes_queryset()),
         ).annotate(
@@ -100,8 +100,8 @@ class ReunioListView(ReunionsBaseMixin, ListView):
         if q:
             qs = qs.filter(Q(titol__icontains=q) | Q(descripcio__icontains=q) | Q(ubicacio__icontains=q))
         tipus = self.request.GET.get('tipus')
-        if tipus in Reunio.Tipus.values:
-            qs = qs.filter(tipus=tipus)
+        if tipus and tipus.isdigit():
+            qs = qs.filter(tipus_id=int(tipus))
         estat = self.request.GET.get('estat')
         if estat in Reunio.Estat.values:
             qs = qs.filter(estat=estat)
@@ -109,8 +109,9 @@ class ReunioListView(ReunionsBaseMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        tipus_options = TipusReunio.objects.filter(activa=True).order_by('ordre', 'nom')
         context.update({
-            'tipus_options': Reunio.Tipus.choices,
+            'tipus_options': tipus_options,
             'estat_options': Reunio.Estat.choices,
             'current_filters': {'q': self.request.GET.get('q', ''), 'tipus': self.request.GET.get('tipus', ''), 'estat': self.request.GET.get('estat', '')},
             'reunions_obertes': Reunio.objects.filter(estat__in=[Reunio.Estat.PREPARACIO, Reunio.Estat.CONVOCADA]).count(),
@@ -127,7 +128,7 @@ class ReunioDetailView(ReunionsBaseMixin, DetailView):
     context_object_name = 'reunio'
 
     def get_queryset(self):
-        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area', 'acte_agenda', 'acte_agenda__tipus').prefetch_related(
+        return Reunio.objects.select_related('tipus', 'convocada_per', 'moderada_per', 'area', 'acte_agenda', 'acte_agenda__tipus').prefetch_related(
             'assistents', 'etiquetes', 'persones_relacionades', 'entitats_relacionades',
             'punts_ordre_dia__responsable', 'relacions_tasca__tasca__responsable', 'relacions_tasca__punt_ordre_dia',
             'acta__punts__punt_ordre_origen', 'acta__punts__tasques_generades__responsable',
@@ -191,7 +192,7 @@ class ReunioActaWorkspaceView(ReunionsBaseMixin, DetailView):
     context_object_name = 'reunio'
 
     def get_queryset(self):
-        return Reunio.objects.select_related('convocada_per', 'moderada_per', 'area').prefetch_related(
+        return Reunio.objects.select_related('tipus', 'convocada_per', 'moderada_per', 'area').prefetch_related(
             'punts_ordre_dia',
             'acta__punts',
             'acta__punts__tasques_generades__responsable',
@@ -234,6 +235,15 @@ class ReunioCreateView(ReunioWritePermissionMixin, ReunionsBaseMixin, CreateView
         initial = super().get_initial()
         initial['convocada_per'] = self.request.user
         initial['moderada_per'] = self.request.user
+        if not initial.get('tipus'):
+            initial['tipus'] = TipusReunio.objects.filter(activa=True).order_by('ordre', 'nom').values_list('pk', flat=True).first()
+
+        persona_id = self.request.GET.get('persona')
+        if persona_id and persona_id.isdigit():
+            initial['persones_relacionades'] = [int(persona_id)]
+        entitat_id = self.request.GET.get('entitat')
+        if entitat_id and entitat_id.isdigit():
+            initial['entitats_relacionades'] = [int(entitat_id)]
         return initial
 
     def form_valid(self, form):

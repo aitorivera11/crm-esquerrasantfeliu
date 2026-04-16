@@ -12,6 +12,7 @@ from .models import (
     SeguimentTasca,
     Tasca,
     TascaRelacioReunio,
+    TipusReunio,
 )
 
 
@@ -58,6 +59,13 @@ class AreaCampanyaAdmin(admin.ModelAdmin):
 class EtiquetaReunioTasquesAdmin(admin.ModelAdmin):
     list_display = ('nom', 'ordre', 'color')
     search_fields = ('nom',)
+
+
+@admin.register(TipusReunio)
+class TipusReunioAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'codi', 'ordre', 'activa', 'permet_ordre_dia_i_acta')
+    list_filter = ('activa', 'permet_ordre_dia_i_acta')
+    search_fields = ('nom', 'codi', 'descripcio')
 
 
 @admin.register(Reunio)
