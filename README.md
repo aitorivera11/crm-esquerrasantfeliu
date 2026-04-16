@@ -73,6 +73,20 @@ A `Social applications` (admin):
 
 A `/accounts/login/` veuràs el botó de “Continuar amb Google”.
 
+## Auditoría visual manual (pantallas autenticadas)
+
+Se incluye una auditoría visual reutilizable para revisar UX/UI real en pantallas con login:
+
+```bash
+VISUAL_AUDIT_USERNAME=auditor \
+VISUAL_AUDIT_PASSWORD='***' \
+VISUAL_AUDIT_BASE_URL='http://127.0.0.1:8000' \
+OPENAI_API_KEY='sk-...' \
+bash audit.sh visual
+```
+
+Genera capturas desktop/mobile, resultados axe opcionales y un informe en Markdown/JSON en `audits/visual/reports/`.
+
 ## Desplegament (Docker + Gunicorn)
 
 - `Dockerfile` genera una imatge Python 3.12 i instal·la dependències de sistema per PostgreSQL.

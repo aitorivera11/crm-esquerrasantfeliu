@@ -1,50 +1,48 @@
 # Sistema base de auditoría continua
 
-Este directorio agrupa scripts, prompts y salidas para auditar el proyecto en cuatro capas:
+Este directorio agrupa scripts y salidas para auditar el proyecto en capas:
 
 1. Calidad técnica
-2. Seguridad
-3. UX/UI
-4. Arquitectura
+2. Seguridad estática
+3. UX/UI visual manual
 
 ## Estructura
 
-- `prompts/`: prompts reutilizables para auditorías asistidas por IA
-- `reports/`: informes generados por scripts o revisiones manuales
-- `screenshots/`: capturas generadas con Playwright
-- `scripts/`: scripts de ejecución
+- `scripts/`: scripts de ejecución de calidad
+- `visual/`: captura y análisis visual autenticado
 
 ## Flujo recomendado
 
 ### 1. Calidad técnica
+
 ```bash
 ./audits/scripts/run_quality.sh
 ```
 
-### 2. Auditoría visual
+### 2. Auditoría visual manual (autenticada)
+
 ```bash
-npm install
-npx playwright install --with-deps
-BASE_URL=http://127.0.0.1:8000 npm run audit:ui
+VISUAL_AUDIT_USERNAME=auditor \
+VISUAL_AUDIT_PASSWORD='***' \
+VISUAL_AUDIT_BASE_URL='http://127.0.0.1:8000' \
+OPENAI_API_KEY='sk-...' \
+bash audit.sh visual
 ```
 
-### 3. Escaneo ZAP
+Más detalle en `audits/visual/README.md`.
+
+### 3. Seguridad estática (Bandit + Semgrep)
+
 ```bash
-PREPROD_URL=https://pre.example.com ./audits/scripts/run_zap.sh "$PREPROD_URL"
+bash audit.sh security
 ```
 
 ### 4. Ejecución conjunta
+
 ```bash
-PREPROD_URL=https://pre.example.com ./audits/scripts/run_all_audits.sh
+bash audit.sh all
 ```
-
-## Uso con IA
-
-- Pasa código relevante y `audits/reports/code/*` al prompt `prompts/django_code_review.md`
-- Pasa screenshots y el HTML report de Playwright al prompt `prompts/ux_audit.md`
-- Pasa resultados de ZAP y settings sensibles al prompt `prompts/security_review.md`
-- Pasa estructura y módulos principales al prompt `prompts/architecture_review.md`
 
 ## Limitaciones
 
-Estos scripts no sustituyen revisión manual. Sirven para detectar rápido fallos, deuda técnica y señales de incoherencia en un proyecto que evoluciona deprisa.
+Estos scripts no sustituyen revisión manual. Sirven para detectar rápido fallos, deuda técnica y señales de incoherencia visual en un proyecto que evoluciona de forma iterativa.
