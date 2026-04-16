@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from agenda.models import Acte
+from reunions.models import Reunio, Tasca
 from core.mixins import RoleRequiredMixin
 from usuaris.models import Usuari
 
@@ -54,3 +56,35 @@ class PersonaUpdateView(PersonesPermissionMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Persona actualitzada correctament.')
         return super().form_valid(form)
+
+
+class PersonaDetailView(PersonesPermissionMixin, DetailView):
+    model = Persona
+    template_name = 'persones/persona_detail.html'
+    context_object_name = 'persona'
+
+    def get_queryset(self):
+        return Persona.objects.prefetch_related('entitats')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        persona = self.object
+        context['reunions_relacionades'] = (
+            Reunio.objects.filter(persones_relacionades=persona)
+            .select_related('tipus', 'area')
+            .distinct()
+            .order_by('-inici')[:20]
+        )
+        context['tasques_relacionades'] = (
+            Tasca.objects.filter(persones_relacionades=persona)
+            .select_related('responsable', 'area', 'reunio_origen')
+            .distinct()
+            .order_by('-creat_el')[:20]
+        )
+        context['actes_relacionats'] = (
+            Acte.objects.filter(persones_relacionades=persona)
+            .select_related('tipus')
+            .distinct()
+            .order_by('-inici')[:20]
+        )
+        return context

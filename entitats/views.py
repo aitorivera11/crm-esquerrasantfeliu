@@ -10,10 +10,12 @@ from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.shortcuts import redirect
 from django.views import View
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from agenda.models import Acte
 from core.mixins import RoleRequiredMixin
 from core.models import Auditoria
+from reunions.models import Reunio, Tasca
 from usuaris.models import Usuari
 
 from .forms import EntitatForm
@@ -86,6 +88,38 @@ class EntitatUpdateView(EntitatsPermissionMixin, UpdateView):
         )
         messages.success(self.request, 'Entitat actualitzada correctament.')
         return response
+
+
+class EntitatDetailView(EntitatsPermissionMixin, DetailView):
+    model = Entitat
+    template_name = 'entitats/entitat_detail.html'
+    context_object_name = 'entitat'
+
+    def get_queryset(self):
+        return Entitat.objects.prefetch_related('persones')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        entitat = self.object
+        context['reunions_relacionades'] = (
+            Reunio.objects.filter(entitats_relacionades=entitat)
+            .select_related('tipus', 'area')
+            .distinct()
+            .order_by('-inici')[:20]
+        )
+        context['tasques_relacionades'] = (
+            Tasca.objects.filter(entitats_relacionades=entitat)
+            .select_related('responsable', 'area', 'reunio_origen')
+            .distinct()
+            .order_by('-creat_el')[:20]
+        )
+        context['actes_relacionats'] = (
+            Acte.objects.filter(entitats_relacionades=entitat)
+            .select_related('tipus')
+            .distinct()
+            .order_by('-inici')[:20]
+        )
+        return context
 
 
 class ImportEntitiesCronView(View):

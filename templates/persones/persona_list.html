@@ -30,7 +30,7 @@
             <tbody>
             {% for persona in persones %}
                 <tr>
-                    <td><strong>{{ persona.nom }}</strong></td>
+                    <td><strong><a class="text-decoration-none" href="{{ persona.get_absolute_url }}">{{ persona.nom }}</a></strong></td>
                     <td>{{ persona.email|default:'—' }}<div class="text-muted small">{{ persona.telefon|default:'Sense telèfon' }}</div></td>
                     <td>
                         {% with entitats=persona.entitats.all %}
@@ -45,6 +45,7 @@
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2">
                             <a class="btn btn-sm btn-outline-secondary" href="{% url 'reunions:reunio_create' %}?persona={{ persona.pk }}">Programar reunió</a>
+                            <a class="btn btn-sm btn-outline-dark" href="{{ persona.get_absolute_url }}">Fitxa</a>
                             <a class="btn btn-sm btn-outline-primary" href="{% url 'persones:persona_update' persona.pk %}">Editar</a>
                         </div>
                     </td>

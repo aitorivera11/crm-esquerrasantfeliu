@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{{ entitat.nom }}{% endblock %}
+{% block page_title %}Fitxa d’entitat{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Seguiment d’entorn de l’entitat: relacions, reunions, tasques i activitat associada.</p>{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section mb-4">
+    <div class="section-heading align-items-start">
+        <div>
+            <h2 class="h3 mb-1">{{ entitat.nom }}</h2>
+            <p class="text-muted mb-0">Fitxa consolidada de relació institucional.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary" href="{% url 'reunions:reunio_create' %}?entitat={{ entitat.pk }}">Programar reunió</a>
+            <a class="btn btn-primary" href="{% url 'entitats:entitat_update' entitat.pk %}">Editar fitxa</a>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6 col-xl-3"><div class="meta-card"><span>Correu</span><strong>{{ entitat.email|default:'—' }}</strong></div></div>
+        <div class="col-md-6 col-xl-3"><div class="meta-card"><span>Telèfon</span><strong>{{ entitat.telefon|default:'—' }}</strong></div></div>
+        <div class="col-md-6 col-xl-3"><div class="meta-card"><span>Tipologia</span><strong>{{ entitat.tipologia|default:'—' }}</strong></div></div>
+        <div class="col-md-6 col-xl-3"><div class="meta-card"><span>Àmbit</span><strong>{{ entitat.ambit|default:'—' }}</strong></div></div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6"><div class="meta-card"><span>Reunions relacionades</span><strong>{{ reunions_relacionades|length }}</strong></div></div>
+        <div class="col-md-6"><div class="meta-card"><span>Tasques relacionades</span><strong>{{ tasques_relacionades|length }}</strong></div></div>
+    </div>
+    {% if entitat.web %}<div class="mb-3"><strong>Web</strong><div class="mt-2"><a href="{{ entitat.web }}" target="_blank" rel="noopener">{{ entitat.web }}</a></div></div>{% endif %}
+    <div class="mb-3"><strong>Persones vinculades</strong><div class="mt-2 d-flex gap-2 flex-wrap">{% for persona in entitat.persones.all %}<a class="info-chip text-decoration-none" href="{{ persona.get_absolute_url }}">{{ persona.nom }}</a>{% empty %}<span class="text-muted small">Sense persones vinculades.</span>{% endfor %}</div></div>
+    <div><strong>Notes</strong><div class="text-muted mt-2">{{ entitat.notes|default:'Sense notes registrades.'|linebreaks }}</div></div>
+</section>
+
+<section class="card card-panel panel-section mb-4">
+    <div class="section-heading"><div><h3 class="h4 mb-1">Reunions amb l’entitat</h3><p class="text-muted mb-0">Traçabilitat dels contactes i espais de treball compartits.</p></div></div>
+    <div class="list-group list-group-flush">
+        {% for reunio in reunions_relacionades %}
+            <a class="list-group-item px-0 py-3 border-bottom text-decoration-none" href="{{ reunio.get_absolute_url }}"><strong>{{ reunio.titol }}</strong><div class="small text-muted">{{ reunio.inici|date:'d/m/Y H:i' }} · {{ reunio.get_estat_display }}{% if reunio.area %} · {{ reunio.area }}{% endif %}</div></a>
+        {% empty %}
+            <p class="text-muted mb-0">Encara no hi ha reunions vinculades.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card card-panel panel-section mb-4">
+    <div class="section-heading"><div><h3 class="h4 mb-1">Tasques vinculades</h3><p class="text-muted mb-0">Accions que impliquen aquesta entitat en la seva execució o seguiment.</p></div></div>
+    <div class="list-group list-group-flush">
+        {% for tasca in tasques_relacionades %}
+            <a class="list-group-item px-0 py-3 border-bottom text-decoration-none" href="{{ tasca.get_absolute_url }}"><strong>{{ tasca.titol }}</strong><div class="small text-muted">{{ tasca.get_estat_display }} · {{ tasca.get_prioritat_display }} · {{ tasca.responsable|default:'Sense responsable' }}</div></a>
+        {% empty %}
+            <p class="text-muted mb-0">No hi ha tasques vinculades.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card card-panel panel-section">
+    <div class="section-heading"><div><h3 class="h4 mb-1">Activitat d’agenda relacionada</h3><p class="text-muted mb-0">Actes on l’entitat participa o està vinculada.</p></div></div>
+    <div class="list-group list-group-flush">
+        {% for acte in actes_relacionats %}
+            <a class="list-group-item px-0 py-3 border-bottom text-decoration-none" href="{{ acte.get_absolute_url }}"><strong>{{ acte.titol }}</strong><div class="small text-muted">{{ acte.inici|date:'d/m/Y H:i' }}{% if acte.tipus %} · {{ acte.tipus.nom }}{% endif %}{% if acte.ubicacio %} · {{ acte.ubicacio }}{% endif %}</div></a>
+        {% empty %}
+            <p class="text-muted mb-0">Sense activitat d’agenda vinculada.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
