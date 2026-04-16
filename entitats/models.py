@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Q
+from django.urls import reverse
 
 from core.models import TimeStampedModel
 
@@ -33,3 +34,6 @@ class Entitat(TimeStampedModel):
 
     def __str__(self):
         return self.nom
+
+    def get_absolute_url(self):
+        return reverse('entitats:entitat_detail', kwargs={'pk': self.pk})

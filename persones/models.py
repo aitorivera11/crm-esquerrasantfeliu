@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 from core.models import TimeStampedModel
 
@@ -16,3 +17,6 @@ class Persona(TimeStampedModel):
 
     def __str__(self):
         return self.nom
+
+    def get_absolute_url(self):
+        return reverse('persones:persona_detail', kwargs={'pk': self.pk})

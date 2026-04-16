@@ -37,7 +37,7 @@
             {% for entitat in entitats %}
                 <tr>
                     <td>
-                        <strong>{{ entitat.nom }}</strong>
+                        <strong><a class="text-decoration-none" href="{{ entitat.get_absolute_url }}">{{ entitat.nom }}</a></strong>
                         {% if entitat.web %}<div><a href="{{ entitat.web }}" target="_blank" rel="noopener">{{ entitat.web }}</a></div>{% endif %}
                     </td>
                     <td>{{ entitat.email|default:'—' }}<div class="text-muted small">{{ entitat.telefon|default:'Sense telèfon' }}</div></td>
@@ -57,6 +57,7 @@
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2">
                             <a class="btn btn-sm btn-outline-secondary" href="{% url 'reunions:reunio_create' %}?entitat={{ entitat.pk }}">Programar reunió</a>
+                            <a class="btn btn-sm btn-outline-dark" href="{{ entitat.get_absolute_url }}">Fitxa</a>
                             <a class="btn btn-sm btn-outline-primary" href="{% url 'entitats:entitat_update' entitat.pk %}">Editar</a>
                         </div>
                     </td>

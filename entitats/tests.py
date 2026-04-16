@@ -3,10 +3,12 @@ from unittest.mock import patch
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from agenda.models import Acte
 from entitats.management.commands.import_entities import EntitiesImporter
 from persones.models import Persona
+from reunions.models import Reunio, Tasca, TipusReunio
 
 from .models import Entitat
 
@@ -50,6 +52,44 @@ class EntitatsPermissionsTests(TestCase):
         self.client.force_login(self.participant)
         response = self.client.post(reverse('entitats:sync_imported_entities'))
         self.assertIn(response.status_code, {403, 405})
+
+    def test_entitat_detail_shows_related_tracking_data(self):
+        persona = Persona.objects.create(nom='Persona Entorn')
+        entitat = Entitat.objects.create(nom='Entitat Entorn')
+        entitat.persones.add(persona)
+
+        tipus = TipusReunio.objects.create(codi='institucional', nom='Institucional')
+        reunio = Reunio.objects.create(
+            titol='Reunió institucional',
+            tipus=tipus,
+            inici=timezone.now(),
+            convocada_per=self.coord,
+        )
+        reunio.entitats_relacionades.add(entitat)
+
+        tasca = Tasca.objects.create(
+            titol='Enviar proposta a l’entitat',
+            creada_per=self.coord,
+            responsable=self.coord,
+        )
+        tasca.entitats_relacionades.add(entitat)
+
+        acte = Acte.objects.create(
+            titol='Acte amb entitat',
+            inici=timezone.now(),
+            ubicacio='Plaça',
+            creador=self.coord,
+        )
+        acte.entitats_relacionades.add(entitat)
+
+        self.client.force_login(self.coord)
+        response = self.client.get(reverse('entitats:entitat_detail', args=[entitat.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Reunió institucional')
+        self.assertContains(response, 'Enviar proposta a l’entitat')
+        self.assertContains(response, 'Acte amb entitat')
+        self.assertContains(response, 'Persona Entorn')
 
     @patch('entitats.views.call_command')
     def test_manual_sync_runs_import_command(self, mocked_call_command):
