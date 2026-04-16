@@ -109,6 +109,7 @@
             {% if acta %}
                 <hr class="my-4">
                 <h4 class="h5">Tancament post-acte</h4>
+                <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                 <form method="post" action="{% url 'reunions:acta_upsert' reunio.pk %}" class="workflow-form">
                     {% csrf_token %}
                     <div class="row g-3">

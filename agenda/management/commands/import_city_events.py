@@ -175,18 +175,19 @@ class CityEventsImporter:
         if not (start_value.isdigit() and end_value.isdigit()):
             raise CommandError("Format de data invàlid per construir la consulta d'importació.")
 
-        # No és vector d'injecció en aquest context: dates/limit/offset es deriven del codi
-        # i no de cap entrada externa d'usuari.
+        # Aquest SQL no admet placeholders en aquest endpoint CKAN (datastore_search_sql),
+        # així que validem i limitem tots els valors dinàmics abans d'interpolar-los.
         clean_limit = max(1, int(limit))
         clean_offset = max(0, int(offset))
-        return (
-            f'SELECT * FROM "{RESOURCE_ID}" '
-            'WHERE "ESTAT" = \'Confirmat\' '
-            f'AND "DATA_HORA_INICI_ACTE" >= \'{start_value}\' '
-            f'AND "DATA_HORA_INICI_ACTE" < \'{end_value}\' '
-            'ORDER BY "DATA_HORA_INICI_ACTE" ASC '
-            f"LIMIT {clean_limit} OFFSET {clean_offset}"
-        )
+        sql_parts = [
+            f'SELECT * FROM "{RESOURCE_ID}"',  # nosec B608
+            'WHERE "ESTAT" = \'Confirmat\'',
+            f'AND "DATA_HORA_INICI_ACTE" >= \'{start_value}\'',
+            f'AND "DATA_HORA_INICI_ACTE" < \'{end_value}\'',
+            'ORDER BY "DATA_HORA_INICI_ACTE" ASC',
+            f"LIMIT {clean_limit} OFFSET {clean_offset}",
+        ]
+        return " ".join(sql_parts)
 
     def fetch_page(self, sql: str) -> list[dict[str, Any]]:
         try:
