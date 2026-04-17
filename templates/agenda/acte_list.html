@@ -20,6 +20,7 @@
                     <button type="submit" class="btn btn-outline-secondary">Sincronitzar importats</button>
                 </form>
             {% endif %}
+            {% if can_manage_actes %}<a class="btn btn-outline-secondary" href="{% url 'agenda:acte_import_instagram' %}">Crear des d’Instagram</a>{% endif %}
             {% if can_manage_actes %}<a class="btn btn-primary" href="{% url 'agenda:acte_create' %}">Nou acte</a>{% endif %}
         </div>
     </div>

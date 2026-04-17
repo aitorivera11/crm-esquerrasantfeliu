@@ -158,3 +158,33 @@ class ParticipacioActe(TimeStampedModel):
 
     def __str__(self):
         return f'{self.usuari} · {self.acte} · {self.intencio}'
+
+
+class InstagramEventImport(TimeStampedModel):
+    usuari = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='instagram_event_imports',
+    )
+    acte = models.ForeignKey(
+        Acte,
+        on_delete=models.SET_NULL,
+        related_name='imports_instagram',
+        null=True,
+        blank=True,
+    )
+    instagram_url = models.URLField()
+    text_manual = models.TextField(blank=True)
+    text_extret = models.TextField(blank=True)
+    observacions = models.TextField(blank=True)
+    imatge = models.ImageField(upload_to='agenda/instagram_imports/', blank=True, null=True)
+    camps_proposats = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['-creat_el']
+        verbose_name = 'importació d’Instagram'
+        verbose_name_plural = 'importacions d’Instagram'
+
+    def __str__(self):
+        return f'Importació Instagram #{self.pk} - {self.instagram_url}'

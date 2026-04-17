@@ -12,7 +12,8 @@ from django.utils.timezone import localtime
 from agenda.management.commands.import_city_events import CityEventsImporter, SOURCE_NAME
 from reunions.models import Reunio, TipusReunio
 from .forms import ActeForm
-from .models import Acte, ParticipacioActe, SegmentVisibilitat
+from .models import Acte, InstagramEventImport, ParticipacioActe, SegmentVisibilitat
+from .services import extract_event_fields_from_text
 
 
 class ActeExternalIdentifierConstraintTests(TestCase):
@@ -527,3 +528,89 @@ class ImportCityEventsTypeFilterTests(TestCase):
 
         self.assertEqual(len(normalized), 1)
         self.assertEqual(normalized[0]["external_id"], "culture-1")
+
+
+class InstagramEventParsingTests(TestCase):
+    def test_extract_event_fields_from_text_detects_common_catalan_patterns(self):
+        fields = extract_event_fields_from_text(
+            (
+                "Assemblea oberta del barri\n"
+                "Dissabte 18 de maig a les 18:30 h\n"
+                "Ateneu Popular del Centre Cívic Can Maginàs\n"
+                "Organitza: Esquerra Sant Feliu"
+            )
+        )
+
+        self.assertEqual(fields['title'], 'Assemblea oberta del barri')
+        self.assertEqual(fields['date'], f"{timezone.localdate().year}-05-18")
+        self.assertEqual(fields['start_time'], '18:30')
+        self.assertIn('Ateneu Popular', fields['location'])
+        self.assertEqual(fields['organizer'], 'Esquerra Sant Feliu')
+
+
+class InstagramImportFlowTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username='instagram-importer',
+            password='test-pass-123',
+            nom_complet='Instagram Importer',
+            rol=User.Rol.COORDINACIO,
+        )
+        self.user.user_permissions.add(Permission.objects.get(codename='add_acte'))
+        self.client.force_login(self.user)
+
+    def test_import_view_creates_trace_and_prefills_create_form(self):
+        response = self.client.post(
+            reverse('agenda:acte_import_instagram'),
+            data={
+                'instagram_url': 'https://www.instagram.com/p/ABC123/',
+                'text_manual': 'Xerrada oberta\\n12/05/2026 19:00\\nPlaça de la Vila\\nOrganitza: Jovent Republicà',
+                'observacions': 'Confirmar si hi ha aforament',
+            },
+        )
+
+        self.assertRedirects(response, reverse('agenda:acte_create'))
+        self.assertEqual(InstagramEventImport.objects.count(), 1)
+        import_record = InstagramEventImport.objects.first()
+        self.assertEqual(import_record.instagram_url, 'https://www.instagram.com/p/ABC123/')
+        create_response = self.client.get(reverse('agenda:acte_create'))
+        self.assertEqual(create_response.status_code, 200)
+        self.assertContains(create_response, 'Dades precarregades des d’Instagram')
+        self.assertContains(create_response, 'Xerrada oberta')
+        self.assertContains(create_response, 'Plaça de la Vila')
+
+    def test_creating_event_after_import_links_trace_and_source_url(self):
+        response_import = self.client.post(
+            reverse('agenda:acte_import_instagram'),
+            data={
+                'instagram_url': 'https://www.instagram.com/p/XYZ789/',
+                'text_manual': 'Acte de campanya\\n15/06/2026 20:00\\nCasal Popular',
+                'observacions': 'Aportat pel grup de comunicació',
+            },
+        )
+        self.assertRedirects(response_import, reverse('agenda:acte_create'))
+
+        create_payload = {
+            'titol': 'Acte de campanya',
+            'tipus': '',
+            'descripcio': 'Acte de campanya',
+            'inici': '2026-06-15T20:00',
+            'fi': '2026-06-15T21:30',
+            'ubicacio': 'Casal Popular',
+            'punt_trobada': '',
+            'aforament': '',
+            'entitats_relacionades': [],
+            'persones_relacionades': [],
+            'visible_per': [],
+            'estat': Acte.Estat.ESBORRANY,
+            'es_important': '',
+        }
+        response = self.client.post(reverse('agenda:acte_create'), data=create_payload)
+
+        self.assertEqual(response.status_code, 302)
+        acte = Acte.objects.get(titol='Acte de campanya')
+        import_record = InstagramEventImport.objects.get(instagram_url='https://www.instagram.com/p/XYZ789/')
+        self.assertEqual(import_record.acte_id, acte.id)
+        self.assertEqual(acte.source_url, 'https://www.instagram.com/p/XYZ789/')
+        self.assertEqual(acte.external_source, 'INSTAGRAM')

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 import io
 import json
 import os
@@ -20,8 +20,9 @@ from django.urls import reverse
 
 from core.models import Auditoria
 
-from .forms import ActeForm, ParticipacioForm
-from .models import Acte, ActeTipus, ParticipacioActe, SegmentVisibilitat
+from .forms import ActeForm, InstagramImportForm, ParticipacioForm
+from .models import Acte, ActeTipus, InstagramEventImport, ParticipacioActe, SegmentVisibilitat
+from .services import parse_instagram_event_data
 
 
 class AgendaContextMixin:
@@ -380,9 +381,70 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     template_name = 'agenda/acte_form.html'
     permission_required = 'agenda.add_acte'
 
+    def _session_key(self):
+        return 'agenda_instagram_prefill'
+
+    def _build_initial_from_instagram_prefill(self, prefill_data):
+        fields = (prefill_data or {}).get('fields') or {}
+        initial = {}
+
+        if fields.get('title'):
+            initial['titol'] = fields['title']
+        if fields.get('description'):
+            initial['descripcio'] = fields['description']
+        if fields.get('location'):
+            initial['ubicacio'] = fields['location']
+
+        date_value = fields.get('date')
+        start_time = fields.get('start_time') or '19:00'
+        end_time = fields.get('end_time')
+        if date_value:
+            try:
+                start_dt = datetime.fromisoformat(f'{date_value}T{start_time}')
+                initial['inici'] = start_dt.strftime('%Y-%m-%dT%H:%M')
+                if end_time:
+                    end_dt = datetime.fromisoformat(f'{date_value}T{end_time}')
+                    if end_dt > start_dt:
+                        initial['fi'] = end_dt.strftime('%Y-%m-%dT%H:%M')
+            except ValueError:
+                pass
+
+        return initial
+
+    def get_initial(self):
+        initial = super().get_initial()
+        prefill_data = self.request.session.get(self._session_key())
+        if prefill_data:
+            initial.update(self._build_initial_from_instagram_prefill(prefill_data))
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        prefill_data = self.request.session.get(self._session_key())
+        context['instagram_prefill'] = prefill_data
+        return context
+
     def form_valid(self, form):
         form.instance.creador = self.request.user
+        prefill_data = self.request.session.get(self._session_key())
+        if prefill_data:
+            fields = prefill_data.get('fields') or {}
+            form.instance.source_url = fields.get('source_url', '')
+            form.instance.external_source = 'INSTAGRAM'
+            form.instance.source_payload = {
+                'instagram_import_id': prefill_data.get('import_id'),
+                'municipality': fields.get('municipality', ''),
+                'organizer': fields.get('organizer', ''),
+                'raw_text': prefill_data.get('raw_text', ''),
+                'ocr_text': prefill_data.get('ocr_text', ''),
+            }
         response = super().form_valid(form)
+        if prefill_data:
+            import_id = prefill_data.get('import_id')
+            if import_id:
+                InstagramEventImport.objects.filter(pk=import_id).update(acte=self.object)
+            self.request.session.pop(self._session_key(), None)
+            self.request.session.modified = True
         Auditoria.objects.create(
             usuari=self.request.user,
             accio=Auditoria.Accio.CREATE,
@@ -391,6 +453,59 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             dades={'titol': self.object.titol, 'estat': self.object.estat},
         )
         return response
+
+
+class InstagramActeImportView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'agenda.add_acte'
+    template_name = 'agenda/instagram_import_form.html'
+
+    def _session_key(self):
+        return 'agenda_instagram_prefill'
+
+    def get(self, request):
+        form = InstagramImportForm()
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request):
+        form = InstagramImportForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form})
+
+        payload = parse_instagram_event_data(
+            instagram_url=form.cleaned_data['instagram_url'],
+            manual_text=form.cleaned_data.get('text_manual', ''),
+            image_file=form.cleaned_data.get('imatge'),
+            observations=form.cleaned_data.get('observacions', ''),
+        )
+        instagram_import = InstagramEventImport.objects.create(
+            usuari=request.user,
+            instagram_url=form.cleaned_data['instagram_url'],
+            text_manual=form.cleaned_data.get('text_manual', ''),
+            text_extret=payload.get('raw_text', ''),
+            observacions=form.cleaned_data.get('observacions', ''),
+            imatge=form.cleaned_data.get('imatge'),
+            camps_proposats=payload.get('fields', {}),
+            metadata={
+                'warnings': payload.get('warnings', []),
+                'heuristic_fields': payload.get('heuristic_fields', {}),
+                'ai_fields': payload.get('ai_fields', {}),
+                'ocr_text': payload.get('ocr_text', ''),
+            },
+        )
+
+        request.session[self._session_key()] = {
+            'import_id': instagram_import.pk,
+            'fields': payload.get('fields', {}),
+            'raw_text': payload.get('raw_text', ''),
+            'ocr_text': payload.get('ocr_text', ''),
+            'warnings': payload.get('warnings', []),
+        }
+        request.session.modified = True
+
+        for warning in payload.get('warnings', []):
+            messages.warning(request, warning)
+        messages.success(request, 'S’ha preparat un esborrany d’acte amb la informació detectada.')
+        return redirect('agenda:acte_create')
 
 
 class ActeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
