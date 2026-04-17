@@ -2,8 +2,41 @@
 {% block title %}Stock{% endblock %}
 {% block page_title %}Consumibles{% endblock %}
 {% block content %}
-<section class="card card-panel panel-section"><div class="d-flex justify-content-between mb-3"><h2 class="h4 mb-0">Stock</h2><a class="btn btn-primary" href="{% url 'material:stock_create' %}">Nou stock</a></div>
-<table class="table app-table"><thead><tr><th>Producte</th><th>Ubicació</th><th>Quantitat</th><th>Mínim</th><th></th></tr></thead><tbody>
-{% for stock in stocks %}<tr><td>{{ stock.producte }}</td><td>{{ stock.ubicacio }}</td><td>{{ stock.quantitat_actual }} {{ stock.unitat }}</td><td>{{ stock.llindar_minim }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'material:stock_update' stock.pk %}">Editar</a></td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Sense stock.</td></tr>{% endfor %}
-</tbody></table></section>
+<section class="card card-panel panel-section">
+    <div class="d-flex justify-content-between mb-3">
+        <h2 class="h4 mb-0">Stock</h2>
+        <a class="btn btn-primary" href="{% url 'material:stock_create' %}">Nou stock</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table app-table">
+            <thead>
+                <tr>
+                    <th>Producte</th>
+                    <th>Ubicació</th>
+                    <th>Quantitat</th>
+                    <th>Mínim</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocks %}
+                    <tr>
+                        <td>{{ stock.producte }}</td>
+                        <td>{{ stock.ubicacio }}</td>
+                        <td>{{ stock.quantitat_actual }} {{ stock.unitat }}</td>
+                        <td>{{ stock.llindar_minim }}</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'material:stock_update' stock.pk %}">Editar</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-muted">Sense stock.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

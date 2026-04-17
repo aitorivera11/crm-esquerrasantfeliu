@@ -32,9 +32,7 @@
             <div class="brand-block">
                 <a href="{% url 'core:home' %}" class="brand-hero-link">
                     <img class="brand-logo brand-logo-lg" src="https://www.esquerra.cat/wp-content/uploads/erc-logo.png" alt="Logo Esquerra Republicana">
-                    <div>
-                        <span class="brand-link">CRM Sant Feliu 2027</span>
-                    </div>
+                    <span class="brand-link">CRM Sant Feliu 2027</span>
                 </a>
 
             </div>
@@ -48,9 +46,7 @@
             <div class="app-header-main d-flex align-items-start gap-3">
                 <button class="btn btn-outline-secondary d-lg-none" @click="menuOpen=true">☰</button>
                 <button class="btn btn-outline-secondary d-none d-lg-inline-flex"
-                        @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')"
-                        x-text="sidebarCollapsed ? '☰' : '☰'">
-                </button>
+                        @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')">☰</button>
                 <div>
                     <h1 class="page-title mb-1">{% block page_title %}Panell de control{% endblock %}</h1>
                     {% block page_intro %}{% endblock %}
