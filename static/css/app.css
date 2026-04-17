@@ -834,54 +834,21 @@ textarea.form-control { min-height: 120px; }
     display: block;
 }
 
-.poster-upload-widget {
-    display: grid;
-    gap: .8rem;
-    padding: .95rem;
-    border: 1px solid rgba(226, 191, 161, 0.7);
-    border-radius: 1rem;
-    background: rgba(255, 250, 247, .72);
+.acte-photo-editor .clearable-file-input {
+    display: none;
 }
 
-.poster-upload-widget__current {
-    display: grid;
-    gap: .45rem;
+.acte-poster-thumb-wrap {
+    width: min(100%, 220px);
 }
 
-.poster-upload-widget__label {
-    font-size: .8rem;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    color: var(--muted);
-    font-weight: 700;
-}
-
-.poster-upload-widget__link {
-    color: var(--deep);
-    word-break: break-all;
-    font-size: .92rem;
-}
-
-.poster-upload-widget__clear {
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-    color: var(--muted);
-    font-size: .92rem;
-}
-
-.poster-upload-widget__picker {
-    display: grid;
-    gap: .45rem;
-}
-
-.poster-upload-widget__picker-label {
-    color: var(--muted);
-    font-size: .88rem;
-}
-
-.poster-upload-widget__picker input[type="file"] {
+.acte-poster-thumb {
     width: 100%;
+    aspect-ratio: 210 / 297;
+    object-fit: cover;
+    border-radius: .75rem;
+    border: 1px solid rgba(0, 13, 35, .12);
+    background: rgba(15, 23, 42, .05);
 }
 
 

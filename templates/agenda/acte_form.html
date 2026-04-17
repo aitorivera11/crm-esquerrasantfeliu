@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Acte{% endblock %}
 {% block page_title %}{% if object %}Editar acte{% else %}Nou acte{% endif %}{% endblock %}
 {% block page_intro %}<p class="page-subtitle mb-0">{% if object %}Actualitza la logística i la configuració de visibilitat sense perdre el context de l'acte.{% else %}Crea un acte clar, ordenat i fàcil de gestionar per a coordinació i equip.{% endif %}</p>{% endblock %}
@@ -30,7 +31,31 @@
                 </div>
                 <div class="row g-3">
                     <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.titol %}</div>
-                    <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.imatge %}</div>
+                    <div class="col-12">
+                        <div class="material-photo-editor acte-photo-editor">
+                            <label class="form-label d-block">{{ form.imatge.label }}</label>
+                            <div class="d-flex gap-3 flex-wrap align-items-start">
+                                <div class="acte-poster-thumb-wrap">
+                                    {% if object and object.imatge %}
+                                        <img id="acte-photo-preview" class="acte-poster-thumb" src="{{ object.imatge.url }}" alt="{{ object.titol }}" onerror="this.src='{% static 'img/item-placeholder.svg' %}'">
+                                    {% else %}
+                                        <img id="acte-photo-preview" class="acte-poster-thumb" src="{% static 'img/item-placeholder.svg' %}" alt="Sense cartell">
+                                    {% endif %}
+                                </div>
+                                <div class="d-grid gap-2">
+                                    {{ form.imatge }}
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="canviar-cartell-btn">Canviar cartell</button>
+                                        {% if object and object.imatge %}
+                                            <button type="button" class="btn btn-outline-danger btn-sm" id="borrar-cartell-btn">Borrar cartell</button>
+                                        {% endif %}
+                                    </div>
+                                    {% if form.imatge.help_text %}<small class="text-muted">{{ form.imatge.help_text }}</small>{% endif %}
+                                    {% for error in form.imatge.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.tipus %}</div>
                     <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.estat %}</div>
                     <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.es_important %}</div>
@@ -80,4 +105,42 @@
         </div>
     </form>
 </section>
+<script>
+(() => {
+    const fileInput = document.getElementById('id_imatge');
+    const preview = document.getElementById('acte-photo-preview');
+    const changeBtn = document.getElementById('canviar-cartell-btn');
+    const clearCheckbox = document.getElementById('imatge-clear_id');
+    const clearBtn = document.getElementById('borrar-cartell-btn');
+    const placeholder = "{% static 'img/item-placeholder.svg' %}";
+
+    if (fileInput) {
+        fileInput.classList.add('d-none');
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files?.[0];
+            if (!preview) return;
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                if (clearCheckbox) clearCheckbox.checked = false;
+                return;
+            }
+            if (!clearCheckbox?.checked) {
+                preview.src = placeholder;
+            }
+        });
+    }
+
+    if (changeBtn && fileInput) {
+        changeBtn.addEventListener('click', () => fileInput.click());
+    }
+
+    if (clearBtn && clearCheckbox && preview && fileInput) {
+        clearBtn.addEventListener('click', () => {
+            clearCheckbox.checked = true;
+            fileInput.value = '';
+            preview.src = placeholder;
+        });
+    }
+})();
+</script>
 {% endblock %}
