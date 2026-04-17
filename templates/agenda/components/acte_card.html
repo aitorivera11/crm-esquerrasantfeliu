@@ -1,28 +1,30 @@
 <article id="acte-card-{{ acte.pk }}" class="card card-panel acte-card acte-card-simple {% if acte.es_important %}acte-card-important{% endif %} p-4" {% if acte.tipus_style %}style="{{ acte.tipus_style }}"{% endif %}>
-    {% if acte.imatge %}
-        <div class="acte-card-poster mb-2">
-            <img src="{{ acte.imatge.url }}" alt="{{ acte.titol }}" class="acte-card-image">
-        </div>
-    {% endif %}
-    <div class="acte-card-main">
-        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-            <div class="flex-grow-1 min-w-0">
-                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                    {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}
-                    {% if acte.tipus %}<span class="badge badge-type">{{ acte.tipus.nom }}</span>{% endif %}
-                    {% if acte.external_source %}<span class="badge badge-external">Importat</span>{% endif %}
-                    {% if acte.estat == 'PUBLICAT' %}<span class="badge badge-deep">Publicat</span>{% else %}<span class="badge badge-soft">Esborrany</span>{% endif %}
-                </div>
-                <h3 class="h5 mb-1"><a class="text-decoration-none" href="{% url 'agenda:acte_detail' acte.pk %}">{{ acte.titol }}</a></h3>
-                <div class="text-muted small d-flex flex-wrap gap-2 align-items-center acte-card-basics">
-                    <span>{{ acte.inici|date:'D d/m · H:i' }}</span>
-                    {% if acte.fi %}<span>— {{ acte.fi|date:'H:i' }}</span>{% endif %}
-                    {% if acte.ubicacio %}<span>· {{ acte.ubicacio }}</span>{% endif %}
-                </div>
+    <div class="acte-card-head {% if acte.imatge %}acte-card-head-has-image{% endif %}">
+        {% if acte.imatge %}
+            <div class="acte-card-poster">
+                <img src="{{ acte.imatge.url }}" alt="{{ acte.titol }}" class="acte-card-image">
             </div>
-            <div class="acte-card-aside">
-                {% if acte.user_can_view_admin_details %}<span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> confirmats</span>{% endif %}
-                {% if acte.request_user_participacio %}<span class="mini-stat mini-stat-response">{{ acte.request_user_participacio.get_intencio_display }}</span>{% endif %}
+        {% endif %}
+        <div class="acte-card-main">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                        {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}
+                        {% if acte.tipus %}<span class="badge badge-type">{{ acte.tipus.nom }}</span>{% endif %}
+                        {% if acte.external_source %}<span class="badge badge-external">Importat</span>{% endif %}
+                        {% if acte.estat == 'PUBLICAT' %}<span class="badge badge-deep">Publicat</span>{% else %}<span class="badge badge-soft">Esborrany</span>{% endif %}
+                    </div>
+                    <h3 class="h5 mb-1"><a class="text-decoration-none" href="{% url 'agenda:acte_detail' acte.pk %}">{{ acte.titol }}</a></h3>
+                    <div class="text-muted small d-flex flex-wrap gap-2 align-items-center acte-card-basics">
+                        <span>{{ acte.inici|date:'D d/m · H:i' }}</span>
+                        {% if acte.fi %}<span>— {{ acte.fi|date:'H:i' }}</span>{% endif %}
+                        {% if acte.ubicacio %}<span>· {{ acte.ubicacio }}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="acte-card-aside">
+                    {% if acte.user_can_view_admin_details %}<span class="mini-stat"><strong>{{ acte.total_confirmats }}</strong> confirmats</span>{% endif %}
+                    {% if acte.request_user_participacio %}<span class="mini-stat mini-stat-response">{{ acte.request_user_participacio.get_intencio_display }}</span>{% endif %}
+                </div>
             </div>
         </div>
     </div>

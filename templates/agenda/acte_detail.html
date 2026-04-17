@@ -37,11 +37,6 @@
                     {% if can_view_admin_details %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
                 </div>
             </div>
-            {% if acte.imatge %}
-                <div class="mb-4 acte-detail-poster-wrap">
-                    <img src="{{ acte.imatge.url }}" alt="{{ acte.titol }}" class="acte-detail-poster">
-                </div>
-            {% endif %}
             <div class="meta-grid">
                 <div class="meta-card"><span>Dia i hora</span><strong>{{ acte.inici|date:'d/m/Y H:i' }}</strong></div>
                 {% if acte.fi %}<div class="meta-card"><span>Finalització</span><strong>{{ acte.fi|date:'d/m/Y H:i' }}</strong></div>{% endif %}
@@ -109,6 +104,14 @@
                     <p class="text-muted mb-0">Pots consultar el detall, però aquest acte no està obert a confirmacions.</p>
                 {% endif %}
             </section>
+
+            {% if acte.imatge %}
+                <section class="card card-panel p-3">
+                    <div class="acte-detail-side-poster-wrap">
+                        <img src="{{ acte.imatge.url }}" alt="{{ acte.titol }}" class="acte-detail-side-poster">
+                    </div>
+                </section>
+            {% endif %}
 
             {% include 'components/share_actions_panel.html' with heading='Comparteix i exporta' chip='Social' whatsapp_url=whatsapp_url email_url=email_url share_url=share_url share_text=share_text native_title=acte.titol %}
 
