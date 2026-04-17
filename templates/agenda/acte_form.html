@@ -9,7 +9,15 @@
             <h2 class="h4 mb-1">{% if object %}Editar acte{% else %}Crear acte{% endif %}</h2>
             <p class="text-muted mb-0">Els camps de configuració s’han reorganitzat perquè la lectura sigui molt més clara.</p>
         </div>
+        {% if not object %}
+            <a href="{% url 'agenda:acte_import_instagram' %}" class="btn btn-outline-secondary">Crear des d’Instagram</a>
+        {% endif %}
     </div>
+    {% if instagram_prefill and not object %}
+        <div class="alert alert-info mb-4">
+            <strong>Dades precarregades des d’Instagram.</strong> Revisa i ajusta la informació abans de desar l’acte.
+        </div>
+    {% endif %}
     <form method="post" class="acte-form-layout responsive-form">
         {% csrf_token %}
         {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Crear des d’Instagram{% endblock %}
+{% block page_title %}Crear des d’Instagram{% endblock %}
+{% block page_intro %}{% endblock %}
+{% block content %}
+<section class="card card-panel acte-form-panel">
+    <div class="section-heading mb-4">
+        <div>
+            <h2 class="h4 mb-1">Importar publicació d’Instagram</h2>
+        </div>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="acte-form-layout responsive-form">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+
+        <section class="form-section-card">
+            <div class="row g-3">
+                <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.instagram_url %}</div>
+                <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.text_manual %}</div>
+                <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.imatge %}</div>
+                <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.observacions %}</div>
+            </div>
+        </section>
+
+        <div class="d-flex gap-2 flex-wrap mt-4">
+            <button class="btn btn-primary" type="submit">Analitzar i continuar</button>
+            <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

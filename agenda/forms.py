@@ -168,3 +168,34 @@ class ParticipacioForm(StyledFormMixin, forms.ModelForm):
             if qs.exists():
                 raise ValidationError('Aquest usuari ja té una participació registrada per a aquest acte.')
         return cleaned_data
+
+
+class InstagramImportForm(StyledFormMixin, forms.Form):
+    instagram_url = forms.URLField(
+        label='URL de la publicació d’Instagram',
+        help_text='Enllaç públic de la publicació, reel o carrusel.',
+    )
+    text_manual = forms.CharField(
+        label='Text manual',
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                'rows': 5,
+                'placeholder': 'Copia aquí el text de la publicació o notes rellevants de data, hora i lloc.',
+            }
+        ),
+    )
+    imatge = forms.ImageField(
+        label='Captura o cartell',
+        required=False,
+    )
+    observacions = forms.CharField(
+        label='Observacions',
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                'rows': 3,
+                'placeholder': 'Comentaris interns per revisar abans de desar l’acte.',
+            }
+        ),
+    )
