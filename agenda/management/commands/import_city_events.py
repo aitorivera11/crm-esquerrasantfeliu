@@ -25,6 +25,7 @@ PAGE_SIZE = 1000
 REQUEST_TIMEOUT = 30
 SOURCE_NAME = "AGENDA_CIUTAT"
 EXPECTED_API_HOST = "dadesobertes.seu-e.cat"
+EXCLUDED_EVENT_TYPES = {"competició esportiva"}
 
 
 class Command(BaseCommand):
@@ -227,6 +228,10 @@ class CityEventsImporter:
                 return value
         return ""
 
+    def should_skip_record(self, record: dict[str, Any]) -> bool:
+        event_type = self.get_optional_field(record, "TIPUS_ACTE", "TIPUS").casefold()
+        return event_type in EXCLUDED_EVENT_TYPES
+
     def build_description(self, record: dict[str, Any]) -> str:
         pieces: list[str] = []
         for text in (self.clean_text(record.get("DESCRIPCIO")), self.clean_text(record.get("OBSERVACIONS"))):
@@ -264,6 +269,8 @@ class CityEventsImporter:
         normalized = []
         seen = set()
         for record in records:
+            if self.should_skip_record(record):
+                continue
             title = self.clean_text(record.get("TITOL")) or "Sense títol"
             start = self.parse_api_dt(record.get("DATA_HORA_INICI_ACTE"))
             if start is None:
