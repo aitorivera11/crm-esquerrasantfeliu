@@ -497,3 +497,33 @@ class ImportCityEventsCleanupPolicyTests(TestCase):
         self.assertEqual(stats['cleanup'], 1)
         self.assertTrue(Acte.objects.filter(pk=self.past_imported.pk).exists())
         self.assertFalse(Acte.objects.filter(pk=self.future_imported_stale.pk).exists())
+
+
+class ImportCityEventsTypeFilterTests(TestCase):
+    def test_normalize_records_skips_sports_competitions(self):
+        importer = CityEventsImporter(days_ahead=60, stdout=None)
+        records = [
+            {
+                "_id": 1,
+                "ID": "sport-1",
+                "TITOL": "Torneig local",
+                "TIPUS_ACTE": "Competició esportiva",
+                "DATA_HORA_INICI_ACTE": "20260420090000",
+                "NOM_LLOC": "Pavelló",
+                "ADREÇA_COMPLETA": "Carrer Major, 1",
+            },
+            {
+                "_id": 2,
+                "ID": "culture-1",
+                "TITOL": "Concert de primavera",
+                "TIPUS_ACTE": "Concert",
+                "DATA_HORA_INICI_ACTE": "20260420110000",
+                "NOM_LLOC": "Ateneu",
+                "ADREÇA_COMPLETA": "Plaça de la Vila, 2",
+            },
+        ]
+
+        normalized = importer.normalize_records(records)
+
+        self.assertEqual(len(normalized), 1)
+        self.assertEqual(normalized[0]["external_id"], "culture-1")
