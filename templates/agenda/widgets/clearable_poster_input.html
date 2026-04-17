@@ -1,0 +1,18 @@
+<div class="poster-upload-widget">
+    {% if widget.is_initial %}
+        <div class="poster-upload-widget__current">
+            <div class="poster-upload-widget__label">Actualment</div>
+            <a href="{{ widget.value.url }}" class="poster-upload-widget__link" target="_blank" rel="noopener">{{ widget.value }}</a>
+            {% if not widget.required %}
+                <label class="poster-upload-widget__clear" for="{{ widget.checkbox_id }}">
+                    <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}"{% if widget.attrs.disabled %} disabled{% endif %}>
+                    <span>{{ widget.clear_checkbox_label }}</span>
+                </label>
+            {% endif %}
+        </div>
+    {% endif %}
+    <label class="poster-upload-widget__picker">
+        <span class="poster-upload-widget__picker-label">Puja un cartell (format vertical recomanat)</span>
+        <input type="{{ widget.type }}" name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
+    </label>
+</div>
