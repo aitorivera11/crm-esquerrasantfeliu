@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 import io
 import json
@@ -8,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,6 +25,8 @@ from core.models import Auditoria
 from .forms import ActeForm, InstagramImportForm, ParticipacioForm
 from .models import Acte, ActeTipus, InstagramEventImport, ParticipacioActe, SegmentVisibilitat
 from .services import parse_instagram_event_data
+
+logger = logging.getLogger(__name__)
 
 
 class AgendaContextMixin:
@@ -471,27 +475,34 @@ class InstagramActeImportView(LoginRequiredMixin, PermissionRequiredMixin, View)
         if not form.is_valid():
             return render(request, self.template_name, {'form': form})
 
-        payload = parse_instagram_event_data(
-            instagram_url=form.cleaned_data['instagram_url'],
-            manual_text=form.cleaned_data.get('text_manual', ''),
-            image_file=form.cleaned_data.get('imatge'),
-            observations=form.cleaned_data.get('observacions', ''),
-        )
-        instagram_import = InstagramEventImport.objects.create(
-            usuari=request.user,
-            instagram_url=form.cleaned_data['instagram_url'],
-            text_manual=form.cleaned_data.get('text_manual', ''),
-            text_extret=payload.get('raw_text', ''),
-            observacions=form.cleaned_data.get('observacions', ''),
-            imatge=form.cleaned_data.get('imatge'),
-            camps_proposats=payload.get('fields', {}),
-            metadata={
-                'warnings': payload.get('warnings', []),
-                'heuristic_fields': payload.get('heuristic_fields', {}),
-                'ai_fields': payload.get('ai_fields', {}),
-                'ocr_text': payload.get('ocr_text', ''),
-            },
-        )
+        try:
+            payload = parse_instagram_event_data(
+                instagram_url=form.cleaned_data['instagram_url'],
+                manual_text=form.cleaned_data.get('text_manual', ''),
+                image_file=form.cleaned_data.get('imatge'),
+                observations=form.cleaned_data.get('observacions', ''),
+            )
+            with transaction.atomic():
+                instagram_import = InstagramEventImport.objects.create(
+                    usuari=request.user,
+                    instagram_url=form.cleaned_data['instagram_url'],
+                    text_manual=form.cleaned_data.get('text_manual', ''),
+                    text_extret=payload.get('raw_text', ''),
+                    observacions=form.cleaned_data.get('observacions', ''),
+                    imatge=form.cleaned_data.get('imatge'),
+                    camps_proposats=payload.get('fields', {}),
+                    metadata={
+                        'warnings': payload.get('warnings', []),
+                        'heuristic_fields': payload.get('heuristic_fields', {}),
+                        'ai_fields': payload.get('ai_fields', {}),
+                        'ocr_text': payload.get('ocr_text', ''),
+                    },
+                )
+        except Exception:
+            logger.exception("Error important esdeveniment des d'Instagram.")
+            form.add_error(None, "No s'ha pogut importar la publicació ara mateix. Revisa les dades i torna-ho a provar.")
+            messages.error(request, "No s'ha pogut completar la importació d'Instagram.")
+            return render(request, self.template_name, {'form': form})
 
         request.session[self._session_key()] = {
             'import_id': instagram_import.pk,

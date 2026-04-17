@@ -614,3 +614,17 @@ class InstagramImportFlowTests(TestCase):
         self.assertEqual(import_record.acte_id, acte.id)
         self.assertEqual(acte.source_url, 'https://www.instagram.com/p/XYZ789/')
         self.assertEqual(acte.external_source, 'INSTAGRAM')
+
+    @patch('agenda.views.parse_instagram_event_data', side_effect=RuntimeError('servei no disponible'))
+    def test_import_view_handles_processing_errors_without_500(self, _mock_parse):
+        response = self.client.post(
+            reverse('agenda:acte_import_instagram'),
+            data={
+                'instagram_url': 'https://www.instagram.com/p/ERROR500/',
+                'text_manual': 'Contingut de prova',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No s&#x27;ha pogut importar la publicació ara mateix")
+        self.assertEqual(InstagramEventImport.objects.count(), 0)
