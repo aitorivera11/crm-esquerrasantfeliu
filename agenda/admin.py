@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Acte, ActeTipus, InstagramEventImport, ParticipacioActe, SegmentVisibilitat
+from .models import Acte, ActeTipus, ParticipacioActe, SegmentVisibilitat
 
 
 class ParticipacioInline(admin.TabularInline):
@@ -38,8 +38,3 @@ class ParticipacioActeAdmin(admin.ModelAdmin):
     search_fields = ('acte__titol', 'usuari__username', 'usuari__nom_complet')
 
 
-@admin.register(InstagramEventImport)
-class InstagramEventImportAdmin(admin.ModelAdmin):
-    list_display = ('instagram_url', 'usuari', 'acte', 'creat_el')
-    list_filter = ('creat_el',)
-    search_fields = ('instagram_url', 'text_manual', 'text_extret', 'usuari__username')

@@ -1,7 +1,9 @@
 from datetime import timedelta
+from io import BytesIO
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
 from django.utils.formats import localize_input
 
@@ -12,6 +14,14 @@ from usuaris.forms import StyledFormMixin
 
 from .models import Acte, ParticipacioActe, SegmentVisibilitat
 from usuaris.models import Usuari
+
+try:
+    from PIL import Image
+except ImportError:  # pragma: no cover - optional in local tooling
+    Image = None
+
+
+MAX_UPLOAD_SIZE = 4 * 1024 * 1024
 
 
 class ActeForm(StyledFormMixin, forms.ModelForm):
@@ -26,6 +36,7 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         model = Acte
         fields = [
             'titol',
+            'imatge',
             'tipus',
             'descripcio',
             'inici',
@@ -42,6 +53,7 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         widgets = {
             'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
             'fi': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
+            'imatge': forms.ClearableFileInput(attrs={'accept': 'image/*', 'capture': 'environment'}),
             'descripcio': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Context, objectiu, material necessari…'}),
             'visible_per': SearchableSelectMultiple(search_placeholder='Cerca públics…', empty_text='No hi ha segments disponibles.'),
             'entitats_relacionades': SearchableSelectMultiple(search_placeholder='Cerca entitats…', empty_text='No hi ha entitats disponibles.'),
@@ -70,6 +82,8 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         self.fields['persones_relacionades'].label = 'Persones relacionades'
         self.fields['es_important'].label = 'Acte important'
         self.fields['es_important'].help_text = 'Es mostrarà més destacat als llistats i resums per facilitar-ne el seguiment.'
+        self.fields['imatge'].label = 'Imatge/cartell'
+        self.fields['imatge'].help_text = 'Opcional. Pots pujar una imatge principal de l’acte.'
         self.fields['inici'].input_formats = self.datetime_input_formats
         self.fields['fi'].input_formats = self.datetime_input_formats
 
@@ -135,6 +149,32 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         cleaned_data['visible_per'] = []
         return cleaned_data
 
+    def clean_imatge(self):
+        imatge = self.cleaned_data.get('imatge')
+        if not imatge:
+            return imatge
+        if imatge.size > MAX_UPLOAD_SIZE:
+            raise ValidationError('La imatge supera el límit de 4MB.')
+        if Image is None:
+            return imatge
+
+        image = Image.open(imatge)
+        image = image.convert('RGB')
+        image.thumbnail((1800, 1800), Image.Resampling.LANCZOS)
+        output = BytesIO()
+        image.save(output, format='JPEG', quality=82, optimize=True)
+        output.seek(0)
+
+        filename = imatge.name.rsplit('.', 1)[0]
+        return InMemoryUploadedFile(
+            output,
+            field_name=imatge.field_name,
+            name=f'{filename}.jpg',
+            content_type='image/jpeg',
+            size=output.getbuffer().nbytes,
+            charset=None,
+        )
+
     def save(self, commit=True):
         instance = super().save(commit=commit)
         if commit:
@@ -173,7 +213,8 @@ class ParticipacioForm(StyledFormMixin, forms.ModelForm):
 class InstagramImportForm(StyledFormMixin, forms.Form):
     instagram_url = forms.URLField(
         label='URL de la publicació d’Instagram',
-        help_text='Enllaç públic de la publicació, reel o carrusel.',
+        required=False,
+        help_text='Opcional si puges un cartell/imatge directament.',
     )
     text_manual = forms.CharField(
         label='Text manual',
@@ -199,3 +240,15 @@ class InstagramImportForm(StyledFormMixin, forms.Form):
             }
         ),
     )
+
+
+    def clean(self):
+        cleaned_data = super().clean()
+        instagram_url = (cleaned_data.get('instagram_url') or '').strip()
+        text_manual = (cleaned_data.get('text_manual') or '').strip()
+        imatge = cleaned_data.get('imatge')
+
+        if not instagram_url and not imatge and not text_manual:
+            raise ValidationError('Cal indicar una URL d’Instagram o bé pujar una imatge/cartell (també pots afegir text manual).')
+
+        return cleaned_data

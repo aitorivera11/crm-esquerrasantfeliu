@@ -6,7 +6,7 @@
 <section class="card card-panel acte-form-panel">
     <div class="section-heading mb-4">
         <div>
-            <h2 class="h4 mb-1">Importar publicació d’Instagram</h2>
+            <h2 class="h4 mb-1">Importar acte des d’Instagram o cartell</h2>
         </div>
     </div>
     <form method="post" enctype="multipart/form-data" class="acte-form-layout responsive-form">
@@ -24,6 +24,7 @@
 
         <div class="d-flex gap-2 flex-wrap mt-4">
             <button class="btn btn-primary" type="submit">Analitzar i continuar</button>
+            <p class="text-muted mb-0">Pots informar una URL d’Instagram, pujar una imatge/cartell o combinar-ho.</p>
             <a href="{% url 'agenda:acte_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
         </div>
     </form>
