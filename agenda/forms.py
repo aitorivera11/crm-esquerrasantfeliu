@@ -24,6 +24,10 @@ except ImportError:  # pragma: no cover - optional in local tooling
 MAX_UPLOAD_SIZE = 4 * 1024 * 1024
 
 
+class PosterClearableFileInput(forms.ClearableFileInput):
+    template_name = 'agenda/widgets/clearable_poster_input.html'
+
+
 class ActeForm(StyledFormMixin, forms.ModelForm):
     datetime_input_formats = [
         '%Y-%m-%dT%H:%M',
@@ -53,7 +57,7 @@ class ActeForm(StyledFormMixin, forms.ModelForm):
         widgets = {
             'inici': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
             'fi': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'}),
-            'imatge': forms.ClearableFileInput(attrs={'accept': 'image/*', 'capture': 'environment'}),
+            'imatge': PosterClearableFileInput(attrs={'accept': 'image/*', 'capture': 'environment'}),
             'descripcio': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Context, objectiu, material necessari…'}),
             'visible_per': SearchableSelectMultiple(search_placeholder='Cerca públics…', empty_text='No hi ha segments disponibles.'),
             'entitats_relacionades': SearchableSelectMultiple(search_placeholder='Cerca entitats…', empty_text='No hi ha entitats disponibles.'),
