@@ -2,6 +2,8 @@ import json
 import os
 import re
 from datetime import datetime, timedelta
+from html import unescape
+from urllib.request import Request, urlopen
 
 try:
     import pytesseract
@@ -253,9 +255,38 @@ def _extract_with_ai(combined_text):
         return {'fields': {}, 'warnings': [f'Extracció IA no disponible: {exc}']}
 
 
-def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text='', observations=''):
+def fetch_instagram_post_preview(instagram_url):
+    url = (instagram_url or '').strip()
+    if not url:
+        return {'caption': '', 'image_url': '', 'warnings': []}
+
+    try:
+        request = Request(
+            url,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; CRMEsquerraSantFeliuBot/1.0)',
+                'Accept-Language': 'ca,es;q=0.9,en;q=0.8',
+            },
+        )
+        with urlopen(request, timeout=10) as response:  # nosec B310 - trusted public URL provided by user
+            html = response.read().decode('utf-8', errors='ignore')
+    except Exception as exc:  # pragma: no cover - network dependent
+        return {'caption': '', 'image_url': '', 'warnings': [f"No s'ha pogut llegir la publicació d'Instagram: {exc}"]}
+
+    def _meta_content(name):
+        pattern = rf'<meta[^>]+(?:property|name)=["\']{name}["\'][^>]+content=["\']([^"\']+)["\']'
+        match = re.search(pattern, html, flags=re.I)
+        return unescape(match.group(1)).strip() if match else ''
+
+    caption = _meta_content('og:description') or _meta_content('description')
+    image_url = _meta_content('og:image')
+    return {'caption': caption, 'image_url': image_url, 'warnings': []}
+
+
+def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text='', observations='', instagram_caption=''):
     chunks = [
         f'URL font: {instagram_url}'.strip(),
+        (instagram_caption or '').strip(),
         (manual_text or '').strip(),
         (ocr_text or '').strip(),
     ]
@@ -296,15 +327,18 @@ def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text=''
     }
 
 
-def parse_instagram_event_data(instagram_url, manual_text='', image_file=None, observations=''):
+def parse_instagram_event_data(instagram_url='', manual_text='', image_file=None, observations=''):
+    instagram_preview = fetch_instagram_post_preview(instagram_url)
     ocr_result = extract_text_from_image(image_file)
     proposal = build_event_from_instagram_source(
         instagram_url=instagram_url,
         manual_text=manual_text,
         ocr_text=ocr_result.get('text', ''),
         observations=observations,
+        instagram_caption=instagram_preview.get('caption', ''),
     )
     warnings = []
+    warnings.extend(instagram_preview.get('warnings', []))
     warnings.extend(ocr_result.get('warnings', []))
     warnings.extend(proposal.get('warnings', []))
     return {

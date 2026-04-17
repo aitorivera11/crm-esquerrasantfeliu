@@ -18,7 +18,7 @@
             <strong>Dades precarregades des d’Instagram.</strong> Revisa i ajusta la informació abans de desar l’acte.
         </div>
     {% endif %}
-    <form method="post" class="acte-form-layout responsive-form">
+    <form method="post" enctype="multipart/form-data" class="acte-form-layout responsive-form">
         {% csrf_token %}
         {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
 
@@ -30,6 +30,7 @@
                 </div>
                 <div class="row g-3">
                     <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.titol %}</div>
+                    <div class="col-12">{% include 'agenda/components/acte_form_field.html' with field=form.imatge %}</div>
                     <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.tipus %}</div>
                     <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.estat %}</div>
                     <div class="col-12 col-lg-6">{% include 'agenda/components/acte_form_field.html' with field=form.es_important %}</div>

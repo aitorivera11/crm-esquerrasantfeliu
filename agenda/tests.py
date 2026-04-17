@@ -1,8 +1,11 @@
+import base64
 from datetime import timedelta
+from io import BytesIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
@@ -12,8 +15,13 @@ from django.utils.timezone import localtime
 from agenda.management.commands.import_city_events import CityEventsImporter, SOURCE_NAME
 from reunions.models import Reunio, TipusReunio
 from .forms import ActeForm
-from .models import Acte, InstagramEventImport, ParticipacioActe, SegmentVisibilitat
+from .models import Acte, ParticipacioActe, SegmentVisibilitat
 from .services import extract_event_fields_from_text
+
+try:
+    from PIL import Image
+except ImportError:  # pragma: no cover
+    Image = None
 
 
 class ActeExternalIdentifierConstraintTests(TestCase):
@@ -549,6 +557,18 @@ class InstagramEventParsingTests(TestCase):
 
 
 class InstagramImportFlowTests(TestCase):
+    @staticmethod
+    def _tiny_png_file(name='cartell.png'):
+        if Image is not None:
+            output = BytesIO()
+            image = Image.new('RGB', (2, 2), color=(200, 40, 40))
+            image.save(output, format='PNG')
+            output.seek(0)
+            return SimpleUploadedFile(name, output.read(), content_type='image/png')
+
+        png_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zz7YAAAAASUVORK5CYII=')
+        return SimpleUploadedFile(name, png_data, content_type='image/png')
+
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user(
@@ -560,32 +580,33 @@ class InstagramImportFlowTests(TestCase):
         self.user.user_permissions.add(Permission.objects.get(codename='add_acte'))
         self.client.force_login(self.user)
 
-    def test_import_view_creates_trace_and_prefills_create_form(self):
+    @patch('agenda.services.fetch_instagram_post_preview', return_value={
+        'caption': 'Xerrada oberta\n12/05/2026 19:00\nPlaça de la Vila\nOrganitza: Jovent Republicà',
+        'image_url': 'https://example.com/cartell.jpg',
+        'warnings': [],
+    })
+    def test_import_view_prefills_create_form_without_saving_trace(self, _mock_preview):
         response = self.client.post(
             reverse('agenda:acte_import_instagram'),
             data={
                 'instagram_url': 'https://www.instagram.com/p/ABC123/',
-                'text_manual': 'Xerrada oberta\\n12/05/2026 19:00\\nPlaça de la Vila\\nOrganitza: Jovent Republicà',
                 'observacions': 'Confirmar si hi ha aforament',
             },
         )
 
         self.assertRedirects(response, reverse('agenda:acte_create'))
-        self.assertEqual(InstagramEventImport.objects.count(), 1)
-        import_record = InstagramEventImport.objects.first()
-        self.assertEqual(import_record.instagram_url, 'https://www.instagram.com/p/ABC123/')
         create_response = self.client.get(reverse('agenda:acte_create'))
         self.assertEqual(create_response.status_code, 200)
         self.assertContains(create_response, 'Dades precarregades des d’Instagram')
         self.assertContains(create_response, 'Xerrada oberta')
         self.assertContains(create_response, 'Plaça de la Vila')
 
-    def test_creating_event_after_import_links_trace_and_source_url(self):
+    def test_creating_event_after_import_sets_source_url_and_payload(self):
         response_import = self.client.post(
             reverse('agenda:acte_import_instagram'),
             data={
                 'instagram_url': 'https://www.instagram.com/p/XYZ789/',
-                'text_manual': 'Acte de campanya\\n15/06/2026 20:00\\nCasal Popular',
+                'text_manual': 'Acte de campanya\n15/06/2026 20:00\nCasal Popular',
                 'observacions': 'Aportat pel grup de comunicació',
             },
         )
@@ -610,10 +631,70 @@ class InstagramImportFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         acte = Acte.objects.get(titol='Acte de campanya')
-        import_record = InstagramEventImport.objects.get(instagram_url='https://www.instagram.com/p/XYZ789/')
-        self.assertEqual(import_record.acte_id, acte.id)
         self.assertEqual(acte.source_url, 'https://www.instagram.com/p/XYZ789/')
         self.assertEqual(acte.external_source, 'INSTAGRAM')
+        self.assertIn('raw_text', acte.source_payload)
+
+    def test_import_form_accepts_image_without_instagram_url(self):
+        image = self._tiny_png_file()
+        response = self.client.post(
+            reverse('agenda:acte_import_instagram'),
+            data={
+                'text_manual': 'Cartell Festa Major\n20/08/2026 19:30\nPlaça Catalunya',
+                'imatge': image,
+            },
+        )
+
+        self.assertRedirects(response, reverse('agenda:acte_create'))
+
+    @patch('agenda.views.parse_instagram_event_data', return_value={
+        'fields': {
+            'title': 'Acte amb cartell',
+            'description': 'Descripció importada',
+            'date': '2026-08-20',
+            'start_time': '19:30',
+            'end_time': '',
+            'location': 'Plaça Catalunya',
+            'municipality': '',
+            'organizer': '',
+            'source_url': '',
+        },
+        'raw_text': 'Acte amb cartell',
+        'ocr_text': '',
+        'warnings': [],
+        'heuristic_fields': {},
+        'ai_fields': {},
+    })
+    def test_imported_image_is_attached_when_creating_event(self, _mock_parse):
+        image = self._tiny_png_file()
+
+        response_import = self.client.post(
+            reverse('agenda:acte_import_instagram'),
+            data={'text_manual': 'Acte amb cartell', 'imatge': image},
+        )
+        self.assertRedirects(response_import, reverse('agenda:acte_create'))
+
+        response_create = self.client.post(
+            reverse('agenda:acte_create'),
+            data={
+                'titol': 'Acte amb cartell',
+                'tipus': '',
+                'descripcio': 'Descripció importada',
+                'inici': '2026-08-20T19:30',
+                'fi': '',
+                'ubicacio': 'Plaça Catalunya',
+                'punt_trobada': '',
+                'aforament': '',
+                'entitats_relacionades': [],
+                'persones_relacionades': [],
+                'visible_per': [],
+                'estat': Acte.Estat.ESBORRANY,
+                'es_important': '',
+            },
+        )
+        self.assertEqual(response_create.status_code, 302)
+        acte = Acte.objects.get(titol='Acte amb cartell')
+        self.assertTrue(bool(acte.imatge))
 
     @patch('agenda.views.parse_instagram_event_data', side_effect=RuntimeError('servei no disponible'))
     def test_import_view_handles_processing_errors_without_500(self, _mock_parse):
@@ -627,4 +708,3 @@ class InstagramImportFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No s&#x27;ha pogut importar la publicació ara mateix")
-        self.assertEqual(InstagramEventImport.objects.count(), 0)

@@ -3,13 +3,16 @@ from datetime import datetime, timedelta
 import io
 import json
 import os
+from pathlib import Path
 from urllib.parse import quote
+from uuid import uuid4
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.db import transaction
+from django.core.files import File
+from django.core.files.storage import default_storage
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,7 +26,7 @@ from django.urls import reverse
 from core.models import Auditoria
 
 from .forms import ActeForm, InstagramImportForm, ParticipacioForm
-from .models import Acte, ActeTipus, InstagramEventImport, ParticipacioActe, SegmentVisibilitat
+from .models import Acte, ActeTipus, ParticipacioActe, SegmentVisibilitat
 from .services import parse_instagram_event_data
 
 logger = logging.getLogger(__name__)
@@ -388,6 +391,17 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     def _session_key(self):
         return 'agenda_instagram_prefill'
 
+    def _attach_prefill_image_if_needed(self, form, prefill_data):
+        if not prefill_data or form.cleaned_data.get('imatge'):
+            return
+        image_tmp_path = (prefill_data or {}).get('import_image_tmp_path') or ''
+        if not image_tmp_path or not default_storage.exists(image_tmp_path):
+            return
+
+        with default_storage.open(image_tmp_path, 'rb') as file_handle:
+            filename = Path(image_tmp_path).name.split('_', 1)[-1]
+            form.instance.imatge.save(filename, File(file_handle), save=False)
+
     def _build_initial_from_instagram_prefill(self, prefill_data):
         fields = (prefill_data or {}).get('fields') or {}
         initial = {}
@@ -431,12 +445,12 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.creador = self.request.user
         prefill_data = self.request.session.get(self._session_key())
+        self._attach_prefill_image_if_needed(form, prefill_data)
         if prefill_data:
             fields = prefill_data.get('fields') or {}
             form.instance.source_url = fields.get('source_url', '')
             form.instance.external_source = 'INSTAGRAM'
             form.instance.source_payload = {
-                'instagram_import_id': prefill_data.get('import_id'),
                 'municipality': fields.get('municipality', ''),
                 'organizer': fields.get('organizer', ''),
                 'raw_text': prefill_data.get('raw_text', ''),
@@ -444,9 +458,9 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             }
         response = super().form_valid(form)
         if prefill_data:
-            import_id = prefill_data.get('import_id')
-            if import_id:
-                InstagramEventImport.objects.filter(pk=import_id).update(acte=self.object)
+            image_tmp_path = prefill_data.get('import_image_tmp_path')
+            if image_tmp_path and default_storage.exists(image_tmp_path):
+                default_storage.delete(image_tmp_path)
             self.request.session.pop(self._session_key(), None)
             self.request.session.modified = True
         Auditoria.objects.create(
@@ -477,38 +491,31 @@ class InstagramActeImportView(LoginRequiredMixin, PermissionRequiredMixin, View)
 
         try:
             payload = parse_instagram_event_data(
-                instagram_url=form.cleaned_data['instagram_url'],
+                instagram_url=form.cleaned_data.get('instagram_url', ''),
                 manual_text=form.cleaned_data.get('text_manual', ''),
                 image_file=form.cleaned_data.get('imatge'),
                 observations=form.cleaned_data.get('observacions', ''),
             )
-            with transaction.atomic():
-                instagram_import = InstagramEventImport.objects.create(
-                    usuari=request.user,
-                    instagram_url=form.cleaned_data['instagram_url'],
-                    text_manual=form.cleaned_data.get('text_manual', ''),
-                    text_extret=payload.get('raw_text', ''),
-                    observacions=form.cleaned_data.get('observacions', ''),
-                    imatge=form.cleaned_data.get('imatge'),
-                    camps_proposats=payload.get('fields', {}),
-                    metadata={
-                        'warnings': payload.get('warnings', []),
-                        'heuristic_fields': payload.get('heuristic_fields', {}),
-                        'ai_fields': payload.get('ai_fields', {}),
-                        'ocr_text': payload.get('ocr_text', ''),
-                    },
-                )
         except Exception:
             logger.exception("Error important esdeveniment des d'Instagram.")
             form.add_error(None, "No s'ha pogut importar la publicació ara mateix. Revisa les dades i torna-ho a provar.")
             messages.error(request, "No s'ha pogut completar la importació d'Instagram.")
             return render(request, self.template_name, {'form': form})
 
+        import_image_tmp_path = ''
+        uploaded_image = form.cleaned_data.get('imatge')
+        if uploaded_image:
+            safe_name = uploaded_image.name.replace('/', '_')
+            import_image_tmp_path = default_storage.save(
+                f'agenda/tmp_imports/{uuid4().hex}_{safe_name}',
+                uploaded_image,
+            )
+
         request.session[self._session_key()] = {
-            'import_id': instagram_import.pk,
             'fields': payload.get('fields', {}),
             'raw_text': payload.get('raw_text', ''),
             'ocr_text': payload.get('ocr_text', ''),
+            'import_image_tmp_path': import_image_tmp_path,
             'warnings': payload.get('warnings', []),
         }
         request.session.modified = True

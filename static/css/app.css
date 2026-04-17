@@ -790,6 +790,8 @@ textarea.form-control { min-height: 120px; }
 .badge-important { background: rgba(180, 142, 60, .12); color: #775b15; border: 1px solid rgba(180, 142, 60, .22); }
 .badge-external { background: rgba(27, 92, 138, .08); color: #1b5c8a; border: 1px solid rgba(27, 92, 138, .18); }
 .badge-type { background: color-mix(in srgb, var(--type-accent, #6c7a89) 14%, white); color: var(--type-accent, #51606f); border: 1px solid color-mix(in srgb, var(--type-accent, #6c7a89) 22%, white); }
+
+.acte-card-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(15, 23, 42, .08); }
 .acte-card-simple { gap: 1rem; }
 .acte-card-main { display: grid; gap: .35rem; }
 .acte-card-basics span { white-space: nowrap; }
