@@ -2,5 +2,14 @@
 {% block title %}Ubicació{% endblock %}
 {% block page_title %}{% if object %}Editar ubicació{% else %}Nova ubicació{% endif %}{% endblock %}
 {% block content %}
-<section class="card card-panel form-wide panel-section"><form method="post" class="responsive-form">{% csrf_token %}{% include 'components/form_fields.html' with form=form %}<div class="d-flex gap-2"><button class="btn btn-primary">Desar</button><a href="{% url 'material:ubicacio_list' %}" class="btn btn-outline-secondary">Cancel·lar</a></div></form></section>
+<section class="card card-panel form-wide panel-section">
+    <form method="post" class="responsive-form">
+        {% csrf_token %}
+        {% include 'components/form_fields.html' with form=form %}
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary">Desar</button>
+            <a href="{% url 'material:ubicacio_list' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+        </div>
+    </form>
+</section>
 {% endblock %}
