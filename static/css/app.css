@@ -791,7 +791,22 @@ textarea.form-control { min-height: 120px; }
 .badge-external { background: rgba(27, 92, 138, .08); color: #1b5c8a; border: 1px solid rgba(27, 92, 138, .18); }
 .badge-type { background: color-mix(in srgb, var(--type-accent, #6c7a89) 14%, white); color: var(--type-accent, #51606f); border: 1px solid color-mix(in srgb, var(--type-accent, #6c7a89) 22%, white); }
 
-.acte-card-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(15, 23, 42, .08); }
+.acte-card-poster {
+    width: min(100%, 220px);
+    aspect-ratio: 210 / 297;
+    margin-inline: auto;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(15, 23, 42, .1);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, .08);
+    background: linear-gradient(180deg, rgba(15, 23, 42, .06), rgba(15, 23, 42, .02));
+}
+.acte-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
 .acte-card-simple { gap: 1rem; }
 .acte-card-main { display: grid; gap: .35rem; }
 .acte-card-basics span { white-space: nowrap; }
@@ -800,6 +815,41 @@ textarea.form-control { min-height: 120px; }
 .acte-card-important::before { content: ""; display: block; height: 4px; margin: -1.5rem -1.5rem 1rem; border-radius: 1rem 1rem 0 0; background: linear-gradient(90deg, rgba(180, 142, 60, .88), rgba(180, 142, 60, .24)); }
 .mini-stat-response { background: rgba(0,13,35,.05); }
 @media (max-width: 767.98px) { .acte-card-basics span { white-space: normal; } }
+
+.acte-detail-poster-wrap {
+    width: min(100%, 520px);
+    margin-inline: auto;
+    aspect-ratio: 210 / 297;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(0, 13, 35, .1);
+    box-shadow: 0 18px 38px rgba(0, 13, 35, .08);
+    background: linear-gradient(180deg, rgba(15, 23, 42, .06), rgba(15, 23, 42, .02));
+}
+
+.acte-detail-poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.acte-photo-editor .clearable-file-input {
+    display: none;
+}
+
+.acte-poster-thumb-wrap {
+    width: min(100%, 220px);
+}
+
+.acte-poster-thumb {
+    width: 100%;
+    aspect-ratio: 210 / 297;
+    object-fit: cover;
+    border-radius: .75rem;
+    border: 1px solid rgba(0, 13, 35, .12);
+    background: rgba(15, 23, 42, .05);
+}
 
 
 .searchable-multiselect {

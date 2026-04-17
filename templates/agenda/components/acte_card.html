@@ -1,6 +1,8 @@
 <article id="acte-card-{{ acte.pk }}" class="card card-panel acte-card acte-card-simple {% if acte.es_important %}acte-card-important{% endif %} p-4" {% if acte.tipus_style %}style="{{ acte.tipus_style }}"{% endif %}>
     {% if acte.imatge %}
-        <img src="{{ acte.imatge.url }}" alt="{{ acte.titol }}" class="acte-card-image mb-2">
+        <div class="acte-card-poster mb-2">
+            <img src="{{ acte.imatge.url }}" alt="{{ acte.titol }}" class="acte-card-image">
+        </div>
     {% endif %}
     <div class="acte-card-main">
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
