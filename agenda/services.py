@@ -16,9 +16,9 @@ except ImportError:  # pragma: no cover - pillow is optional at runtime
     Image = None
 
 try:
-    from openai import OpenAI
+    import google.generativeai as genai
 except ImportError:  # pragma: no cover - optional dependency
-    OpenAI = None
+    genai = None
 
 CATALAN_SPANISH_MONTHS = {
     'gener': 1,
@@ -227,28 +227,39 @@ def extract_event_fields_from_text(text):
 
 
 def _extract_with_ai(combined_text):
-    api_key = os.getenv('OPENAI_API_KEY', '').strip()
-    if not api_key or OpenAI is None:
+    api_key = os.getenv('GEMINI_KEY', '').strip()
+    if not api_key or genai is None:
         return {'fields': {}, 'warnings': []}
 
-    model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gpt-4.1-mini')
-    client = OpenAI(api_key=api_key)
+    model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gemini-1.5-flash')
     prompt = (
         'Extreu camps d\'un possible esdeveniment des d\'un text. '
         'Retorna NOMÉS JSON amb claus: title, description, date(YYYY-MM-DD), '
         'start_time(HH:MM), end_time(HH:MM), location, municipality, organizer. '
         'Si no tens un valor fiable, deixa cadena buida.'
     )
+
+    def _extract_json_block(raw_text):
+        cleaned = (raw_text or '').strip()
+        if not cleaned:
+            return '{}'
+        fenced = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', cleaned, flags=re.S | re.I)
+        if fenced:
+            return fenced.group(1)
+        first = cleaned.find('{')
+        last = cleaned.rfind('}')
+        if first != -1 and last != -1 and last > first:
+            return cleaned[first:last + 1]
+        return cleaned
+
     try:  # pragma: no cover - external API
-        response = client.responses.create(
-            model=model,
-            input=[
-                {'role': 'system', 'content': prompt},
-                {'role': 'user', 'content': combined_text[:12000]},
-            ],
-            temperature=0,
+        genai.configure(api_key=api_key)
+        client = genai.GenerativeModel(model)
+        response = client.generate_content(
+            [prompt, combined_text[:12000]],
+            generation_config={'temperature': 0},
         )
-        content = response.output_text or '{}'
+        content = _extract_json_block(getattr(response, 'text', '') or '{}')
         parsed = json.loads(content)
         return {'fields': parsed if isinstance(parsed, dict) else {}, 'warnings': []}
     except Exception as exc:  # pragma: no cover - external API
