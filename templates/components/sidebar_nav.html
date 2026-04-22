@@ -42,6 +42,11 @@
             <a href="{% url 'entitats:entitat_list' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'entitats' %}active{% endif %}">
                 Entitats
             </a>
+            {% if request.user.rol == 'ADMINISTRACIO' or perms.llistaelectoral.manage_electoral_list %}
+            <a href="{% url 'llistaelectoral:dashboard' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'llistaelectoral' %}active{% endif %}">
+                Llista electoral
+            </a>
+            {% endif %}
         </div>
     </div>
 
