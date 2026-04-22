@@ -19,6 +19,7 @@ urlpatterns = [
     path('reunions/', include(('reunions.urls', 'reunions'), namespace='reunions')),
     path('material/', include(('material.urls', 'material'), namespace='material')),
     path('usuaris/', include(('usuaris.urls', 'usuaris'), namespace='usuaris')),
+    path('llista-electoral/', include(('llistaelectoral.urls', 'llistaelectoral'), namespace='llistaelectoral')),
     path('', include(('core.urls', 'core'), namespace='core')),
 ]
 

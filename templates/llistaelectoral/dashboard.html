@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Llista electoral{% endblock %}
+{% block page_title %}Llista electoral{% endblock %}
+{% block page_intro %}<p class="page-subtitle mb-0">Edita posicions en viu (1-21 titulars + 10 suplents) i gestiona un repositori d'integrants.</p>{% endblock %}
+{% block extra_head %}<style>.drop-zone.drag-over { outline: 2px dashed #0d6efd; }</style>{% endblock %}
+{% block content %}
+<section class="card card-panel panel-section mb-4">
+    <div class="section-heading align-items-start"><div><h2 class="h4 mb-1">Afegir integrant al repositori</h2><p class="text-muted mb-0">Pots seleccionar una persona o un usuari, i definir afiliació/estat.</p></div></div>
+    <form id="add-integrant-form" class="row g-3 align-items-end">{% csrf_token %}
+        <div class="col-lg-3"><label class="form-label">Persona</label><select name="persona_id" class="form-select"><option value="">--</option>{% for persona in persones %}<option value="{{ persona.pk }}">{{ persona.nom }}</option>{% endfor %}</select></div>
+        <div class="col-lg-3"><label class="form-label">Usuari</label><select name="usuari_id" class="form-select"><option value="">--</option>{% for usuari in usuaris %}<option value="{{ usuari.pk }}">{{ usuari.nom_complet|default:usuari.username }}</option>{% endfor %}</select></div>
+        <div class="col-lg-2"><label class="form-label">Afiliació</label><select name="afiliacio" class="form-select">{% for key, label in afiliacions %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-lg-2"><label class="form-label">Estat</label><select name="estat" class="form-select">{% for key, label in estats %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-lg-2"><button class="btn btn-primary w-100">Afegir</button></div>
+    </form>
+</section>
+<div class="row g-4">
+<div class="col-xl-8">
+<section class="card card-panel panel-section mb-4"><h3 class="h5 mb-3">Titulars (1-21)</h3><div class="table-responsive"><table class="table align-middle app-table"><thead><tr><th>Posició</th><th>Integrant</th><th>Afiliació</th><th>Estat</th></tr></thead><tbody>
+{% for posicio in posicions_titulars %}
+<tr class="drop-zone" data-position="{{ posicio.numero }}"><td><strong>#{{ posicio.numero }}</strong></td><td>{% if posicio.integrant %}<span class="badge bg-light text-dark me-2 draggable-integrant" draggable="true" data-integrant="{{ posicio.integrant.pk }}" data-source-position="{{ posicio.numero }}">↕</span>{{ posicio.integrant.nom_mostrat }}{% else %}<span class="text-muted">Arrossega aquí un integrant</span>{% endif %}</td><td>{% if posicio.integrant %}<select class="form-select form-select-sm inline-edit" data-integrant-id="{{ posicio.integrant.pk }}" data-field="afiliacio">{% for key, label in afiliacions %}<option value="{{ key }}" {% if key == posicio.integrant.afiliacio %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% else %}—{% endif %}</td><td>{% if posicio.integrant %}<select class="form-select form-select-sm inline-edit" data-integrant-id="{{ posicio.integrant.pk }}" data-field="estat">{% for key, label in estats %}<option value="{{ key }}" {% if key == posicio.integrant.estat %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% else %}—{% endif %}</td></tr>
+{% endfor %}
+</tbody></table></div></section>
+<section class="card card-panel panel-section"><h3 class="h5 mb-3">Suplents (22-31)</h3><div class="table-responsive"><table class="table align-middle app-table"><thead><tr><th>Posició</th><th>Integrant</th><th>Afiliació</th><th>Estat</th></tr></thead><tbody>
+{% for posicio in posicions_suplents %}
+<tr class="drop-zone" data-position="{{ posicio.numero }}"><td><strong>#{{ posicio.numero }}</strong></td><td>{% if posicio.integrant %}<span class="badge bg-light text-dark me-2 draggable-integrant" draggable="true" data-integrant="{{ posicio.integrant.pk }}" data-source-position="{{ posicio.numero }}">↕</span>{{ posicio.integrant.nom_mostrat }}{% else %}<span class="text-muted">Arrossega aquí un integrant</span>{% endif %}</td><td>{% if posicio.integrant %}<select class="form-select form-select-sm inline-edit" data-integrant-id="{{ posicio.integrant.pk }}" data-field="afiliacio">{% for key, label in afiliacions %}<option value="{{ key }}" {% if key == posicio.integrant.afiliacio %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% else %}—{% endif %}</td><td>{% if posicio.integrant %}<select class="form-select form-select-sm inline-edit" data-integrant-id="{{ posicio.integrant.pk }}" data-field="estat">{% for key, label in estats %}<option value="{{ key }}" {% if key == posicio.integrant.estat %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% else %}—{% endif %}</td></tr>
+{% endfor %}
+</tbody></table></div></section>
+</div>
+<div class="col-xl-4"><section class="card card-panel panel-section"><h3 class="h5">Repositori d'integrants</h3><p class="text-muted">Arrossega una persona a la posició que toqui.</p><div class="list-group">{% for integrant in repositori %}<div class="list-group-item d-flex justify-content-between align-items-center draggable-integrant" draggable="true" data-integrant="{{ integrant.pk }}"><div><div class="fw-semibold">{{ integrant.nom_mostrat }}</div><div class="small text-muted">{{ integrant.get_afiliacio_display }} · {{ integrant.get_estat_display }}</div></div><span class="badge bg-light text-dark">↕</span></div>{% empty %}<div class="text-muted">No hi ha integrants pendents al repositori.</div>{% endfor %}</div></section></div>
+</div>
+<script>
+(() => {
+const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value || (document.cookie.match(/csrftoken=([^;]+)/)||[])[1];
+let dragData = null;
+document.querySelectorAll('.draggable-integrant').forEach(el => el.addEventListener('dragstart', () => { dragData = {integrantId: el.dataset.integrant, sourcePosition: el.dataset.sourcePosition || null}; }));
+document.querySelectorAll('.drop-zone').forEach(zone => {
+zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', async () => { zone.classList.remove('drag-over'); if (!dragData) return; await fetch("{% url 'llistaelectoral:assignar_posicio' %}",{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':token},body:JSON.stringify({integrant_id:dragData.integrantId,source_position:dragData.sourcePosition,target_position:zone.dataset.position})}); location.reload();});
+});
+document.querySelectorAll('.inline-edit').forEach(sel => sel.addEventListener('change', async () => { await fetch(`/llista-electoral/api/integrants/${sel.dataset.integrantId}/editar/`, {method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':token},body:JSON.stringify({[sel.dataset.field]: sel.value})}); }));
+const form = document.getElementById('add-integrant-form');
+form?.addEventListener('submit', async (e) => { e.preventDefault(); const data = Object.fromEntries(new FormData(form).entries()); const res = await fetch("{% url 'llistaelectoral:crear_integrant' %}", {method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':token},body:JSON.stringify(data)}); if (!res.ok) { alert('No s\'ha pogut crear l\'integrant.'); return; } location.reload(); });
+})();
+</script>
+{% endblock %}
