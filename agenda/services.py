@@ -1,4 +1,5 @@
 import json
+import mimetypes
 import os
 import re
 from datetime import datetime, timedelta
@@ -16,9 +17,9 @@ except ImportError:  # pragma: no cover - pillow is optional at runtime
     Image = None
 
 try:
-    from openai import OpenAI
+    from google import genai
 except ImportError:  # pragma: no cover - optional dependency
-    OpenAI = None
+    genai = None
 
 CATALAN_SPANISH_MONTHS = {
     'gener': 1,
@@ -226,29 +227,47 @@ def extract_event_fields_from_text(text):
     }
 
 
-def _extract_with_ai(combined_text):
-    api_key = os.getenv('OPENAI_API_KEY', '').strip()
-    if not api_key or OpenAI is None:
+def _extract_with_ai(combined_text, image_parts=None):
+    api_key = os.getenv('GEMINI_KEY', '').strip()
+    if not api_key or genai is None:
         return {'fields': {}, 'warnings': []}
 
-    model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gpt-4.1-mini')
-    client = OpenAI(api_key=api_key)
+    model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gemini-1.5-flash')
     prompt = (
-        'Extreu camps d\'un possible esdeveniment des d\'un text. '
+        'Extreu camps d\'un possible esdeveniment des d\'un text i imatges. '
         'Retorna NOMÉS JSON amb claus: title, description, date(YYYY-MM-DD), '
         'start_time(HH:MM), end_time(HH:MM), location, municipality, organizer. '
         'Si no tens un valor fiable, deixa cadena buida.'
     )
+
+    def _extract_json_block(raw_text):
+        cleaned = (raw_text or '').strip()
+        if not cleaned:
+            return '{}'
+        fenced = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', cleaned, flags=re.S | re.I)
+        if fenced:
+            return fenced.group(1)
+        first = cleaned.find('{')
+        last = cleaned.rfind('}')
+        if first != -1 and last != -1 and last > first:
+            return cleaned[first:last + 1]
+        return cleaned
+
     try:  # pragma: no cover - external API
-        response = client.responses.create(
+        client = genai.Client(api_key=api_key)
+        request_parts = [prompt, combined_text[:12000]]
+        for image_part in image_parts or []:
+            raw_bytes = image_part.get('bytes')
+            mime_type = image_part.get('mime_type') or 'image/jpeg'
+            if not raw_bytes:
+                continue
+            request_parts.append(genai.types.Part.from_bytes(data=raw_bytes, mime_type=mime_type))
+        response = client.models.generate_content(
             model=model,
-            input=[
-                {'role': 'system', 'content': prompt},
-                {'role': 'user', 'content': combined_text[:12000]},
-            ],
-            temperature=0,
+            contents=request_parts,
+            config={'temperature': 0},
         )
-        content = response.output_text or '{}'
+        content = _extract_json_block(getattr(response, 'text', '') or '{}')
         parsed = json.loads(content)
         return {'fields': parsed if isinstance(parsed, dict) else {}, 'warnings': []}
     except Exception as exc:  # pragma: no cover - external API
@@ -283,7 +302,50 @@ def fetch_instagram_post_preview(instagram_url):
     return {'caption': caption, 'image_url': image_url, 'warnings': []}
 
 
-def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text='', observations='', instagram_caption=''):
+def _guess_mime_type(filename='', fallback='image/jpeg'):
+    guessed, _ = mimetypes.guess_type(filename or '')
+    if guessed and guessed.startswith('image/'):
+        return guessed
+    return fallback
+
+
+def _build_uploaded_image_part(uploaded_file):
+    if not uploaded_file:
+        return {'part': None, 'warnings': []}
+    try:
+        uploaded_file.seek(0)
+        payload = uploaded_file.read()
+        uploaded_file.seek(0)
+    except Exception as exc:  # pragma: no cover - filesystem/runtime dependent
+        return {'part': None, 'warnings': [f"No s'ha pogut llegir la imatge pujada per a IA: {exc}"]}
+    if not payload:
+        return {'part': None, 'warnings': []}
+    mime_type = getattr(uploaded_file, 'content_type', '') or _guess_mime_type(getattr(uploaded_file, 'name', ''))
+    return {'part': {'bytes': payload, 'mime_type': mime_type}, 'warnings': []}
+
+
+def _fetch_remote_image_part(image_url):
+    if not image_url:
+        return {'part': None, 'warnings': []}
+    try:
+        request = Request(
+            image_url,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; CRMEsquerraSantFeliuBot/1.0)',
+                'Accept-Language': 'ca,es;q=0.9,en;q=0.8',
+            },
+        )
+        with urlopen(request, timeout=10) as response:  # nosec B310 - trusted URL parsed from Instagram meta
+            payload = response.read()
+            mime_type = response.headers.get_content_type() or _guess_mime_type(image_url)
+    except Exception as exc:  # pragma: no cover - network dependent
+        return {'part': None, 'warnings': [f"No s'ha pogut descarregar la imatge d'Instagram per a IA: {exc}"]}
+    if not payload:
+        return {'part': None, 'warnings': []}
+    return {'part': {'bytes': payload, 'mime_type': mime_type}, 'warnings': []}
+
+
+def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text='', observations='', instagram_caption='', ai_images=None):
     chunks = [
         f'URL font: {instagram_url}'.strip(),
         (instagram_caption or '').strip(),
@@ -292,7 +354,7 @@ def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text=''
     ]
     combined_text = '\n\n'.join(chunk for chunk in chunks if chunk)
     heuristic_fields = extract_event_fields_from_text(combined_text)
-    ai_result = _extract_with_ai(combined_text)
+    ai_result = _extract_with_ai(combined_text, image_parts=ai_images)
     ai_fields = ai_result.get('fields') or {}
 
     merged = {**heuristic_fields}
@@ -330,16 +392,22 @@ def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text=''
 def parse_instagram_event_data(instagram_url='', manual_text='', image_file=None, observations=''):
     instagram_preview = fetch_instagram_post_preview(instagram_url)
     ocr_result = extract_text_from_image(image_file)
+    uploaded_ai_image = _build_uploaded_image_part(image_file)
+    instagram_ai_image = _fetch_remote_image_part(instagram_preview.get('image_url', ''))
+    ai_images = [item for item in [uploaded_ai_image.get('part'), instagram_ai_image.get('part')] if item]
     proposal = build_event_from_instagram_source(
         instagram_url=instagram_url,
         manual_text=manual_text,
         ocr_text=ocr_result.get('text', ''),
         observations=observations,
         instagram_caption=instagram_preview.get('caption', ''),
+        ai_images=ai_images,
     )
     warnings = []
     warnings.extend(instagram_preview.get('warnings', []))
     warnings.extend(ocr_result.get('warnings', []))
+    warnings.extend(uploaded_ai_image.get('warnings', []))
+    warnings.extend(instagram_ai_image.get('warnings', []))
     warnings.extend(proposal.get('warnings', []))
     return {
         'fields': proposal['fields'],
