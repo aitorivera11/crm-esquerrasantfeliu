@@ -16,7 +16,7 @@ from agenda.management.commands.import_city_events import CityEventsImporter, SO
 from reunions.models import Reunio, TipusReunio
 from .forms import ActeForm
 from .models import Acte, ParticipacioActe, SegmentVisibilitat
-from .services import extract_event_fields_from_text
+from .services import build_event_from_instagram_source, extract_event_fields_from_text, _clean_instagram_caption
 
 try:
     from PIL import Image
@@ -554,6 +554,24 @@ class InstagramEventParsingTests(TestCase):
         self.assertEqual(fields['start_time'], '18:30')
         self.assertIn('Ateneu Popular', fields['location'])
         self.assertEqual(fields['organizer'], 'Esquerra Sant Feliu')
+
+    def test_build_event_prioritizes_ai_title_over_heuristic_noise(self):
+        with patch('agenda.services._extract_with_ai', return_value={'fields': {'title': 'LA FERA', 'location': 'Sala Ibèria'}, 'warnings': []}):
+            parsed = build_event_from_instagram_source(
+                instagram_url='https://www.instagram.com/p/DW6BfNljU_n/',
+                manual_text='',
+                ocr_text='',
+                instagram_caption='',
+            )
+
+        self.assertEqual(parsed['fields']['title'], 'LA FERA')
+        self.assertEqual(parsed['fields']['location'], 'Sala Ibèria')
+
+    def test_clean_instagram_caption_strips_social_metadata(self):
+        cleaned = _clean_instagram_caption(
+            '124 likes, 8 comments - esplaisantllor on April 9, 2026: JA HEU VIST EL CARTELL QUE TENIM AQUEST ANY?'
+        )
+        self.assertEqual(cleaned, 'JA HEU VIST EL CARTELL QUE TENIM AQUEST ANY?')
 
 
 class InstagramImportFlowTests(TestCase):

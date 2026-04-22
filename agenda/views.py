@@ -412,6 +412,15 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             initial['descripcio'] = fields['description']
         if fields.get('location'):
             initial['ubicacio'] = fields['location']
+        if fields.get('meeting_point'):
+            initial['punt_trobada'] = fields['meeting_point']
+        if fields.get('capacity'):
+            try:
+                initial['aforament'] = int(str(fields['capacity']).strip())
+            except (TypeError, ValueError):
+                pass
+        if str(fields.get('is_important', '')).lower() == 'true':
+            initial['es_important'] = True
 
         date_value = fields.get('date')
         start_time = fields.get('start_time') or '19:00'
@@ -453,6 +462,10 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             form.instance.source_payload = {
                 'municipality': fields.get('municipality', ''),
                 'organizer': fields.get('organizer', ''),
+                'meeting_point': fields.get('meeting_point', ''),
+                'capacity': fields.get('capacity', ''),
+                'event_type': fields.get('event_type', ''),
+                'is_important': fields.get('is_important', ''),
                 'raw_text': prefill_data.get('raw_text', ''),
                 'ocr_text': prefill_data.get('ocr_text', ''),
             }

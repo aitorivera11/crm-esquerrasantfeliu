@@ -180,6 +180,8 @@ def _extract_title(text):
         normalized = _normalize_space(line)
         if len(normalized) < 6:
             continue
+        if normalized.lower().startswith(('url font:', 'http://', 'https://')):
+            continue
         if re.search(r'\b(\d{1,2}[\/\-.]\d{1,2}|\d{1,2}:\d{2}|@)\b', normalized):
             continue
         return normalized[:255]
@@ -234,10 +236,17 @@ def _extract_with_ai(combined_text, image_parts=None):
 
     model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gemini-1.5-flash')
     prompt = (
-        'Extreu camps d\'un possible esdeveniment des d\'un text i imatges. '
-        'Retorna NOMÉS JSON amb claus: title, description, date(YYYY-MM-DD), '
-        'start_time(HH:MM), end_time(HH:MM), location, municipality, organizer. '
-        'Si no tens un valor fiable, deixa cadena buida.'
+        'Extreu camps d\'un possible esdeveniment des d\'un text i imatges per crear un "Acte" al CRM. '
+        'Retorna NOMÉS JSON vàlid (sense markdown ni text extra) amb aquestes claus exactes: '
+        'title, description, date, start_time, end_time, location, municipality, organizer, '
+        'meeting_point, capacity, event_type, is_important. '
+        'Regles: '
+        'title ha de ser el nom real de l\'acte (mai URL, ni "URL font", ni likes/comments); '
+        'description ha de ser un resum net (sense metadades socials); '
+        'date en format YYYY-MM-DD; start_time/end_time en HH:MM; '
+        'meeting_point i location poden ser diferents; capacity és número com string o buit; '
+        'is_important ha de ser "true" o "false" si és clar, si no buit. '
+        'Si no tens un valor fiable, posa cadena buida.'
     )
 
     def _extract_json_block(raw_text):
@@ -299,7 +308,24 @@ def fetch_instagram_post_preview(instagram_url):
 
     caption = _meta_content('og:description') or _meta_content('description')
     image_url = _meta_content('og:image')
-    return {'caption': caption, 'image_url': image_url, 'warnings': []}
+    return {'caption': _clean_instagram_caption(caption), 'image_url': image_url, 'warnings': []}
+
+
+def _clean_instagram_caption(caption):
+    text = (caption or '').strip()
+    if not text:
+        return ''
+
+    text = unescape(text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(
+        r'^\d+\s+likes?,\s*\d+\s+comments?\s*-\s*[\w\.]+\s+on\s+[A-Za-z]+\s+\d{1,2},\s+\d{4}\s*:\s*',
+        '',
+        text,
+        flags=re.I,
+    )
+    text = text.replace('… more', '').replace('... more', '')
+    return text.strip()
 
 
 def _guess_mime_type(filename='', fallback='image/jpeg'):
@@ -347,10 +373,10 @@ def _fetch_remote_image_part(image_url):
 
 def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text='', observations='', instagram_caption='', ai_images=None):
     chunks = [
-        f'URL font: {instagram_url}'.strip(),
-        (instagram_caption or '').strip(),
         (manual_text or '').strip(),
+        (instagram_caption or '').strip(),
         (ocr_text or '').strip(),
+        f'URL font: {instagram_url}'.strip(),
     ]
     combined_text = '\n\n'.join(chunk for chunk in chunks if chunk)
     heuristic_fields = extract_event_fields_from_text(combined_text)
@@ -358,9 +384,25 @@ def build_event_from_instagram_source(instagram_url, manual_text='', ocr_text=''
     ai_fields = ai_result.get('fields') or {}
 
     merged = {**heuristic_fields}
+    ai_priority_fields = {
+        'title',
+        'description',
+        'date',
+        'start_time',
+        'end_time',
+        'location',
+        'municipality',
+        'organizer',
+    }
     for key, value in ai_fields.items():
-        if value and not merged.get(key):
-            merged[key] = str(value).strip()
+        cleaned_value = str(value).strip() if value is not None else ''
+        if not cleaned_value:
+            continue
+        if key in ai_priority_fields:
+            merged[key] = cleaned_value
+            continue
+        if not merged.get(key):
+            merged[key] = cleaned_value
 
     residual_notes = []
     if merged.get('municipality'):
