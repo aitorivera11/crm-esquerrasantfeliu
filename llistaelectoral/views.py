@@ -61,6 +61,7 @@ class LlistaElectoralView(LlistaPermissionMixin, TemplateView):
             candidatura.posicions.select_related('integrant__persona', 'integrant__usuari').order_by('numero')
         )
         context['candidatura'] = candidatura
+        context['totes_posicions'] = posicions
         context['posicions_titulars'] = [p for p in posicions if p.es_titular]
         context['posicions_suplents'] = [p for p in posicions if not p.es_titular]
         context['repositori'] = candidatura.integrants.filter(posicio__isnull=True).select_related('persona', 'usuari').order_by('creat_el')
@@ -107,6 +108,34 @@ def crear_integrant(request):
         integrant.estat = payload.get('estat') or integrant.estat
         integrant.observacions = (payload.get('observacions') or integrant.observacions or '').strip()
         integrant.save(update_fields=['afiliacio', 'estat', 'observacions', 'actualitzat_el'])
+
+    target_position = payload.get('target_position')
+    if target_position:
+        with transaction.atomic():
+            target = PosicioLlista.objects.select_for_update().filter(
+                candidatura=candidatura,
+                numero=target_position,
+            ).first()
+            if target:
+                source = PosicioLlista.objects.select_for_update().filter(
+                    candidatura=candidatura,
+                    integrant=integrant,
+                ).first()
+                previous_target_integrant = target.integrant
+
+                if source:
+                    source.integrant = None
+                    source.save(update_fields=['integrant', 'actualitzat_el'])
+
+                target.integrant = None
+                target.save(update_fields=['integrant', 'actualitzat_el'])
+
+                if source and previous_target_integrant:
+                    source.integrant = previous_target_integrant
+                    source.save(update_fields=['integrant', 'actualitzat_el'])
+
+                target.integrant = integrant
+                target.save(update_fields=['integrant', 'actualitzat_el'])
 
     return JsonResponse({'ok': True, 'id': integrant.pk, 'nom': integrant.nom_mostrat})
 
@@ -170,6 +199,46 @@ def assignar_posicio(request):
         target.integrant = integrant
         target.save(update_fields=['integrant', 'actualitzat_el'])
 
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def treure_de_posicio(request):
+    if not _has_access(request.user):
+        return JsonResponse({'ok': False, 'error': 'No autoritzat.'}, status=403)
+
+    payload = json.loads(request.body or '{}')
+    candidatura = Candidatura.objects.filter(activa=True).first()
+    if not candidatura:
+        return JsonResponse({'ok': False, 'error': 'No hi ha candidatura activa.'}, status=400)
+
+    posicio = PosicioLlista.objects.filter(candidatura=candidatura, numero=payload.get('position')).first()
+    if not posicio:
+        return JsonResponse({'ok': False, 'error': 'Posició no trobada.'}, status=404)
+
+    posicio.integrant = None
+    posicio.save(update_fields=['integrant', 'actualitzat_el'])
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def eliminar_integrant(request):
+    if not _has_access(request.user):
+        return JsonResponse({'ok': False, 'error': 'No autoritzat.'}, status=403)
+
+    payload = json.loads(request.body or '{}')
+    candidatura = Candidatura.objects.filter(activa=True).first()
+    if not candidatura:
+        return JsonResponse({'ok': False, 'error': 'No hi ha candidatura activa.'}, status=400)
+
+    integrant = IntegrantLlista.objects.filter(candidatura=candidatura, pk=payload.get('integrant_id')).first()
+    if not integrant:
+        return JsonResponse({'ok': False, 'error': 'Integrant no trobat.'}, status=404)
+
+    PosicioLlista.objects.filter(candidatura=candidatura, integrant=integrant).update(integrant=None)
+    integrant.delete()
     return JsonResponse({'ok': True})
 
 

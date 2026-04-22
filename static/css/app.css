@@ -1553,3 +1553,117 @@ input[type="checkbox"] {
         grid-template-columns: 1fr;
     }
 }
+
+/* Llista electoral */
+.llista-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.llista-repository-sticky {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 8rem);
+    overflow: auto;
+}
+
+.drop-zone.drag-over {
+    outline: 2px dashed #0d6efd;
+}
+
+.person-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dotted #94a3b8;
+}
+
+.person-link:hover {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+}
+
+.obs-input {
+    min-width: 180px;
+}
+
+.inline-search {
+    margin-bottom: .45rem;
+}
+
+.integrant-cell {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.integrant-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.integrant-name {
+    font-weight: 500;
+}
+
+.share-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+}
+
+.share-tile {
+    border: 1px solid #d9dee8;
+    border-radius: .85rem;
+    padding: 1rem;
+    background: #f8fafc;
+    text-align: left;
+}
+
+.share-tile strong {
+    display: block;
+    color: #1e293b;
+}
+
+.share-tile small {
+    color: #64748b;
+}
+
+.share-tile--wa {
+    background: #e8f6ee;
+    border-color: #b7e4c7;
+}
+
+.share-tile--copy {
+    background: #e8f1ff;
+    border-color: #c7dafb;
+}
+
+.share-tile--pdf {
+    background: #fef3f2;
+    border-color: #fecaca;
+}
+
+.share-tile--txt {
+    background: #f9f6f2;
+    border-color: #e7dccf;
+}
+
+@media (max-width: 1199.98px) {
+    .llista-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .llista-repository-sticky {
+        position: static;
+        max-height: none;
+    }
+}
+
+@media (max-width: 992px) {
+    .share-grid {
+        grid-template-columns: 1fr;
+    }
+}
