@@ -1,8 +1,9 @@
 import json
+from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
@@ -10,8 +11,29 @@ from django.views.generic import TemplateView
 from core.mixins import LoginRequiredMixin
 from persones.models import Persona
 from usuaris.models import Usuari
+from PIL import Image, ImageDraw, ImageFont
 
 from .models import Candidatura, IntegrantLlista, PermisLlistaElectoral, PosicioLlista
+
+
+def _build_export_rows(candidatura):
+    rows = []
+    posicions = candidatura.posicions.select_related('integrant__persona', 'integrant__usuari').order_by('numero')
+    for posicio in posicions:
+        if not posicio.integrant:
+            continue
+        integrant = posicio.integrant
+        rows.append(
+            {
+                'numero': posicio.numero,
+                'tipus': 'Titular' if posicio.es_titular else 'Suplent',
+                'nom': integrant.nom_mostrat,
+                'afiliacio': integrant.get_afiliacio_display(),
+                'estat': integrant.get_estat_display(),
+                'observacions': integrant.observacions,
+            }
+        )
+    return rows
 
 
 class LlistaPermissionMixin(LoginRequiredMixin):
@@ -77,12 +99,14 @@ def crear_integrant(request):
         defaults={
             'afiliacio': payload.get('afiliacio') or IntegrantLlista.Afiliacio.ESQUERRA,
             'estat': payload.get('estat') or IntegrantLlista.Estat.IDEA,
+            'observacions': (payload.get('observacions') or '').strip(),
         },
     )
     if not created:
         integrant.afiliacio = payload.get('afiliacio') or integrant.afiliacio
         integrant.estat = payload.get('estat') or integrant.estat
-        integrant.save(update_fields=['afiliacio', 'estat', 'actualitzat_el'])
+        integrant.observacions = (payload.get('observacions') or integrant.observacions or '').strip()
+        integrant.save(update_fields=['afiliacio', 'estat', 'observacions', 'actualitzat_el'])
 
     return JsonResponse({'ok': True, 'id': integrant.pk, 'nom': integrant.nom_mostrat})
 
@@ -102,7 +126,9 @@ def editar_integrant(request, pk):
         integrant.afiliacio = payload['afiliacio']
     if payload.get('estat') in allowed_es:
         integrant.estat = payload['estat']
-    integrant.save(update_fields=['afiliacio', 'estat', 'actualitzat_el'])
+    if 'observacions' in payload:
+        integrant.observacions = (payload.get('observacions') or '').strip()
+    integrant.save(update_fields=['afiliacio', 'estat', 'observacions', 'actualitzat_el'])
 
     return JsonResponse({'ok': True})
 
@@ -145,3 +171,60 @@ def assignar_posicio(request):
         target.save(update_fields=['integrant', 'actualitzat_el'])
 
     return JsonResponse({'ok': True})
+
+
+@login_required
+def exportar_txt(request):
+    if not _has_access(request.user):
+        return JsonResponse({'ok': False, 'error': 'No autoritzat.'}, status=403)
+
+    candidatura = Candidatura.objects.filter(activa=True).first()
+    if not candidatura:
+        return JsonResponse({'ok': False, 'error': 'No hi ha candidatura activa.'}, status=400)
+
+    rows = _build_export_rows(candidatura)
+    lines = [f"Llista electoral - {candidatura.nom}", '']
+    for row in rows:
+        observacions = f" ({row['observacions']})" if row['observacions'] else ''
+        lines.append(
+            f"#{row['numero']} [{row['tipus']}] {row['nom']} · {row['afiliacio']} · {row['estat']}{observacions}"
+        )
+
+    response = HttpResponse('\n'.join(lines), content_type='text/plain; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="llista-electoral.txt"'
+    return response
+
+
+@login_required
+def exportar_pdf(request):
+    if not _has_access(request.user):
+        return JsonResponse({'ok': False, 'error': 'No autoritzat.'}, status=403)
+
+    candidatura = Candidatura.objects.filter(activa=True).first()
+    if not candidatura:
+        return JsonResponse({'ok': False, 'error': 'No hi ha candidatura activa.'}, status=400)
+
+    rows = _build_export_rows(candidatura)
+    width, height = 1240, 1754
+    image = Image.new('RGB', (width, height), 'white')
+    draw = ImageDraw.Draw(image)
+    font_title = ImageFont.load_default()
+    font_body = ImageFont.load_default()
+
+    y = 70
+    draw.text((70, y), f"Llista electoral - {candidatura.nom}", fill='black', font=font_title)
+    y += 70
+    for row in rows:
+        observacions = f" · Obs: {row['observacions']}" if row['observacions'] else ''
+        line = f"#{row['numero']} [{row['tipus']}] {row['nom']} · {row['afiliacio']} · {row['estat']}{observacions}"
+        draw.text((70, y), line[:145], fill='black', font=font_body)
+        y += 44
+        if y > height - 80:
+            break
+
+    buffer = BytesIO()
+    image.save(buffer, format='PDF', resolution=100.0)
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="llista-electoral.pdf"'
+    return response
