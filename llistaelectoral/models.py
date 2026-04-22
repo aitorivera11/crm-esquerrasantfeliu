@@ -35,6 +35,7 @@ class IntegrantLlista(TimeStampedModel):
     usuari = models.ForeignKey(Usuari, on_delete=models.SET_NULL, null=True, blank=True, related_name='candidatures')
     afiliacio = models.CharField(max_length=20, choices=Afiliacio.choices, default=Afiliacio.ESQUERRA)
     estat = models.CharField(max_length=20, choices=Estat.choices, default=Estat.IDEA)
+    observacions = models.CharField(max_length=180, blank=True, default='')
 
     class Meta:
         verbose_name = 'integrant de llista'
