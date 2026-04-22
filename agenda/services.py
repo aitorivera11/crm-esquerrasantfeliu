@@ -458,4 +458,5 @@ def parse_instagram_event_data(instagram_url='', manual_text='', image_file=None
         'warnings': warnings,
         'heuristic_fields': proposal.get('heuristic_fields', {}),
         'ai_fields': proposal.get('ai_fields', {}),
+        'instagram_image': instagram_ai_image.get('part') if not image_file else None,
     }

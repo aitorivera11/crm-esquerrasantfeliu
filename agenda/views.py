@@ -436,6 +436,23 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             except ValueError:
                 pass
 
+        organizer_name = fields.get('organizer', '').strip()
+        if organizer_name:
+            from entitats.models import Entitat
+            # Cerca per nom exacte (case-insensitive) o per nom parcial
+            entitat = (
+                Entitat.objects.filter(nom__iexact=organizer_name).first()
+                or Entitat.objects.filter(nom__icontains=organizer_name).first()
+            )
+            if entitat:
+                initial['entitats_relacionades'] = [entitat.pk]
+
+        acte_extern = ActeTipus.objects.filter(
+            nom__icontains='extern'
+        ).first()
+        if acte_extern:
+            initial['tipus'] = acte_extern.pk
+
         return initial
 
     def get_initial(self):
@@ -522,6 +539,16 @@ class InstagramActeImportView(LoginRequiredMixin, PermissionRequiredMixin, View)
             import_image_tmp_path = default_storage.save(
                 f'agenda/tmp_imports/{uuid4().hex}_{safe_name}',
                 uploaded_image,
+            )
+        elif payload.get('instagram_image'):
+            img_part = payload['instagram_image']
+            import io
+            from django.core.files.base import ContentFile
+            img_content = ContentFile(img_part['bytes'])
+            ext = 'jpg' if 'jpeg' in img_part.get('mime_type', '') else 'png'
+            import_image_tmp_path = default_storage.save(
+                f'agenda/tmp_imports/{uuid4().hex}_instagram_image.{ext}',
+                img_content,
             )
 
         request.session[self._session_key()] = {
