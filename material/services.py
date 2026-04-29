@@ -217,7 +217,7 @@ def _call_gemini_purchase_parser(text):
     if not api_key or genai is None:
         return None
 
-    model = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash').strip() or 'gemini-2.0-flash'
+    model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gemini-flash-latest').strip() or 'gemini-flash-latest'
     prompt = (
         "Extreu informació d'un ticket o factura i respon NOMÉS JSON vàlid amb aquest esquema:"
         '{"fields":{"proveidor":"","num_factura_ticket":"","cost_total":"","data_compra":""},'

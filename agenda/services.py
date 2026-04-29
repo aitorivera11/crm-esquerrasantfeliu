@@ -234,7 +234,7 @@ def _extract_with_ai(combined_text, image_parts=None):
     if not api_key or genai is None:
         return {'fields': {}, 'warnings': []}
 
-    model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gemini-1.5-flash')
+    model = os.getenv('INSTAGRAM_EVENT_AI_MODEL', 'gemini-flash-latest')
     prompt = (
         'Extreu camps d\'un possible esdeveniment des d\'un text i imatges per crear un "Acte" al CRM. '
         'Retorna NOMÉS JSON vàlid (sense markdown ni text extra) amb aquestes claus exactes: '
