@@ -173,9 +173,21 @@ class PurchaseDocumentParserTests(TestCase):
         parsed = parse_purchase_document(None)
         self.assertTrue(parsed['warnings'])
 
+    @patch('material.services.PdfReader')
+    @patch.dict('os.environ', {'GEMINI_KEY': ''}, clear=False)
+    def test_parse_purchase_document_warns_when_gemini_not_configured(self, mock_pdf_reader):
+        pdf_file = SimpleNamespace(name='ticket.pdf')
+        mock_pdf_reader.return_value.pages = [
+            MagicMock(extract_text=MagicMock(return_value="Factura exemple\nTOTAL 9,99"))
+        ]
+
+        parsed = parse_purchase_document(pdf_file)
+
+        self.assertTrue(any('GEMINI_KEY' in warning for warning in parsed['warnings']))
+
     @patch('material.services.genai.Client')
     @patch('material.services.PdfReader')
-    @patch.dict('os.environ', {'GEMINI_API_KEY': 'test-key'}, clear=False)
+    @patch.dict('os.environ', {'GEMINI_KEY': 'test-key'}, clear=False)
     def test_parse_purchase_document_uses_gemini_when_available(self, mock_pdf_reader, mock_genai_client):
         pdf_file = SimpleNamespace(name='ticket.pdf')
         mock_pdf_reader.return_value.pages = [
