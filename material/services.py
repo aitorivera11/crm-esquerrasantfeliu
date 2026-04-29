@@ -213,7 +213,7 @@ def _extract_text_from_gemini_response(payload):
 
 
 def _call_gemini_purchase_parser(text):
-    api_key = os.getenv('GEMINI_API_KEY', '').strip()
+    api_key = os.getenv('GEMINI_KEY', '').strip()
     if not api_key or genai is None:
         return None
 
@@ -270,11 +270,15 @@ def parse_purchase_document(uploaded_file):
         result['warnings'].append('No s’ha pogut extreure text del document.')
         return result
 
+    api_key = os.getenv('GEMINI_KEY', '').strip()
     parsed_by_gemini = None
     try:
         parsed_by_gemini = _call_gemini_purchase_parser(text)
     except Exception:
         result['warnings'].append('Gemini no ha pogut analitzar el document; s’aplica detecció local.')
+
+    if not parsed_by_gemini and not api_key:
+        result['warnings'].append('Gemini no està configurat (falta GEMINI_KEY); s’aplica detecció local.')
 
     if parsed_by_gemini:
         result['fields'] = parsed_by_gemini.get('fields', {})
