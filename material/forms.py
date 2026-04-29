@@ -71,7 +71,7 @@ class CompraMaterialForm(StyledFormMixin, forms.ModelForm):
     document_analisi = forms.FileField(
         required=False,
         label='Importar ticket/factura (PDF o imatge)',
-        help_text='Carrega un fitxer per generar suggeriments automàtics de capçalera i línies.',
+        help_text='Carrega un fitxer per generar suggeriments automàtics amb Gemini (capçalera i línies).',
         widget=forms.ClearableFileInput(attrs={'accept': '.pdf,image/*'}),
     )
 

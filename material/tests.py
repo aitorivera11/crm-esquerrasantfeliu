@@ -173,6 +173,54 @@ class PurchaseDocumentParserTests(TestCase):
         parsed = parse_purchase_document(None)
         self.assertTrue(parsed['warnings'])
 
+    @patch('material.services.genai.Client')
+    @patch('material.services.PdfReader')
+    @patch.dict('os.environ', {'GEMINI_API_KEY': 'test-key'}, clear=False)
+    def test_parse_purchase_document_uses_gemini_when_available(self, mock_pdf_reader, mock_genai_client):
+        pdf_file = SimpleNamespace(name='ticket.pdf')
+        mock_pdf_reader.return_value.pages = [
+            MagicMock(extract_text=MagicMock(return_value="Factura exemple\nTOTAL 9,99"))
+        ]
+        mock_client = MagicMock()
+        mock_genai_client.return_value = mock_client
+        mock_client.models.generate_content.return_value = SimpleNamespace(
+            text=(
+                '{"fields":{"proveidor":"Papereria Test","num_factura_ticket":"FAC-11",'
+                '"cost_total":"9.99","data_compra":"2026-04-14"},'
+                '"lines":[{"descripcio":"Retolador","quantitat":3,'
+                '"preu_unitari":"2.00","iva_percent":"21","total_linia":"6.00"}]}'
+            )
+        )
+
+        parsed = parse_purchase_document(pdf_file)
+
+        self.assertEqual(parsed['fields']['proveidor'], 'Papereria Test')
+        self.assertEqual(parsed['fields']['cost_total'], Decimal('9.99'))
+        self.assertEqual(len(parsed['lines']), 1)
+        self.assertFalse(parsed['warnings'])
+        mock_client.models.generate_content.assert_called_once()
+
+    @patch('material.services._call_gemini_purchase_parser')
+    @patch('material.services.PdfReader')
+    def test_parse_purchase_document_falls_back_when_gemini_fails(self, mock_pdf_reader, mock_gemini_parser):
+        pdf_file = SimpleNamespace(name='ticket.pdf')
+        mock_pdf_reader.return_value.pages = [
+            MagicMock(extract_text=MagicMock(return_value=(
+                "Copisteria Delta\n"
+                "Ticket: ABC-7788\n"
+                "14/04/2026\n"
+                "Carpeta 1 3,00 3,00\n"
+                "TOTAL 3,00 €"
+            )))
+        ]
+        mock_gemini_parser.side_effect = RuntimeError('gemini down')
+
+        parsed = parse_purchase_document(pdf_file)
+
+        self.assertEqual(parsed['fields']['num_factura_ticket'], 'ABC-7788')
+        self.assertEqual(len(parsed['lines']), 1)
+        self.assertTrue(any('Gemini' in warning for warning in parsed['warnings']))
+
 
 class PurchaseCreateStockSyncTests(TestCase):
     def setUp(self):
