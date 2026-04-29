@@ -7,7 +7,7 @@
         {% csrf_token %}
         <h2 class="h5 mb-3">Importació intel·ligent de ticket/factura</h2>
         <div class="soft-panel p-3 mb-4">
-            <p class="mb-2 text-muted">Carrega un PDF o imatge i el sistema intentarà extreure capçalera i línies de compra automàticament.</p>
+            <p class="mb-2 text-muted">Carrega un PDF o imatge i Gemini intentarà extreure capçalera i línies de compra automàticament.</p>
             <div class="d-flex flex-wrap gap-2 align-items-end">
                 <div class="flex-grow-1">
                     <label class="form-label" for="{{ form.document_analisi.id_for_label }}">{{ form.document_analisi.label }}</label>

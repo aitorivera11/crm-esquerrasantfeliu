@@ -2,8 +2,13 @@ import os
 import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+import json
 
 import requests
+try:
+    from google import genai
+except ImportError:  # pragma: no cover - optional dependency
+    genai = None
 
 try:
     from pypdf import PdfReader
@@ -23,8 +28,6 @@ except ImportError:  # pragma: no cover - pillow is in requirements
 
 UPCITEMDB_TRIAL_ENDPOINT = 'https://api.upcitemdb.com/prod/trial/lookup'
 UPCITEMDB_PRO_ENDPOINT = 'https://api.upcitemdb.com/prod/v1/lookup'
-
-
 def lookup_product_by_barcode(upc: str):
     """Return normalized product data from UPCitemdb or None when unavailable."""
     upc = (upc or '').strip()
@@ -60,7 +63,11 @@ def lookup_product_by_barcode(upc: str):
 
 
 def _to_decimal(raw_value):
-    cleaned = (raw_value or '').replace('€', '').replace(' ', '').replace('.', '').replace(',', '.')
+    cleaned = (raw_value or '').replace('€', '').replace(' ', '')
+    if ',' in cleaned and '.' in cleaned:
+        cleaned = cleaned.replace('.', '').replace(',', '.')
+    elif ',' in cleaned:
+        cleaned = cleaned.replace(',', '.')
     try:
         return Decimal(cleaned)
     except (InvalidOperation, ValueError):
@@ -152,6 +159,87 @@ def _extract_lines(text):
     return detected
 
 
+def _strip_markdown_json(raw_text):
+    text = (raw_text or '').strip()
+    if text.startswith('```'):
+        text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.I)
+        text = re.sub(r'\s*```$', '', text)
+    return text.strip()
+
+
+def _parse_date(raw_value):
+    value = (raw_value or '').strip()
+    if not value:
+        return None
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%d.%m.%Y', '%d/%m/%y', '%d-%m-%y'):
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _normalize_gemini_payload(payload):
+    fields = payload.get('fields') or {}
+    lines = payload.get('lines') or []
+    return {
+        'fields': {
+            'proveidor': (fields.get('proveidor') or '')[:150],
+            'num_factura_ticket': (fields.get('num_factura_ticket') or '')[:80],
+            'cost_total': _to_decimal(str(fields.get('cost_total') or '')),
+            'data_compra': _parse_date(str(fields.get('data_compra') or '')),
+        },
+        'lines': [
+            {
+                'tipus_linia': line.get('tipus_linia') or None,
+                'descripcio': (line.get('descripcio') or 'Línia detectada automàticament')[:255],
+                'quantitat': max(int(_to_decimal(str(line.get('quantitat') or '1')) or 1), 1),
+                'preu_unitari': _to_decimal(str(line.get('preu_unitari') or '0')) or Decimal('0'),
+                'iva_percent': _to_decimal(str(line.get('iva_percent') or '21')) or Decimal('21'),
+                'total_linia': _to_decimal(str(line.get('total_linia') or '0')) or Decimal('0'),
+            }
+            for line in lines
+            if isinstance(line, dict)
+        ],
+    }
+
+
+def _extract_text_from_gemini_response(payload):
+    candidates = payload.get('candidates') or []
+    if not candidates:
+        return ''
+    parts = (candidates[0].get('content') or {}).get('parts') or []
+    return ''.join(part.get('text', '') for part in parts if isinstance(part, dict))
+
+
+def _call_gemini_purchase_parser(text):
+    api_key = os.getenv('GEMINI_API_KEY', '').strip()
+    if not api_key or genai is None:
+        return None
+
+    model = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash').strip() or 'gemini-2.0-flash'
+    prompt = (
+        "Extreu informació d'un ticket o factura i respon NOMÉS JSON vàlid amb aquest esquema:"
+        '{"fields":{"proveidor":"","num_factura_ticket":"","cost_total":"","data_compra":""},'
+        '"lines":[{"tipus_linia":"CONSUMIBLE","descripcio":"","quantitat":1,"preu_unitari":"","iva_percent":"","total_linia":""}]}. '
+        "Data preferentment en format YYYY-MM-DD. Mantén decimals amb punt."
+        "\n\nDocument OCR:\n"
+        f"{text[:12000]}"
+    )
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=model,
+        contents=[prompt, text[:12000]],
+        config={'temperature': 0},
+    )
+    raw_text = getattr(response, 'text', '') or ''
+    if not raw_text:
+        raw_text = _extract_text_from_gemini_response(response.to_json_dict())
+    cleaned = _strip_markdown_json(raw_text)
+    parsed = json.loads(cleaned)
+    return _normalize_gemini_payload(parsed)
+
+
 def parse_purchase_document(uploaded_file):
     """
     Retorna dades suggerides de compra a partir d'un PDF o imatge.
@@ -182,8 +270,18 @@ def parse_purchase_document(uploaded_file):
         result['warnings'].append('No s’ha pogut extreure text del document.')
         return result
 
-    result['fields'] = _extract_header_fields(text)
-    result['lines'] = _extract_lines(text)
+    parsed_by_gemini = None
+    try:
+        parsed_by_gemini = _call_gemini_purchase_parser(text)
+    except Exception:
+        result['warnings'].append('Gemini no ha pogut analitzar el document; s’aplica detecció local.')
+
+    if parsed_by_gemini:
+        result['fields'] = parsed_by_gemini.get('fields', {})
+        result['lines'] = parsed_by_gemini.get('lines', [])
+    else:
+        result['fields'] = _extract_header_fields(text)
+        result['lines'] = _extract_lines(text)
     if not result['lines']:
         result['warnings'].append('No s’han detectat línies de compra automàticament.')
     return result
