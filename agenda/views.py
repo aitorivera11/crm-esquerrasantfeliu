@@ -159,7 +159,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
             queryset = queryset.filter(inici__gte=now)
 
         if not show_imported:
-            queryset = queryset.filter(external_source='')
+            queryset = queryset.exclude(external_source='AGENDA_CIUTAT')
 
         search = (self.request.GET.get('q') or '').strip()
         if search:
@@ -475,7 +475,6 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         if prefill_data:
             fields = prefill_data.get('fields') or {}
             form.instance.source_url = fields.get('source_url', '')
-            form.instance.external_source = 'INSTAGRAM'
             form.instance.source_payload = {
                 'municipality': fields.get('municipality', ''),
                 'organizer': fields.get('organizer', ''),
@@ -564,6 +563,31 @@ class InstagramActeImportView(LoginRequiredMixin, PermissionRequiredMixin, View)
             messages.warning(request, warning)
         messages.success(request, 'S’ha preparat un esborrany d’acte amb la informació detectada.')
         return redirect('agenda:acte_create')
+
+
+class ConvertImportedActeToOwnedView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'agenda.change_acte'
+
+    def post(self, request, pk):
+        acte = get_object_or_404(Acte, pk=pk)
+        if acte.external_source != 'AGENDA_CIUTAT':
+            messages.info(request, "Aquest acte ja és propi.")
+            return redirect('agenda:acte_detail', pk=acte.pk)
+
+        acte.external_source = ''
+        acte.external_id = ''
+        acte.source_checksum = ''
+        acte.save(update_fields=['external_source', 'external_id', 'source_checksum', 'actualitzat_el'])
+
+        Auditoria.objects.create(
+            usuari=request.user,
+            accio=Auditoria.Accio.UPDATE,
+            model_afectat='agenda.Acte',
+            object_id=str(acte.pk),
+            dades={'accio': 'convertit_a_propi', 'titol': acte.titol},
+        )
+        messages.success(request, "L'acte importat s'ha convertit a acte propi.")
+        return redirect('agenda:acte_detail', pk=acte.pk)
 
 
 class ActeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):

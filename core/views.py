@@ -53,7 +53,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             .order_by('prioritat_origen', '-es_important', 'inici')
         )
         if not show_imported:
-            propers_actes_qs = propers_actes_qs.filter(external_source='')
+            propers_actes_qs = propers_actes_qs.exclude(external_source='AGENDA_CIUTAT')
         propers_actes = propers_actes_qs[:8]
 
         participacions_meves = (
@@ -68,7 +68,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'show_imported': show_imported,
             'participacions_meves': participacions_meves,
             'actes_creats_per_mi': actes_visibles.filter(creador=user).count(),
-            'actes_importats_visibles': actes_visibles.exclude(external_source='').count(),
+            'actes_importats_visibles': actes_visibles.filter(external_source='AGENDA_CIUTAT').count(),
             'total_actes_visibles': actes_visibles.count(),
             'propers_actes_total': propers_actes_qs.count(),
             'propers_actes_creats_total': propers_actes_base.filter(external_source='').count(),
@@ -125,7 +125,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                         estat__in=[Tasca.Estat.COMPLETADA, Tasca.Estat.CANCEL_LADA]
                     ).filter(data_limit__lt=today).count(),
                     'actes_publicats': Acte.objects.filter(estat=Acte.Estat.PUBLICAT).count(),
-                    'actes_importats_total': Acte.objects.exclude(external_source='').count(),
+                    'actes_importats_total': Acte.objects.filter(external_source='AGENDA_CIUTAT').count(),
                     'persones_sense_entitat': Persona.objects.annotate(
                         total_entitats=Count('entitats')
                     ).filter(total_entitats=0).count(),
