@@ -306,6 +306,33 @@ class AgendaImportedAndImportantUxTests(TestCase):
         self.assertContains(response, 'Acte importat ocult')
         self.assertTrue(response.context['current_filters']['show_imported'])
 
+    def test_instagram_source_events_are_not_hidden_by_default(self):
+        self.client.force_login(self.user)
+        Acte.objects.create(
+            titol='Acte instagram visible',
+            inici=timezone.now().replace(second=0, microsecond=0) + timedelta(days=2),
+            ubicacio='Ateneu',
+            creador=self.user,
+            estat=Acte.Estat.PUBLICAT,
+            external_source='INSTAGRAM',
+        )
+
+        response = self.client.get(reverse('agenda:acte_list'))
+
+        self.assertContains(response, 'Acte instagram visible')
+
+    def test_can_convert_city_imported_event_to_owned(self):
+        self.client.force_login(self.user)
+        self.user.user_permissions.add(Permission.objects.get(codename='change_acte'))
+
+        response = self.client.post(reverse('agenda:acte_convert_to_owned', kwargs={'pk': self.imported_event.pk}))
+
+        self.assertRedirects(response, reverse('agenda:acte_detail', kwargs={'pk': self.imported_event.pk}))
+        self.imported_event.refresh_from_db()
+        self.assertEqual(self.imported_event.external_source, '')
+        list_response = self.client.get(reverse('agenda:acte_list'))
+        self.assertContains(list_response, 'Acte importat ocult')
+
     def test_important_badge_is_rendered_in_list(self):
         self.client.force_login(self.user)
 
@@ -650,7 +677,7 @@ class InstagramImportFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         acte = Acte.objects.get(titol='Acte de campanya')
         self.assertEqual(acte.source_url, 'https://www.instagram.com/p/XYZ789/')
-        self.assertEqual(acte.external_source, 'INSTAGRAM')
+        self.assertEqual(acte.external_source, '')
         self.assertIn('raw_text', acte.source_payload)
 
     def test_import_form_accepts_image_without_instagram_url(self):

@@ -33,6 +33,12 @@
                 <div class="d-flex gap-2 flex-wrap">
                     {% if acte.source_url %}<a class="btn btn-outline-primary" href="{{ acte.source_url }}" target="_blank" rel="noopener">Veure la font</a>{% endif %}
                     {% if acte.reunio_relacionada_obj %}<a class="btn btn-outline-primary" href="{% url 'reunions:reunio_detail' acte.reunio_relacionada_obj.pk %}">Gestionar reunió</a>{% endif %}
+                    {% if can_manage_actes and acte.external_source == 'AGENDA_CIUTAT' %}
+                        <form method="post" action="{% url 'agenda:acte_convert_to_owned' acte.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-secondary">Convertir a propi</button>
+                        </form>
+                    {% endif %}
                     {% if can_manage_actes %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar</a>{% endif %}
                     {% if can_view_admin_details %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
                 </div>
