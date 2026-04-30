@@ -21,7 +21,7 @@
                         <p class="eyebrow mb-0">{% if acte.external_source %}Acte importat{% else %}Acte de campanya{% endif %}</p>
                         {% if acte.es_important %}<span class="badge badge-important">Important</span>{% endif %}
                         {% if acte.tipus %}<span class="badge badge-type" {% if acte.tipus_style %}style="{{ acte.tipus_style }}"{% endif %}>{{ acte.tipus.nom }}</span>{% endif %}
-                        {% if acte.external_source %}<span class="badge badge-external">Agenda de ciutat</span>{% endif %}
+                        {% if acte.external_source == 'AGENDA_CIUTAT' %}<span class="badge badge-external">Agenda de ciutat</span>{% endif %}
                     </div>
                     <h2 class="h3 mb-2">{{ acte.titol }}</h2>
                     <div class="text-muted">
@@ -33,7 +33,7 @@
                 <div class="d-flex gap-2 flex-wrap">
                     {% if acte.source_url %}<a class="btn btn-outline-primary" href="{{ acte.source_url }}" target="_blank" rel="noopener">Veure la font</a>{% endif %}
                     {% if acte.reunio_relacionada_obj %}<a class="btn btn-outline-primary" href="{% url 'reunions:reunio_detail' acte.reunio_relacionada_obj.pk %}">Gestionar reunió</a>{% endif %}
-                    {% if can_manage_actes and not acte.external_source %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar</a>{% endif %}
+                    {% if can_manage_actes %}<a class="btn btn-primary" href="{% url 'agenda:acte_update' acte.pk %}">Editar</a>{% endif %}
                     {% if can_view_admin_details %}<a class="btn btn-outline-secondary" href="{% url 'agenda:participants_list' acte.pk %}">Participants</a>{% endif %}
                 </div>
             </div>
