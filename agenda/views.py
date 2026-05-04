@@ -1,4 +1,5 @@
 import logging
+import calendar
 from datetime import datetime, timedelta
 import io
 import json
@@ -218,6 +219,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
             'visibility': self.request.GET.get('visibility', ''),
             'show_past': self._is_true(self.request.GET.get('show_past')),
             'show_imported': self._is_true(self.request.GET.get('show_imported')),
+            'view_mode': 'calendar' if self.request.GET.get('view') == 'calendar' else 'list',
         }
         if current_filters['day']:
             current_filters['date_from'] = current_filters['day']
@@ -251,6 +253,42 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
                 'can_view_admin_details': self._user_can_view_admin_details(),
             }
         )
+        anchor_date = today
+        if current_filters['day']:
+            anchor_date = self._parse_date(current_filters['day']) or anchor_date
+        elif current_filters['date_from']:
+            anchor_date = self._parse_date(current_filters['date_from']) or anchor_date
+
+        month_start = anchor_date.replace(day=1)
+        _, days_in_month = calendar.monthrange(month_start.year, month_start.month)
+        month_end = month_start.replace(day=days_in_month)
+        first_weekday = month_start.weekday()  # dilluns=0
+        calendar_start = month_start - timedelta(days=first_weekday)
+        calendar_end = month_end + timedelta(days=(6 - month_end.weekday()))
+
+        calendar_cells = []
+        events_by_day = {}
+        for acte in actes:
+            events_by_day.setdefault(acte.inici.date(), []).append(acte)
+
+        cursor = calendar_start
+        while cursor <= calendar_end:
+            day_events = events_by_day.get(cursor, [])
+            calendar_cells.append(
+                {
+                    'date': cursor,
+                    'in_month': cursor.month == anchor_date.month,
+                    'is_today': cursor == today,
+                    'events': sorted(day_events, key=lambda event: event.inici),
+                }
+            )
+            cursor += timedelta(days=1)
+
+        context['calendar_meta'] = {
+            'month_label': month_start.strftime('%B %Y'),
+            'weeks': [calendar_cells[index:index + 7] for index in range(0, len(calendar_cells), 7)],
+            'weekday_labels': ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg'],
+        }
         return context
 
 
