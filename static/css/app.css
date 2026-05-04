@@ -1667,3 +1667,23 @@ input[type="checkbox"] {
         grid-template-columns: 1fr;
     }
 }
+
+.agenda-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: .65rem;
+}
+.agenda-calendar__weekday { font-size: .8rem; font-weight: 700; color: var(--muted); }
+.agenda-calendar__day { min-height: 9rem; border: 1px solid rgba(0, 13, 35, .1); border-radius: .85rem; background: #fff; padding: .45rem; }
+.agenda-calendar__day.is-outside { background: rgba(0, 13, 35, .03); opacity: .65; }
+.agenda-calendar__day.is-today { border-color: rgba(249, 88, 56, .55); }
+.agenda-calendar__day-number { font-weight: 700; font-size: .92rem; margin-bottom: .4rem; }
+.agenda-calendar__events { display: grid; gap: .3rem; }
+.agenda-calendar__event { display: grid; gap: .12rem; text-decoration: none; border-left: 3px solid var(--type-accent, var(--accent)); background: rgba(249, 88, 56, .06); color: var(--deep); border-radius: .45rem; padding: .3rem .45rem; }
+.agenda-calendar__event-time { font-size: .78rem; color: var(--muted); }
+.agenda-calendar__event-title { font-size: .82rem; line-height: 1.2; font-weight: 600; }
+
+@media (max-width: 767.98px) {
+    .agenda-calendar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .agenda-calendar__weekday { display: none; }
+}
