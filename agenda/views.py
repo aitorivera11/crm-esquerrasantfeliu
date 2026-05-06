@@ -254,7 +254,10 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
             }
         )
         anchor_date = today
-        if current_filters['day']:
+        requested_month = self._parse_date(self.request.GET.get('month', ''))
+        if requested_month:
+            anchor_date = requested_month
+        elif current_filters['day']:
             anchor_date = self._parse_date(current_filters['day']) or anchor_date
         elif current_filters['date_from']:
             anchor_date = self._parse_date(current_filters['date_from']) or anchor_date
@@ -284,10 +287,32 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
             )
             cursor += timedelta(days=1)
 
+        switch_view_query = self.request.GET.copy()
+        switch_view_query.pop('view', None)
+        list_view_query = switch_view_query.copy()
+        list_view_query['view'] = 'list'
+        calendar_view_query = switch_view_query.copy()
+        calendar_view_query['view'] = 'calendar'
+
+        month_nav_query = self.request.GET.copy()
+        month_nav_query.pop('month', None)
+        prev_month = (month_start - timedelta(days=1)).replace(day=1)
+        next_month = (month_end + timedelta(days=1)).replace(day=1)
+        prev_query = month_nav_query.copy()
+        prev_query['month'] = prev_month.isoformat()
+        next_query = month_nav_query.copy()
+        next_query['month'] = next_month.isoformat()
+
         context['calendar_meta'] = {
             'month_label': month_start.strftime('%B %Y'),
             'weeks': [calendar_cells[index:index + 7] for index in range(0, len(calendar_cells), 7)],
             'weekday_labels': ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg'],
+            'prev_month_query': prev_query.urlencode(),
+            'next_month_query': next_query.urlencode(),
+        }
+        context['view_queries'] = {
+            'list': list_view_query.urlencode(),
+            'calendar': calendar_view_query.urlencode(),
         }
         return context
 
