@@ -1,4 +1,3 @@
-import calendar
 import io
 import json
 import logging
@@ -26,7 +25,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from core.models import Auditoria
+from core.utils import is_true
 from entitats.models import Entitat
+
+from .utils import build_calendar_data
 
 from .forms import ActeForm, InstagramImportForm, ParticipacioForm
 from .models import Acte, ActeTipus, ParticipacioActe, SegmentVisibilitat
@@ -110,9 +112,6 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
     template_name = 'agenda/acte_list.html'
     context_object_name = 'actes'
 
-    def _is_true(self, value):
-        return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
-
     def _parse_date(self, value):
         if not value:
             return None
@@ -133,8 +132,8 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
         now = timezone.now()
         today = timezone.localdate()
         default_end = today + timedelta(days=6)
-        show_past = self._is_true(self.request.GET.get('show_past'))
-        show_imported = self._is_true(self.request.GET.get('show_imported'))
+        show_past = is_true(self.request.GET.get('show_past'))
+        show_imported = is_true(self.request.GET.get('show_imported'))
 
         day = self._parse_date(self.request.GET.get('day'))
         date_from = self._parse_date(self.request.GET.get('date_from'))
@@ -219,8 +218,8 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
             'tipus': self.request.GET.get('tipus', ''),
             'estat': self.request.GET.get('estat', ''),
             'visibility': self.request.GET.get('visibility', ''),
-            'show_past': self._is_true(self.request.GET.get('show_past')),
-            'show_imported': self._is_true(self.request.GET.get('show_imported')),
+            'show_past': is_true(self.request.GET.get('show_past')),
+            'show_imported': is_true(self.request.GET.get('show_imported')),
             'view_mode': 'calendar' if self.request.GET.get('view') == 'calendar' else 'list',
         }
         if current_filters['day']:
@@ -264,30 +263,7 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
         elif current_filters['date_from']:
             anchor_date = self._parse_date(current_filters['date_from']) or anchor_date
 
-        month_start = anchor_date.replace(day=1)
-        _, days_in_month = calendar.monthrange(month_start.year, month_start.month)
-        month_end = month_start.replace(day=days_in_month)
-        first_weekday = month_start.weekday()  # dilluns=0
-        calendar_start = month_start - timedelta(days=first_weekday)
-        calendar_end = month_end + timedelta(days=(6 - month_end.weekday()))
-
-        calendar_cells = []
-        events_by_day = {}
-        for acte in actes:
-            events_by_day.setdefault(acte.inici.date(), []).append(acte)
-
-        cursor = calendar_start
-        while cursor <= calendar_end:
-            day_events = events_by_day.get(cursor, [])
-            calendar_cells.append(
-                {
-                    'date': cursor,
-                    'in_month': cursor.month == anchor_date.month,
-                    'is_today': cursor == today,
-                    'events': sorted(day_events, key=lambda event: event.inici),
-                }
-            )
-            cursor += timedelta(days=1)
+        cal_data = build_calendar_data(actes, anchor_date, today)
 
         switch_view_query = self.request.GET.copy()
         switch_view_query.pop('view', None)
@@ -298,17 +274,15 @@ class ActeListView(AgendaContextMixin, LoginRequiredMixin, ListView):
 
         month_nav_query = self.request.GET.copy()
         month_nav_query.pop('month', None)
-        prev_month = (month_start - timedelta(days=1)).replace(day=1)
-        next_month = (month_end + timedelta(days=1)).replace(day=1)
         prev_query = month_nav_query.copy()
-        prev_query['month'] = prev_month.isoformat()
+        prev_query['month'] = cal_data['prev_month'].isoformat()
         next_query = month_nav_query.copy()
-        next_query['month'] = next_month.isoformat()
+        next_query['month'] = cal_data['next_month'].isoformat()
 
         context['calendar_meta'] = {
-            'month_label': month_start.strftime('%B %Y'),
-            'weeks': [calendar_cells[index:index + 7] for index in range(0, len(calendar_cells), 7)],
-            'weekday_labels': ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg'],
+            'month_label': cal_data['month_label'],
+            'weeks': cal_data['weeks'],
+            'weekday_labels': cal_data['weekday_labels'],
             'prev_month_query': prev_query.urlencode(),
             'next_month_query': next_query.urlencode(),
         }
@@ -733,9 +707,6 @@ class ElsMeusActesView(LoginRequiredMixin, ListView):
     template_name = 'agenda/els_meus_actes.html'
     context_object_name = 'participacions'
 
-    def _is_true(self, value):
-        return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
-
     def get_queryset(self):
         return (
             ParticipacioActe.objects.filter(
@@ -749,7 +720,7 @@ class ElsMeusActesView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        show_attended = self._is_true(self.request.GET.get('show_attended'))
+        show_attended = is_true(self.request.GET.get('show_attended'))
         attended_queryset = (
             ParticipacioActe.objects.filter(
                 usuari=self.request.user,

@@ -3,6 +3,8 @@ from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.utils import timezone
 from django.views.generic import TemplateView
 
+from core.utils import is_true
+
 from agenda.models import Acte, ParticipacioActe, SegmentVisibilitat
 from persones.models import Persona
 from reunions.models import Acta, Reunio, Tasca
@@ -11,9 +13,6 @@ from usuaris.models import Usuari
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'core/dashboard.html'
-
-    def _is_true(self, value):
-        return str(value).lower() in {'1', 'true', 'on', 'si', 'yes'}
 
     def _can_access_reunions(self):
         return self.request.user.rol in {Usuari.Rol.ADMINISTRACIO, Usuari.Rol.COORDINACIO}
@@ -36,7 +35,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         now = timezone.now()
         today = timezone.localdate()
         user = self.request.user
-        show_imported = self._is_true(self.request.GET.get('show_imported'))
+        show_imported = is_true(self.request.GET.get('show_imported'))
 
         actes_visibles = self._visible_actes_queryset()
         propers_actes_base = actes_visibles.filter(inici__gte=now, estat=Acte.Estat.PUBLICAT)
@@ -134,6 +133,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         context.update(dashboard_data)
         return context
+
 
 class AccessDeniedView(LoginRequiredMixin, TemplateView):
     template_name = 'core/access_denied.html'

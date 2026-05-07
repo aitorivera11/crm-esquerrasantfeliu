@@ -208,7 +208,7 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
                     'categoria': linia.categoria,
                     'ubicacio_actual': ubicacio,
                     'data_alta': compra.data_compra,
-                    'valor_estimad': linia.preu_unitari,
+                    'valor_estimat': linia.preu_unitari,
                     'codi_barres': linia.codi_barres,
                     'quantitat_actual': linia.quantitat,
                 },
@@ -218,7 +218,7 @@ class CompraMaterialCreateView(MaterialPermissionMixin, CreateView):
                 ('descripcio', linia.descripcio),
                 ('categoria', linia.categoria),
                 ('data_alta', compra.data_compra),
-                ('valor_estimad', linia.preu_unitari),
+                ('valor_estimat', linia.preu_unitari),
                 ('codi_barres', linia.codi_barres),
                 ('quantitat_actual', linia.quantitat),
             ]:
@@ -538,7 +538,7 @@ class TrasllatRapidView(MaterialPermissionMixin, FormView):
                 estat=item.estat,
                 ubicacio_actual=desti,
                 data_alta=item.data_alta,
-                valor_estimad=item.valor_estimad,
+                valor_estimat=item.valor_estimat,
                 codi_barres=item.codi_barres,
                 foto_principal=item.foto_principal,
                 quantitat_actual=quantitat,
@@ -569,7 +569,7 @@ class InventariRapidCreateView(MaterialPermissionMixin, FormView):
         ubicacio = form.cleaned_data['ubicacio_actual']
         quantitat = form.cleaned_data['quantitat']
         data_alta = form.cleaned_data['data_alta']
-        valor = form.cleaned_data['valor_estimad']
+        valor = form.cleaned_data['valor_estimat']
 
         existing_codes = ItemMaterial.objects.filter(codi_intern__startswith=f'{prefix}-').values_list('codi_intern', flat=True)
         max_sequence = 0
@@ -587,7 +587,7 @@ class InventariRapidCreateView(MaterialPermissionMixin, FormView):
             categoria=categoria,
             ubicacio_actual=ubicacio,
             data_alta=data_alta,
-            valor_estimad=valor,
+            valor_estimat=valor,
             quantitat_actual=quantitat,
         )
         MovimentMaterial.objects.create(
