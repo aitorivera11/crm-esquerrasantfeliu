@@ -55,7 +55,7 @@ class StockMaterialAdmin(admin.ModelAdmin):
 
 @admin.register(MovimentMaterial)
 class MovimentMaterialAdmin(admin.ModelAdmin):
-    list_display = ('tipus_moviment', 'data_moviment', 'origen', 'desti', 'quantitat', 'actor')
+    list_display = ('tipus_moviment', 'creat_el', 'origen', 'desti', 'quantitat', 'actor')
     list_filter = ('tipus_moviment',)
 
 

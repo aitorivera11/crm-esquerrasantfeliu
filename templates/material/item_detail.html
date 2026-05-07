@@ -24,7 +24,7 @@
         <tbody>
         {% for moviment in moviments %}
             <tr>
-                <td>{{ moviment.data_moviment|date:'d/m/Y H:i' }}</td>
+                <td>{{ moviment.creat_el|date:'d/m/Y H:i' }}</td>
                 <td>{{ moviment.get_tipus_moviment_display }}</td>
                 <td>{{ moviment.origen|default:'-' }}</td>
                 <td>{{ moviment.desti|default:'-' }}</td>

@@ -1,30 +1,32 @@
-import logging
 import calendar
-from datetime import datetime, timedelta
 import io
 import json
+import logging
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 from uuid import uuid4
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.files import File
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.core.files import File
-from django.core.files.storage import default_storage
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
-from django.urls import reverse
 
 from core.models import Auditoria
+from entitats.models import Entitat
 
 from .forms import ActeForm, InstagramImportForm, ParticipacioForm
 from .models import Acte, ActeTipus, ParticipacioActe, SegmentVisibilitat
@@ -501,8 +503,6 @@ class ActeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
 
         organizer_name = fields.get('organizer', '').strip()
         if organizer_name:
-            from entitats.models import Entitat
-            # Cerca per nom exacte (case-insensitive) o per nom parcial
             entitat = (
                 Entitat.objects.filter(nom__iexact=organizer_name).first()
                 or Entitat.objects.filter(nom__icontains=organizer_name).first()
@@ -604,8 +604,6 @@ class InstagramActeImportView(LoginRequiredMixin, PermissionRequiredMixin, View)
             )
         elif payload.get('instagram_image'):
             img_part = payload['instagram_image']
-            import io
-            from django.core.files.base import ContentFile
             img_content = ContentFile(img_part['bytes'])
             ext = 'jpg' if 'jpeg' in img_part.get('mime_type', '') else 'png'
             import_image_tmp_path = default_storage.save(
