@@ -70,7 +70,7 @@ class MaterialModelTests(TestCase):
             descripcio='Carpa',
             ubicacio_actual=self.ubicacio,
             data_alta=date.today(),
-            valor_estimad=0,
+            valor_estimat=0,
         )
         form = TrasllatRapidForm(data={'item': item.pk, 'desti': self.ubicacio.pk, 'observacions': ''})
         self.assertFalse(form.is_valid())
@@ -84,7 +84,7 @@ class MaterialModelTests(TestCase):
                 'ubicacio_actual': self.ubicacio2.pk,
                 'quantitat': 3,
                 'data_alta': date.today(),
-                'valor_estimad': '20.00',
+                'valor_estimat': '20.00',
             }
         )
         self.assertTrue(form.is_valid())
@@ -317,7 +317,7 @@ class PurchaseCreateStockSyncTests(TestCase):
             categoria=self.categoria,
             ubicacio_actual=self.ubicacio,
             data_alta=date(2026, 4, 15),
-            valor_estimad=Decimal('20.00'),
+            valor_estimat=Decimal('20.00'),
             quantitat_actual=Decimal('10'),
             linia_compra=linia,
         )

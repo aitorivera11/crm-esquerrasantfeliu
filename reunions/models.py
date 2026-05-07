@@ -50,7 +50,7 @@ class TipusReunio(TimeStampedModel):
     class Meta:
         ordering = ['ordre', 'nom']
         verbose_name = 'tipus de reunió'
-        verbose_name_plural = 'tipus de reunió'
+        verbose_name_plural = 'tipus de reunions'
 
     def __str__(self):
         return self.nom

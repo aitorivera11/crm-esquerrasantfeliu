@@ -133,7 +133,7 @@ class ItemMaterialForm(StyledFormMixin, forms.ModelForm):
             'estat',
             'ubicacio_actual',
             'data_alta',
-            'valor_estimad',
+            'valor_estimat',
             'quantitat_actual',
             'codi_barres',
             'foto_principal',
@@ -254,4 +254,4 @@ class InventariRapidForm(StyledFormMixin, forms.Form):
         input_formats=['%Y-%m-%d'],
         widget=forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
     )
-    valor_estimad = forms.DecimalField(min_value=0, decimal_places=2, max_digits=10, initial=0)
+    valor_estimat = forms.DecimalField(min_value=0, decimal_places=2, max_digits=10, initial=0)

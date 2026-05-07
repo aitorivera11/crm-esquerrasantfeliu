@@ -121,7 +121,7 @@ class ItemMaterial(TimeStampedModel):
     estat = models.CharField(max_length=20, choices=Estat.choices, default=Estat.OPERATIU)
     ubicacio_actual = models.ForeignKey(UbicacioMaterial, on_delete=models.PROTECT, related_name='items')
     data_alta = models.DateField()
-    valor_estimad = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    valor_estimat = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     codi_barres = models.CharField(max_length=64, blank=True, db_index=True)
     foto_principal = models.ImageField(upload_to='material/items/', blank=True)
     quantitat_actual = models.DecimalField(max_digits=12, decimal_places=2, default=1)
@@ -163,7 +163,9 @@ class StockMaterial(TimeStampedModel):
         ordering = ['producte']
         verbose_name = 'stock de material'
         verbose_name_plural = 'stocks de material'
-        unique_together = ('producte', 'ubicacio')
+        constraints = [
+            models.UniqueConstraint(fields=['producte', 'ubicacio'], name='material_unique_stock_producte_ubicacio'),
+        ]
 
     def clean(self):
         if self.quantitat_actual < 0:

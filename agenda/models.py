@@ -153,7 +153,9 @@ class ParticipacioActe(TimeStampedModel):
 
     class Meta:
         ordering = ['usuari__nom_complet', 'usuari__username']
-        unique_together = ('usuari', 'acte')
+        constraints = [
+            models.UniqueConstraint(fields=['usuari', 'acte'], name='agenda_unique_participacio_usuari_acte'),
+        ]
         verbose_name = 'participació a acte'
         verbose_name_plural = 'participacions a actes'
 
