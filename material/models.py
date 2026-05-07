@@ -184,7 +184,6 @@ class MovimentMaterial(TimeStampedModel):
         BAIXA = 'BAIXA', 'Baixa'
 
     tipus_moviment = models.CharField(max_length=20, choices=Tipus.choices)
-    data_moviment = models.DateTimeField(auto_now_add=True)
     origen = models.ForeignKey(UbicacioMaterial, null=True, blank=True, on_delete=models.SET_NULL, related_name='moviments_sortida')
     desti = models.ForeignKey(UbicacioMaterial, null=True, blank=True, on_delete=models.SET_NULL, related_name='moviments_entrada')
     quantitat = models.DecimalField(max_digits=12, decimal_places=2, default=1)
@@ -194,12 +193,12 @@ class MovimentMaterial(TimeStampedModel):
     stock = models.ForeignKey(StockMaterial, null=True, blank=True, on_delete=models.CASCADE, related_name='moviments')
 
     class Meta:
-        ordering = ['-data_moviment']
+        ordering = ['-creat_el']
         verbose_name = 'moviment de material'
         verbose_name_plural = 'moviments de material'
 
     def __str__(self):
-        return f'{self.get_tipus_moviment_display()} · {self.data_moviment:%d/%m/%Y %H:%M}'
+        return f'{self.get_tipus_moviment_display()} · {self.creat_el:%d/%m/%Y %H:%M}'
 
 
 class AssignacioMaterial(TimeStampedModel):
