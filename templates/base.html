@@ -28,9 +28,10 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+<a class="visually-hidden-focusable" href="#main-content">Saltar al contingut principal</a>
 {% if request.user.is_authenticated %}
 <div class="app-shell" x-data="{menuOpen:false, sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === '1'}" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''">
-    <aside class="app-sidebar" :class="menuOpen ? 'is-open' : ''">
+    <aside class="app-sidebar" :class="menuOpen ? 'is-open' : ''" aria-label="Navegació principal">
         <div class="sidebar-brand">
             <div class="brand-block">
                 <a href="{% url 'core:home' %}" class="brand-hero-link">
@@ -39,17 +40,23 @@
                 </a>
 
             </div>
-            <button class="btn btn-sm btn-outline-light d-lg-none" @click="menuOpen=false">Tancar</button>
+            <button class="btn btn-sm btn-outline-light d-lg-none" @click="menuOpen=false" aria-label="Tancar menú">Tancar</button>
         </div>
         {% include 'components/sidebar_nav.html' %}
     </aside>
-    <div class="app-overlay" x-show="menuOpen" @click="menuOpen=false"></div>
+    <div class="app-overlay" x-show="menuOpen" @click="menuOpen=false" aria-hidden="true"></div>
     <div class="app-main">
         <header class="app-header">
             <div class="app-header-main d-flex align-items-start gap-3">
-                <button class="btn btn-outline-secondary d-lg-none" @click="menuOpen=true">☰</button>
+                <button class="btn btn-outline-secondary d-lg-none" @click="menuOpen=true" aria-label="Obrir menú" aria-expanded="false" :aria-expanded="menuOpen.toString()">
+                    <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect y="2" width="18" height="2" rx="1"/><rect y="8" width="18" height="2" rx="1"/><rect y="14" width="18" height="2" rx="1"/></svg>
+                </button>
                 <button class="btn btn-outline-secondary d-none d-lg-inline-flex"
-                        @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')">☰</button>
+                        aria-label="Alternar barra lateral"
+                        :aria-expanded="(!sidebarCollapsed).toString()"
+                        @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')">
+                    <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect y="2" width="18" height="2" rx="1"/><rect y="8" width="18" height="2" rx="1"/><rect y="14" width="18" height="2" rx="1"/></svg>
+                </button>
                 <div>
                     <h1 class="page-title mb-1">{% block page_title %}Panell de control{% endblock %}</h1>
                     {% block page_intro %}{% endblock %}
@@ -61,24 +68,24 @@
                     <div class="text-muted small">{{ request.user.get_rol_display }}</div>
                 </div>
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'usuaris:perfil' %}">Perfil</a>
-                <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Sortir</button></form>
+                <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" aria-label="Tancar sessió">Sortir</button></form>
             </div>
         </header>
 {% endif %}
-        <main class="{% if request.user.is_authenticated %}app-content{% else %}auth-shell{% endif %}">
+        <main class="{% if request.user.is_authenticated %}app-content{% else %}auth-shell{% endif %}" id="main-content">
             {% if messages %}
                 {% if request.user.is_authenticated %}
-                    <div class="stack-gap mb-4">
+                    <div class="stack-gap mb-4" role="status" aria-live="polite" aria-atomic="false">
                         {% for message in messages %}
                             <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show" role="alert">
                                 {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tancar notificació"></button>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="auth-messages">
-                        {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
+                    <div class="auth-messages" role="status" aria-live="polite">
+                        {% for message in messages %}<div class="alert alert-info" role="alert">{{ message }}</div>{% endfor %}
                     </div>
                 {% endif %}
             {% endif %}

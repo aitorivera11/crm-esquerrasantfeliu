@@ -458,22 +458,35 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const payload = await response.json();
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || 'No s’ha pogut eliminar la tasca.');
+        throw new Error(payload.error || ‘No s’ha pogut eliminar la tasca.’);
       }
-      const taskChip = button.closest('[data-task-chip]');
+      const taskChip = button.closest(‘[data-task-chip]’);
       const taskList = taskChip?.parentElement;
       taskChip?.remove();
-      if (taskList && !taskList.querySelector('[data-task-chip]')) {
-        const empty = document.createElement('div');
-        empty.className = 'small text-muted';
-        empty.dataset.emptyPointTasks = '';
-        empty.textContent = 'Encara no hi ha tasques vinculades.';
+      if (taskList && !taskList.querySelector(‘[data-task-chip]’)) {
+        const empty = document.createElement(‘div’);
+        empty.className = ‘small text-muted’;
+        empty.dataset.emptyPointTasks = ‘’;
+        empty.textContent = ‘Encara no hi ha tasques vinculades.’;
         taskList.appendChild(empty);
       }
     } catch (error) {
-      const pointNode = button.closest('[data-acta-point]');
-      const feedback = pointNode?.querySelector('[data-command-feedback]');
-      if (feedback) feedback.textContent = error.message || 'Error en eliminar la tasca.';
+      const pointNode = button.closest(‘[data-acta-point]’);
+      const feedback = pointNode?.querySelector(‘[data-command-feedback]’);
+      if (feedback) feedback.textContent = error.message || ‘Error en eliminar la tasca.’;
     }
+  });
+
+  // Accessibility: wire up aria-describedby for form fields that have help text or error messages
+  document.querySelectorAll(‘.form-grid .form-grid__item’).forEach((item) => {
+    const input = item.querySelector(‘input:not([type="hidden"]), select, textarea’);
+    if (!input || !input.id) return;
+    const describedBy = [];
+    const helpEl = item.querySelector(`#${CSS.escape(input.id)}_help`);
+    const errorEl = item.querySelector(`#${CSS.escape(input.id)}_error`);
+    if (helpEl) describedBy.push(helpEl.id);
+    if (errorEl) describedBy.push(errorEl.id);
+    if (describedBy.length) input.setAttribute(‘aria-describedby’, describedBy.join(‘ ‘));
+    if (errorEl) input.setAttribute(‘aria-invalid’, ‘true’);
   });
 });
