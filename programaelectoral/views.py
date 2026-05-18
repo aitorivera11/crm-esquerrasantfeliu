@@ -14,11 +14,11 @@ from .forms import (
     BlocProgramaForm,
     ComentariPropostaForm,
     ConvertirIdeaForm,
-    IdeaLloviaForm,
+    IdeaPlujaForm,
     IdeaPublicaForm,
     PropostaForm,
 )
-from .models import BlocPrograma, ComentariProposta, IdeaLlovia, IdeaPublica, Proposta
+from .models import BlocPrograma, ComentariProposta, IdeaPluja, IdeaPublica, Proposta
 
 
 def _has_access(user):
@@ -35,7 +35,7 @@ class ProgramaPermissionMixin(LoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
-# ── Dashboard ──────────────────────────────────────────────────────────────────
+# ── Tauler de control ──────────────────────────────────────────────────────────
 
 class DashboardView(ProgramaPermissionMixin, TemplateView):
     template_name = 'programaelectoral/dashboard.html'
@@ -46,10 +46,10 @@ class DashboardView(ProgramaPermissionMixin, TemplateView):
         ctx['total_propostes'] = Proposta.objects.count()
         ctx['propostes_definitives'] = Proposta.objects.filter(estat=Proposta.Estat.DEFINITIVA).count()
         ctx['propostes_a_revisar'] = Proposta.objects.filter(estat=Proposta.Estat.A_REVISAR).count()
-        ctx['total_idees'] = IdeaLlovia.objects.count()
-        ctx['idees_sense_proposta'] = IdeaLlovia.objects.filter(proposta_associada__isnull=True).count()
+        ctx['total_idees'] = IdeaPluja.objects.count()
+        ctx['idees_sense_proposta'] = IdeaPluja.objects.filter(proposta_associada__isnull=True).count()
         ctx['idees_publiques_pendents'] = IdeaPublica.objects.filter(processada=False).count()
-        ctx['blocs_arrel'] = BlocPrograma.objects.filter(pare__isnull=True).prefetch_related('subblocos').order_by('ordre', 'titol')
+        ctx['blocs_arrel'] = BlocPrograma.objects.filter(pare__isnull=True).prefetch_related('subblocs').order_by('ordre', 'titol')
         return ctx
 
 
@@ -59,7 +59,7 @@ class DashboardView(ProgramaPermissionMixin, TemplateView):
 def estructura_view(request):
     if not _has_access(request.user):
         raise PermissionDenied
-    blocs_arrel = BlocPrograma.objects.filter(pare__isnull=True).prefetch_related('subblocos__propostes').order_by('ordre', 'titol')
+    blocs_arrel = BlocPrograma.objects.filter(pare__isnull=True).prefetch_related('subblocs__propostes').order_by('ordre', 'titol')
     return render(request, 'programaelectoral/estructura.html', {'blocs_arrel': blocs_arrel})
 
 
@@ -143,7 +143,10 @@ def proposta_nou(request):
 def proposta_detail(request, pk):
     if not _has_access(request.user):
         raise PermissionDenied
-    proposta = get_object_or_404(Proposta.objects.select_related('bloc', 'creat_per').prefetch_related('comentaris__autor', 'idees_origen'), pk=pk)
+    proposta = get_object_or_404(
+        Proposta.objects.select_related('bloc', 'creat_per').prefetch_related('comentaris__autor', 'idees_origen'),
+        pk=pk,
+    )
     comentari_form = ComentariPropostaForm()
     return render(request, 'programaelectoral/proposta_detail.html', {
         'proposta': proposta,
@@ -207,20 +210,20 @@ def proposta_comentar(request, pk):
     return redirect('programaelectoral:proposta_detail', pk=pk)
 
 
-# ── Idees (pluja d'idees) ──────────────────────────────────────────────────────
+# ── Pluja d'idees ──────────────────────────────────────────────────────────────
 
 @login_required
 def idea_list(request):
     if not _has_access(request.user):
         raise PermissionDenied
     font_filtre = request.GET.get('font', '')
-    qs = IdeaLlovia.objects.select_related('font_reunio', 'font_entitat', 'font_persona', 'proposta_associada', 'creat_per')
+    qs = IdeaPluja.objects.select_related('font_reunio', 'font_entitat', 'font_persona', 'proposta_associada', 'creat_per')
     if font_filtre:
         qs = qs.filter(font=font_filtre)
     return render(request, 'programaelectoral/idea_list.html', {
         'idees': qs,
         'font_filtre': font_filtre,
-        'fonts': IdeaLlovia.Font.choices,
+        'fonts': IdeaPluja.Font.choices,
     })
 
 
@@ -228,12 +231,12 @@ def idea_list(request):
 def idea_nou(request):
     if not _has_access(request.user):
         raise PermissionDenied
-    form = IdeaLloviaForm(request.POST or None)
+    form = IdeaPlujaForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         idea = form.save(commit=False)
         idea.creat_per = request.user
         idea.save()
-        messages.success(request, f'Idea "{idea.titol}" afegida.')
+        messages.success(request, f'Idea "{idea.titol}" afegida a la pluja d\'idees.')
         return redirect('programaelectoral:idea_list')
     return render(request, 'programaelectoral/idea_form.html', {'form': form, 'accio': 'Nova idea'})
 
@@ -243,7 +246,7 @@ def idea_detail(request, pk):
     if not _has_access(request.user):
         raise PermissionDenied
     idea = get_object_or_404(
-        IdeaLlovia.objects.select_related('font_reunio', 'font_entitat', 'font_persona', 'proposta_associada', 'creat_per'),
+        IdeaPluja.objects.select_related('font_reunio', 'font_entitat', 'font_persona', 'proposta_associada', 'creat_per'),
         pk=pk,
     )
     return render(request, 'programaelectoral/idea_detail.html', {'idea': idea})
@@ -253,7 +256,7 @@ def idea_detail(request, pk):
 def idea_convertir(request, pk):
     if not _has_access(request.user):
         raise PermissionDenied
-    idea = get_object_or_404(IdeaLlovia, pk=pk)
+    idea = get_object_or_404(IdeaPluja, pk=pk)
     initial = {'titol': idea.titol, 'contingut': idea.descripcio}
     form = ConvertirIdeaForm(request.POST or None, initial=initial)
     if request.method == 'POST' and form.is_valid():
@@ -277,7 +280,7 @@ def idea_convertir(request, pk):
 def idees_publiques_list(request):
     if not _has_access(request.user):
         raise PermissionDenied
-    qs = IdeaPublica.objects.select_related('persona_identificada', 'idea_llovia_resultant')
+    qs = IdeaPublica.objects.select_related('persona_identificada', 'idea_pluja_resultant')
     processades = request.GET.get('processades', '')
     if processades == '1':
         qs = qs.filter(processada=True)
@@ -295,17 +298,17 @@ def idea_publica_processar(request, pk):
     if not _has_access(request.user):
         raise PermissionDenied
     idea_publica = get_object_or_404(IdeaPublica, pk=pk)
-    idea_llovia = IdeaLlovia.objects.create(
+    idea_pluja = IdeaPluja.objects.create(
         titol=idea_publica.idea[:200] or '(sense títol)',
         descripcio=idea_publica.idea,
-        font=IdeaLlovia.Font.FORMULARI_PUBLIC,
+        font=IdeaPluja.Font.FORMULARI_PUBLIC,
         font_persona=idea_publica.persona_identificada,
         creat_per=request.user,
     )
     idea_publica.processada = True
-    idea_publica.idea_llovia_resultant = idea_llovia
-    idea_publica.save(update_fields=['processada', 'idea_llovia_resultant', 'actualitzat_el'])
-    messages.success(request, 'Idea pública afegida a la pluja d\'idees.')
+    idea_publica.idea_pluja_resultant = idea_pluja
+    idea_publica.save(update_fields=['processada', 'idea_pluja_resultant', 'actualitzat_el'])
+    messages.success(request, "Idea pública afegida a la pluja d'idees.")
     return redirect('programaelectoral:idees_publiques_list')
 
 
@@ -322,14 +325,15 @@ def formulari_public(request):
             if persona:
                 idea_publica.persona_identificada = persona
         elif idea_publica.nom or idea_publica.email or idea_publica.telefon:
-            persona, _ = Persona.objects.get_or_create(
-                email=idea_publica.email,
-                defaults={'nom': idea_publica.nom, 'telefon': idea_publica.telefon},
-            ) if idea_publica.email else (None, False)
-            if not persona and idea_publica.nom:
+            persona = None
+            if idea_publica.email:
+                persona, _ = Persona.objects.get_or_create(
+                    email=idea_publica.email,
+                    defaults={'nom': idea_publica.nom, 'telefon': idea_publica.telefon},
+                )
+            elif idea_publica.nom:
                 persona = Persona.objects.create(
                     nom=idea_publica.nom,
-                    email=idea_publica.email,
                     telefon=idea_publica.telefon,
                 )
             if persona:
@@ -341,7 +345,7 @@ def formulari_public(request):
 
 
 def formulari_cerca_persona(request):
-    """HTMX endpoint: cerca persones per nom per identificar-se al formulari públic."""
+    """Endpoint HTMX: cerca persones per nom al formulari públic."""
     q = request.GET.get('q', '').strip()
     persones = []
     if len(q) >= 2:

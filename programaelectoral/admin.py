@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BlocPrograma, ComentariProposta, IdeaLlovia, IdeaPublica, Proposta
+from .models import BlocPrograma, ComentariProposta, IdeaPluja, IdeaPublica, Proposta
 
 
 @admin.register(BlocPrograma)
@@ -23,8 +23,8 @@ class ComentariPropostaAdmin(admin.ModelAdmin):
     search_fields = ('text',)
 
 
-@admin.register(IdeaLlovia)
-class IdeaLloviaAdmin(admin.ModelAdmin):
+@admin.register(IdeaPluja)
+class IdeaPlujaAdmin(admin.ModelAdmin):
     list_display = ('titol', 'font', 'proposta_associada', 'creat_per', 'creat_el')
     list_filter = ('font',)
     search_fields = ('titol', 'descripcio')

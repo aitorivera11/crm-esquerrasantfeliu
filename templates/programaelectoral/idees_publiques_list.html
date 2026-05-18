@@ -60,10 +60,10 @@
                     {% if idea_publica.telefon %} · 📞 {{ idea_publica.telefon }}{% endif %}
                 </div>
                 {% endif %}
-                {% if idea_publica.idea_llovia_resultant %}
+                {% if idea_publica.idea_pluja_resultant %}
                 <div class="mt-2">
-                    <a href="{% url 'programaelectoral:idea_detail' idea_publica.idea_llovia_resultant.pk %}" class="btn btn-outline-success btn-sm">
-                        → Idea a la pluja d'idees
+                    <a href="{% url 'programaelectoral:idea_detail' idea_publica.idea_pluja_resultant.pk %}" class="btn btn-outline-success btn-sm">
+                        → Idea afegida a la pluja d'idees
                     </a>
                 </div>
                 {% endif %}

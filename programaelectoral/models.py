@@ -22,7 +22,7 @@ class BlocPrograma(TimeStampedModel):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='subblocos',
+        related_name='subblocs',
     )
     estat = models.CharField(max_length=20, choices=Estat.choices, default=Estat.PENDENT)
     creat_per = models.ForeignKey(
@@ -102,7 +102,7 @@ class ComentariProposta(TimeStampedModel):
         return f'Comentari de {self.autor} a "{self.proposta}"'
 
 
-class IdeaLlovia(TimeStampedModel):
+class IdeaPluja(TimeStampedModel):
     class Font(models.TextChoices):
         ENTITAT = 'ENTITAT', 'Reunió amb entitat'
         PERSONA_EXTERNA = 'PERSONA_EXTERNA', 'Contacte amb persona'
@@ -119,21 +119,21 @@ class IdeaLlovia(TimeStampedModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='idees_llovia',
+        related_name='idees_pluja',
     )
     font_entitat = models.ForeignKey(
         Entitat,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='idees_llovia',
+        related_name='idees_pluja',
     )
     font_persona = models.ForeignKey(
         Persona,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='idees_llovia',
+        related_name='idees_pluja',
     )
     proposta_associada = models.ForeignKey(
         Proposta,
@@ -147,12 +147,12 @@ class IdeaLlovia(TimeStampedModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='idees_llovia_creades',
+        related_name='idees_pluja_creades',
     )
 
     class Meta:
-        verbose_name = 'idea (pluja d\'idees)'
-        verbose_name_plural = 'idees (pluja d\'idees)'
+        verbose_name = "idea de la pluja d'idees"
+        verbose_name_plural = "idees de la pluja d'idees"
         ordering = ('-creat_el',)
 
     def __str__(self):
@@ -172,8 +172,8 @@ class IdeaPublica(TimeStampedModel):
         related_name='idees_publiques',
     )
     processada = models.BooleanField(default=False)
-    idea_llovia_resultant = models.ForeignKey(
-        IdeaLlovia,
+    idea_pluja_resultant = models.ForeignKey(
+        IdeaPluja,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

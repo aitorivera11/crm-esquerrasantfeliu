@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import BlocPrograma, ComentariProposta, IdeaLlovia, IdeaPublica, Proposta
+from .models import BlocPrograma, ComentariProposta, IdeaPluja, IdeaPublica, Proposta
 
 
 class BlocProgramaForm(forms.ModelForm):
@@ -53,9 +53,9 @@ class ComentariPropostaForm(forms.ModelForm):
         }
 
 
-class IdeaLloviaForm(forms.ModelForm):
+class IdeaPlujaForm(forms.ModelForm):
     class Meta:
-        model = IdeaLlovia
+        model = IdeaPluja
         fields = ('titol', 'descripcio', 'font', 'font_reunio', 'font_entitat', 'font_persona')
         widgets = {
             'titol': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Resum breu de la idea'}),

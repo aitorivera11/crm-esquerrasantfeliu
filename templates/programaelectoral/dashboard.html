@@ -37,7 +37,7 @@
     <div class="col-12 col-lg-6">
         <div class="card card-panel p-4 h-100">
             <h2 class="h5 mb-3">Estructura del programa</h2>
-            <p class="text-muted mb-3">Organitza els blocs i subblocos del programa, marca el seu estat i seguiment.</p>
+            <p class="text-muted mb-3">Organitza els blocs i subblocs del programa, marca el seu estat i seguiment.</p>
             {% for bloc in blocs_arrel %}
             <div class="mb-2">
                 <div class="d-flex justify-content-between align-items-center">
@@ -50,9 +50,9 @@
                         {{ bloc.get_estat_display }}
                     </span>
                 </div>
-                {% if bloc.subblocos.exists %}
+                {% if bloc.subblocs.exists %}
                 <div class="ms-3 mt-1">
-                    {% for sub in bloc.subblocos.all %}
+                    {% for sub in bloc.subblocs.all %}
                     <div class="text-muted small">↳ {{ sub.titol }}</div>
                     {% endfor %}
                 </div>

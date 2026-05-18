@@ -52,9 +52,9 @@
             </a>
         </div>
 
-        {% if bloc.subblocos.exists %}
+        {% if bloc.subblocs.exists %}
         <div class="ms-3 border-start ps-3">
-            {% for sub in bloc.subblocos.all %}
+            {% for sub in bloc.subblocs.all %}
             <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap py-2 border-bottom last-no-border">
                 <div>
                     <div class="fw-medium">{{ sub.titol }}</div>
@@ -82,7 +82,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-muted small ms-3">Sense subblocos. <a href="{% url 'programaelectoral:bloc_nou' %}?pare={{ bloc.pk }}">Afegir subbloc</a></p>
+        <p class="text-muted small ms-3">Sense subblocs. <a href="{% url 'programaelectoral:bloc_nou' %}?pare={{ bloc.pk }}">Afegir subbloc</a></p>
         {% endif %}
     </div>
     {% endfor %}
