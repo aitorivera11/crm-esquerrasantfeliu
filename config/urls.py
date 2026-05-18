@@ -20,6 +20,7 @@ urlpatterns = [
     path('material/', include(('material.urls', 'material'), namespace='material')),
     path('usuaris/', include(('usuaris.urls', 'usuaris'), namespace='usuaris')),
     path('llista-electoral/', include(('llistaelectoral.urls', 'llistaelectoral'), namespace='llistaelectoral')),
+    path('programa-electoral/', include(('programaelectoral.urls', 'programaelectoral'), namespace='programaelectoral')),
     path('', include(('core.urls', 'core'), namespace='core')),
 ]
 

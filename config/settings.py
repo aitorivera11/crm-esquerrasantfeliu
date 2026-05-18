@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'reunions',
     'material',
     'llistaelectoral',
+    'programaelectoral',
 ]
 
 MIDDLEWARE = [

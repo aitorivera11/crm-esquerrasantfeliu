@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Propostes{% endblock %}
+{% block page_title %}Propostes del programa{% endblock %}
+{% block content %}
+
+<section class="card card-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <h2 class="h5 mb-0">Totes les propostes</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'programaelectoral:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Tornar</a>
+            <a href="{% url 'programaelectoral:proposta_nou' %}" class="btn btn-primary btn-sm">Nova proposta</a>
+        </div>
+    </div>
+</section>
+
+<section class="card card-panel p-4 mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+            <label class="form-label">Estat</label>
+            <select name="estat" class="form-select form-select-sm">
+                <option value="">Tots</option>
+                {% for value, label in estats %}
+                <option value="{{ value }}" {% if estat_filtre == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-5">
+            <label class="form-label">Bloc</label>
+            <select name="bloc" class="form-select form-select-sm">
+                <option value="">Tots</option>
+                {% for bloc in blocs %}
+                <option value="{{ bloc.pk }}" {% if bloc_filtre == bloc.pk|stringformat:'s' %}selected{% endif %}>
+                    {% if bloc.pare %}↳ {% endif %}{{ bloc.titol }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3 d-grid">
+            <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>
+        </div>
+    </form>
+</section>
+
+<div class="stack-gap">
+    {% for proposta in propostes %}
+    <article class="card card-panel p-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div class="flex-grow-1">
+                {% if proposta.bloc %}
+                <div class="eyebrow mb-1">{{ proposta.bloc.titol }}</div>
+                {% endif %}
+                <h3 class="h6 mb-1">
+                    <a href="{% url 'programaelectoral:proposta_detail' proposta.pk %}" class="text-decoration-none">
+                        {{ proposta.titol }}
+                    </a>
+                </h3>
+                {% if proposta.contingut %}
+                <p class="text-muted small mb-0">{{ proposta.contingut|truncatechars:150 }}</p>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <span class="badge
+                    {% if proposta.estat == 'DEFINITIVA' %}text-bg-success
+                    {% elif proposta.estat == 'CONFIRMADA' %}text-bg-primary
+                    {% elif proposta.estat == 'A_REVISAR' %}text-bg-warning
+                    {% elif proposta.estat == 'DESCARTADA' %}text-bg-danger
+                    {% else %}text-bg-secondary{% endif %}">
+                    {{ proposta.get_estat_display }}
+                </span>
+                <span class="text-muted small">{{ proposta.comentaris.count }} comentari{{ proposta.comentaris.count|pluralize:'s' }}</span>
+            </div>
+        </div>
+    </article>
+    {% empty %}
+    {% url 'programaelectoral:proposta_nou' as proposta_nou_url %}
+    {% include 'components/empty_state.html' with icon='📝' title='Sense propostes' message='No hi ha propostes que coincideixin amb els filtres.' action_url=proposta_nou_url action_label='Nova proposta' %}
+    {% endfor %}
+</div>
+{% endblock %}

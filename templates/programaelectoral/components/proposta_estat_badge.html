@@ -1,0 +1,8 @@
+<span class="badge fs-6
+    {% if proposta.estat == 'DEFINITIVA' %}text-bg-success
+    {% elif proposta.estat == 'CONFIRMADA' %}text-bg-primary
+    {% elif proposta.estat == 'A_REVISAR' %}text-bg-warning
+    {% elif proposta.estat == 'DESCARTADA' %}text-bg-danger
+    {% else %}text-bg-secondary{% endif %}">
+    {{ proposta.get_estat_display }}
+</span>

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Estructura del programa{% endblock %}
+{% block page_title %}Estructura del programa electoral{% endblock %}
+{% block page_intro %}
+<p class="page-subtitle mb-0">Gestiona els blocs i subblocos, amb el seu estat de treball.</p>
+{% endblock %}
+{% block content %}
+
+<section class="card card-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div>
+            <h2 class="h5 mb-0">Blocs del programa</h2>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'programaelectoral:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Tornar</a>
+            <a href="{% url 'programaelectoral:bloc_nou' %}" class="btn btn-primary btn-sm">Nou bloc</a>
+        </div>
+    </div>
+</section>
+
+{% if blocs_arrel %}
+<div class="stack-gap">
+    {% for bloc in blocs_arrel %}
+    <div class="card card-panel p-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-2">
+            <div>
+                <div class="eyebrow mb-1">Bloc principal · ordre {{ bloc.ordre }}</div>
+                <h3 class="h5 mb-1">{{ bloc.titol }}</h3>
+                {% if bloc.descripcio %}<p class="text-muted mb-0 small">{{ bloc.descripcio }}</p>{% endif %}
+            </div>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <span class="badge
+                    {% if bloc.estat == 'DEFINITIU' %}text-bg-success
+                    {% elif bloc.estat == 'EN_REVISIO' %}text-bg-warning
+                    {% elif bloc.estat == 'A_FER' %}text-bg-danger
+                    {% else %}text-bg-secondary{% endif %}">
+                    {{ bloc.get_estat_display }}
+                </span>
+                <a href="{% url 'programaelectoral:bloc_nou' %}?pare={{ bloc.pk }}" class="btn btn-outline-secondary btn-sm">+ Subbloc</a>
+                <a href="{% url 'programaelectoral:bloc_editar' bloc.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
+                <form method="post" action="{% url 'programaelectoral:bloc_eliminar' bloc.pk %}" class="d-inline"
+                      onsubmit="return confirm('Segur que vols eliminar el bloc «{{ bloc.titol }}» i tot el seu contingut?')">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-danger btn-sm">Eliminar</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-3 flex-wrap">
+            <a href="{% url 'programaelectoral:proposta_list' %}?bloc={{ bloc.pk }}" class="info-chip text-decoration-none">
+                {{ bloc.propostes.count }} proposta{{ bloc.propostes.count|pluralize:'es' }}
+            </a>
+        </div>
+
+        {% if bloc.subblocos.exists %}
+        <div class="ms-3 border-start ps-3">
+            {% for sub in bloc.subblocos.all %}
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap py-2 border-bottom last-no-border">
+                <div>
+                    <div class="fw-medium">{{ sub.titol }}</div>
+                    {% if sub.descripcio %}<div class="text-muted small">{{ sub.descripcio }}</div>{% endif %}
+                    <a href="{% url 'programaelectoral:proposta_list' %}?bloc={{ sub.pk }}" class="info-chip text-decoration-none small mt-1 d-inline-block">
+                        {{ sub.propostes.count }} proposta{{ sub.propostes.count|pluralize:'es' }}
+                    </a>
+                </div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span class="badge
+                        {% if sub.estat == 'DEFINITIU' %}text-bg-success
+                        {% elif sub.estat == 'EN_REVISIO' %}text-bg-warning
+                        {% elif sub.estat == 'A_FER' %}text-bg-danger
+                        {% else %}text-bg-secondary{% endif %}">
+                        {{ sub.get_estat_display }}
+                    </span>
+                    <a href="{% url 'programaelectoral:bloc_editar' sub.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
+                    <form method="post" action="{% url 'programaelectoral:bloc_eliminar' sub.pk %}" class="d-inline"
+                          onsubmit="return confirm('Segur que vols eliminar el subbloc «{{ sub.titol }}»?')">
+                        {% csrf_token %}
+                        <button class="btn btn-outline-danger btn-sm">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small ms-3">Sense subblocos. <a href="{% url 'programaelectoral:bloc_nou' %}?pare={{ bloc.pk }}">Afegir subbloc</a></p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+{% url 'programaelectoral:bloc_nou' as bloc_nou_url %}
+{% include 'components/empty_state.html' with icon='📋' title='Estructura buida' message='Crea el primer bloc del programa electoral per organitzar les propostes.' action_url=bloc_nou_url action_label='Crear primer bloc' %}
+{% endif %}
+
+{% endblock %}

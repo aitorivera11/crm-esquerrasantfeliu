@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}{{ proposta.titol }}{% endblock %}
+{% block page_title %}{{ proposta.titol }}{% endblock %}
+{% block page_intro %}
+{% if proposta.bloc %}<p class="page-subtitle mb-0">{{ proposta.bloc.titol }}</p>{% endif %}
+{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+    <div class="col-12 col-lg-8">
+
+        <div class="card card-panel p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                <div>
+                    <div id="estat-badge">
+                        {% include 'programaelectoral/components/proposta_estat_badge.html' %}
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'programaelectoral:proposta_editar' proposta.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
+                    <a href="{% url 'programaelectoral:proposta_list' %}" class="btn btn-outline-secondary btn-sm">← Tornar</a>
+                </div>
+            </div>
+
+            {% if proposta.contingut %}
+            <div class="mb-3" style="white-space: pre-wrap;">{{ proposta.contingut }}</div>
+            {% else %}
+            <p class="text-muted fst-italic">Sense contingut. <a href="{% url 'programaelectoral:proposta_editar' proposta.pk %}">Afegir contingut</a></p>
+            {% endif %}
+
+            <div class="border-top pt-3 mt-3">
+                <div class="row g-2 text-muted small">
+                    <div class="col-6 col-md-4">
+                        <span>Creada per</span><br><strong>{{ proposta.creat_per|default:'—' }}</strong>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <span>Data creació</span><br><strong>{{ proposta.creat_el|date:'d/m/Y' }}</strong>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <span>Última modificació</span><br><strong>{{ proposta.actualitzat_el|date:'d/m/Y' }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if proposta.idees_origen.exists %}
+        <div class="card card-panel p-4 mb-4">
+            <h3 class="h6 mb-3">Idees d'origen</h3>
+            {% for idea in proposta.idees_origen.all %}
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <a href="{% url 'programaelectoral:idea_detail' idea.pk %}" class="text-decoration-none">{{ idea.titol }}</a>
+                <span class="badge text-bg-secondary">{{ idea.get_font_display }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="card card-panel p-4" id="comentaris-bloc">
+            {% include 'programaelectoral/components/comentaris_list.html' %}
+        </div>
+
+    </div>
+
+    <div class="col-12 col-lg-4">
+        <div class="card card-panel p-4 mb-4">
+            <h3 class="h6 mb-3">Canviar estat</h3>
+            <form
+                method="post"
+                action="{% url 'programaelectoral:proposta_canviar_estat' proposta.pk %}"
+                hx-post="{% url 'programaelectoral:proposta_canviar_estat' proposta.pk %}"
+                hx-target="#estat-badge"
+                hx-swap="innerHTML">
+                {% csrf_token %}
+                <select name="estat" class="form-select form-select-sm mb-2">
+                    {% for value, label in estats %}
+                    <option value="{{ value }}" {% if proposta.estat == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm w-100">Actualitzar estat</button>
+            </form>
+        </div>
+
+        {% if proposta.bloc %}
+        <div class="card card-panel p-4">
+            <h3 class="h6 mb-2">Bloc</h3>
+            <div class="fw-medium">{{ proposta.bloc.titol }}</div>
+            {% if proposta.bloc.pare %}
+            <div class="text-muted small">↑ {{ proposta.bloc.pare.titol }}</div>
+            {% endif %}
+            <a href="{% url 'programaelectoral:proposta_list' %}?bloc={{ proposta.bloc.pk }}" class="btn btn-outline-secondary btn-sm mt-2">
+                Veure propostes del bloc
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

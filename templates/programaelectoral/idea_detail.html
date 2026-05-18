@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}{{ idea.titol }}{% endblock %}
+{% block page_title %}{{ idea.titol }}{% endblock %}
+{% block page_intro %}
+<p class="page-subtitle mb-0">Pluja d'idees · {{ idea.get_font_display }}</p>
+{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+    <div class="col-12 col-lg-8">
+        <div class="card card-panel p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                <span class="badge text-bg-secondary">{{ idea.get_font_display }}</span>
+                <div class="d-flex gap-2">
+                    {% if not idea.proposta_associada %}
+                    <a href="{% url 'programaelectoral:idea_convertir' idea.pk %}" class="btn btn-primary btn-sm">Convertir a proposta</a>
+                    {% endif %}
+                    <a href="{% url 'programaelectoral:idea_list' %}" class="btn btn-outline-secondary btn-sm">← Tornar</a>
+                </div>
+            </div>
+
+            {% if idea.descripcio %}
+            <div style="white-space: pre-wrap;">{{ idea.descripcio }}</div>
+            {% else %}
+            <p class="text-muted fst-italic">Sense descripció ampliada.</p>
+            {% endif %}
+
+            <div class="border-top pt-3 mt-3">
+                <div class="row g-2 text-muted small">
+                    <div class="col-6 col-md-4">
+                        <span>Creada per</span><br><strong>{{ idea.creat_per|default:'—' }}</strong>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <span>Data</span><br><strong>{{ idea.creat_el|date:'d/m/Y' }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if idea.proposta_associada %}
+        <div class="card card-panel p-4 border-success">
+            <h3 class="h6 mb-2 text-success">Convertida en proposta</h3>
+            <div class="fw-medium">{{ idea.proposta_associada.titol }}</div>
+            <a href="{% url 'programaelectoral:proposta_detail' idea.proposta_associada.pk %}" class="btn btn-outline-success btn-sm mt-2">
+                Veure proposta
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-12 col-lg-4">
+        {% if idea.font_entitat or idea.font_reunio or idea.font_persona %}
+        <div class="card card-panel p-4 mb-4">
+            <h3 class="h6 mb-3">Origen</h3>
+            {% if idea.font_entitat %}
+            <div class="mb-2">
+                <div class="text-muted small">Entitat</div>
+                <div class="fw-medium">{{ idea.font_entitat }}</div>
+            </div>
+            {% endif %}
+            {% if idea.font_reunio %}
+            <div class="mb-2">
+                <div class="text-muted small">Reunió</div>
+                <div class="fw-medium">{{ idea.font_reunio }}</div>
+            </div>
+            {% endif %}
+            {% if idea.font_persona %}
+            <div class="mb-2">
+                <div class="text-muted small">Persona</div>
+                <div class="fw-medium">{{ idea.font_persona }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

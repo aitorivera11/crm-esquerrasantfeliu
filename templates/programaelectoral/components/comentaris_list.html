@@ -1,0 +1,29 @@
+<h3 class="h6 mb-3">Comentaris interns ({{ proposta.comentaris.count }})</h3>
+
+{% for comentari in proposta.comentaris.all %}
+<div class="py-3 border-bottom">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <strong class="small">{{ comentari.autor|default:'(desconegut)' }}</strong>
+        <span class="text-muted small">{{ comentari.creat_el|date:'d/m/Y H:i' }}</span>
+    </div>
+    <p class="mb-0" style="white-space: pre-wrap;">{{ comentari.text }}</p>
+</div>
+{% empty %}
+<p class="text-muted small">Encara no hi ha comentaris.</p>
+{% endfor %}
+
+<div class="mt-4">
+    <h4 class="h6 mb-2">Afegir comentari</h4>
+    <form
+        method="post"
+        action="{% url 'programaelectoral:proposta_comentar' proposta.pk %}"
+        hx-post="{% url 'programaelectoral:proposta_comentar' proposta.pk %}"
+        hx-target="#comentaris-bloc"
+        hx-swap="innerHTML"
+        hx-on::after-request="this.reset()">
+        {% csrf_token %}
+        {{ comentari_form.text }}
+        {% if comentari_form.text.errors %}<div class="text-danger small mt-1">{{ comentari_form.text.errors }}</div>{% endif %}
+        <button type="submit" class="btn btn-primary btn-sm mt-2">Enviar comentari</button>
+    </form>
+</div>

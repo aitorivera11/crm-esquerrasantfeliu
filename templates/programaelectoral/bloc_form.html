@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}{{ accio }}{% endblock %}
+{% block page_title %}{{ accio }}{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-7">
+        <div class="card card-panel p-4">
+            <form method="post">
+                {% csrf_token %}
+                <div class="stack-gap">
+                    <div>
+                        <label class="form-label fw-medium">Títol *</label>
+                        {{ form.titol }}
+                        {% if form.titol.errors %}<div class="text-danger small mt-1">{{ form.titol.errors }}</div>{% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label fw-medium">Descripció</label>
+                        {{ form.descripcio }}
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-medium">Ordre</label>
+                            {{ form.ordre }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-medium">Estat</label>
+                            {{ form.estat }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label fw-medium">Bloc pare (si és un subbloc)</label>
+                        {{ form.pare }}
+                        <div class="form-text">Deixa en blanc si és un bloc principal.</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">Desar</button>
+                    <a href="{% url 'programaelectoral:estructura' %}" class="btn btn-outline-secondary">Cancel·lar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

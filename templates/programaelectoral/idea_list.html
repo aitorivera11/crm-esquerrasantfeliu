@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Pluja d'idees{% endblock %}
+{% block page_title %}Pluja d'idees{% endblock %}
+{% block page_intro %}
+<p class="page-subtitle mb-0">Idees sense classificar per incorporar al programa electoral.</p>
+{% endblock %}
+{% block content %}
+
+<section class="card card-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <h2 class="h5 mb-0">Totes les idees</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'programaelectoral:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Tornar</a>
+            <a href="{% url 'programaelectoral:idea_nou' %}" class="btn btn-primary btn-sm">Nova idea</a>
+        </div>
+    </div>
+</section>
+
+<section class="card card-panel p-4 mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-12 col-md-5">
+            <label class="form-label">Font</label>
+            <select name="font" class="form-select form-select-sm">
+                <option value="">Totes</option>
+                {% for value, label in fonts %}
+                <option value="{{ value }}" {% if font_filtre == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3 d-grid">
+            <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>
+        </div>
+    </form>
+</section>
+
+<div class="stack-gap">
+    {% for idea in idees %}
+    <article class="card card-panel p-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div class="flex-grow-1">
+                <h3 class="h6 mb-1">
+                    <a href="{% url 'programaelectoral:idea_detail' idea.pk %}" class="text-decoration-none">{{ idea.titol }}</a>
+                </h3>
+                {% if idea.descripcio %}
+                <p class="text-muted small mb-1">{{ idea.descripcio|truncatechars:150 }}</p>
+                {% endif %}
+                <div class="d-flex gap-2 flex-wrap mt-1">
+                    <span class="badge text-bg-secondary">{{ idea.get_font_display }}</span>
+                    {% if idea.font_entitat %}<span class="info-chip">{{ idea.font_entitat }}</span>{% endif %}
+                    {% if idea.font_reunio %}<span class="info-chip">{{ idea.font_reunio }}</span>{% endif %}
+                    {% if idea.font_persona %}<span class="info-chip">{{ idea.font_persona }}</span>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2 align-items-start flex-column">
+                {% if idea.proposta_associada %}
+                <span class="badge text-bg-success">Convertida</span>
+                <a href="{% url 'programaelectoral:proposta_detail' idea.proposta_associada.pk %}" class="btn btn-outline-success btn-sm">Veure proposta</a>
+                {% else %}
+                <a href="{% url 'programaelectoral:idea_convertir' idea.pk %}" class="btn btn-outline-primary btn-sm">Convertir a proposta</a>
+                {% endif %}
+            </div>
+        </div>
+    </article>
+    {% empty %}
+    {% url 'programaelectoral:idea_nou' as idea_nou_url %}
+    {% include 'components/empty_state.html' with icon='💡' title='Sense idees' message='Afegeix la primera idea a la pluja d\'idees.' action_url=idea_nou_url action_label='Nova idea' %}
+    {% endfor %}
+</div>
+{% endblock %}

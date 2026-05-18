@@ -1,0 +1,15 @@
+{% if persones %}
+<div class="list-group">
+    {% for persona in persones %}
+    <button
+        type="button"
+        class="list-group-item list-group-item-action"
+        onclick="seleccionarPersona({{ persona.id }}, '{{ persona.nom|escapejs }}')">
+        <strong>{{ persona.nom }}</strong>
+        {% if persona.email %}<span class="text-muted small ms-2">{{ persona.email }}</span>{% endif %}
+    </button>
+    {% endfor %}
+</div>
+{% elif q %}
+<p class="text-muted small mb-0">No s'ha trobat cap persona amb el nom "{{ q }}".</p>
+{% endif %}

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Idees públiques{% endblock %}
+{% block page_title %}Aportacions públiques{% endblock %}
+{% block page_intro %}
+<p class="page-subtitle mb-0">Idees rebudes a través del formulari públic del programa electoral.</p>
+{% endblock %}
+{% block content %}
+
+<section class="card card-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <h2 class="h5 mb-0">Gestionar aportacions</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'programaelectoral:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Tornar</a>
+            <a href="{% url 'programaelectoral:formulari_public' %}" class="btn btn-outline-secondary btn-sm" target="_blank">Veure formulari públic</a>
+        </div>
+    </div>
+</section>
+
+<section class="card card-panel p-4 mb-4">
+    <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+        <div>
+            <label class="form-label">Estat</label>
+            <select name="processades" class="form-select form-select-sm">
+                <option value="">Totes</option>
+                <option value="0" {% if processades == '0' %}selected{% endif %}>Pendents</option>
+                <option value="1" {% if processades == '1' %}selected{% endif %}>Processades</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>
+    </form>
+</section>
+
+<div class="stack-gap">
+    {% for idea_publica in idees_publiques %}
+    <article class="card card-panel p-4 {% if idea_publica.processada %}opacity-75{% endif %}">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div class="flex-grow-1">
+                <div class="d-flex gap-2 mb-2 align-items-center flex-wrap">
+                    {% if idea_publica.processada %}
+                    <span class="badge text-bg-success">Processada</span>
+                    {% else %}
+                    <span class="badge text-bg-warning">Pendent</span>
+                    {% endif %}
+                    <span class="text-muted small">{{ idea_publica.creat_el|date:'d/m/Y H:i' }}</span>
+                    {% if idea_publica.nom %}
+                    <span class="info-chip">{{ idea_publica.nom }}</span>
+                    {% else %}
+                    <span class="text-muted small fst-italic">Anònim</span>
+                    {% endif %}
+                    {% if idea_publica.persona_identificada %}
+                    <a href="{% url 'persones:persona_detail' idea_publica.persona_identificada.pk %}" class="info-chip text-decoration-none">
+                        Persona: {{ idea_publica.persona_identificada }}
+                    </a>
+                    {% endif %}
+                </div>
+                <p class="mb-0" style="white-space: pre-wrap;">{{ idea_publica.idea }}</p>
+                {% if idea_publica.email or idea_publica.telefon %}
+                <div class="mt-2 text-muted small">
+                    {% if idea_publica.email %}📧 {{ idea_publica.email }}{% endif %}
+                    {% if idea_publica.telefon %} · 📞 {{ idea_publica.telefon }}{% endif %}
+                </div>
+                {% endif %}
+                {% if idea_publica.idea_llovia_resultant %}
+                <div class="mt-2">
+                    <a href="{% url 'programaelectoral:idea_detail' idea_publica.idea_llovia_resultant.pk %}" class="btn btn-outline-success btn-sm">
+                        → Idea a la pluja d'idees
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% if not idea_publica.processada %}
+            <form method="post" action="{% url 'programaelectoral:idea_publica_processar' idea_publica.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-primary btn-sm">Afegir a idees</button>
+            </form>
+            {% endif %}
+        </div>
+    </article>
+    {% empty %}
+    <div class="card card-panel p-5 text-center">
+        <p class="text-muted mb-0">No hi ha aportacions que coincideixin amb els filtres.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

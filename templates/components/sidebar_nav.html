@@ -47,6 +47,11 @@
                 Llista electoral
             </a>
             {% endif %}
+            {% if request.user.rol == 'ADMINISTRACIO' or request.user.rol == 'COORDINACIO' or perms.programaelectoral.manage_programa_electoral %}
+            <a href="{% url 'programaelectoral:dashboard' %}" class="nav-link-sub {% if request.resolver_match.namespace == 'programaelectoral' %}active{% endif %}">
+                Programa electoral
+            </a>
+            {% endif %}
         </div>
     </div>
 

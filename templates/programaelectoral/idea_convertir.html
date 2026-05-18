@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Convertir idea en proposta{% endblock %}
+{% block page_title %}Convertir idea en proposta{% endblock %}
+{% block page_intro %}
+<p class="page-subtitle mb-0">Idea: "{{ idea.titol }}"</p>
+{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card card-panel p-4 mb-4 border-info">
+            <h3 class="h6 mb-2 text-info">Idea original</h3>
+            <div class="fw-medium mb-1">{{ idea.titol }}</div>
+            {% if idea.descripcio %}<p class="text-muted mb-0 small">{{ idea.descripcio }}</p>{% endif %}
+        </div>
+
+        <div class="card card-panel p-4">
+            <h3 class="h5 mb-4">Nova proposta</h3>
+            <form method="post">
+                {% csrf_token %}
+                <div class="stack-gap">
+                    <div>
+                        <label class="form-label fw-medium">Títol de la proposta *</label>
+                        {{ form.titol }}
+                    </div>
+                    <div>
+                        <label class="form-label fw-medium">Contingut</label>
+                        {{ form.contingut }}
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-7">
+                            <label class="form-label fw-medium">Bloc</label>
+                            {{ form.bloc }}
+                        </div>
+                        <div class="col-12 col-md-5">
+                            <label class="form-label fw-medium">Estat inicial</label>
+                            {{ form.estat }}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">Crear proposta</button>
+                    <a href="{% url 'programaelectoral:idea_detail' idea.pk %}" class="btn btn-outline-secondary">Cancel·lar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
