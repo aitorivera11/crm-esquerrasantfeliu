@@ -160,6 +160,7 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
 # Utilitzar Redis per guardar les sessions de l'usuari si està disponible (més ràpid que DB)
+# cached_db fa servir Redis com a caché però la DB com a fallback si Redis no està disponible
 if REDIS_URL:
-    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
