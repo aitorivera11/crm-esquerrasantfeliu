@@ -125,12 +125,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usuaris.Usuari'
 SITE_ID = int(os.getenv('SITE_ID', '1'))
 
-# Configurar Redis com a memòria cau (Caché) interna si s'afegeix el recurs
-REDIS_URL = os.getenv('REDIS_URL', None)
+# Configuració de la memòria cau amb Redis
+REDIS_URL = os.getenv('REDIS_URL')
+
 if REDIS_URL:
     CACHES = {
         "default": {
-            "BACKEND": "django.core.caches.backends.redis.RedisCache",
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": REDIS_URL,
         }
     }
