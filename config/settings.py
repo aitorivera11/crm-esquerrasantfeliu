@@ -125,6 +125,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usuaris.Usuari'
 SITE_ID = int(os.getenv('SITE_ID', '1'))
 
+# Configurar Redis com a memòria cau (Caché) interna si s'afegeix el recurs
+REDIS_URL = os.getenv('REDIS_URL', None)
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.caches.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
@@ -141,8 +151,14 @@ LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'agenda:acte_list'
 LOGOUT_REDIRECT_URL = 'account_login'
 
-SECURE_SSL_REDIRECT = False
+# Seguretat estricta en producció basada en el flag DEBUG
+SECURE_SSL_REDIRECT = not DEBUG
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+
+# Utilitzar Redis per guardar les sessions de l'usuari si està disponible (més ràpid que DB)
+if REDIS_URL:
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+
